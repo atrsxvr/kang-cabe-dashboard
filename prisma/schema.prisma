@@ -28,6 +28,22 @@ enum TaskStatus {
   DONE
 }
 
+/// Alur temuan lapangan: dilaporkan siapa saja, didiagnosa Agronomis, lalu
+/// ditangani tim. Boolean tidak cukup — tahap "sudah didiagnosa, belum
+/// disemprot" justru saat pekerjaan berpindah tangan.
+enum FindingStatus {
+  REPORTED
+  DIAGNOSED
+  TREATED
+  RESOLVED
+}
+
+enum Severity {
+  LOW
+  MEDIUM
+  HIGH
+}
+
 enum InventoryStatus {
   SAFE
   LOW
@@ -55,7 +71,9 @@ model User {
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt
 
-  tasksAssigned TaskAssignee[]
+  tasksAssigned      TaskAssignee[]
+  findingsReported   HealthLog[]   @relation("ReportedFindings")
+  findingsDiagnosed  HealthLog[]   @relation("DiagnosedFindings")
 
   @@index([deletedAt])
 }
@@ -116,21 +134,34 @@ model TaskAssignee {
 }
 
 model HealthLog {
-  id          String   @id @default(uuid())
-  seasonId    String
-  hst         Int      // Hari Setelah Tanam saat ditemukannya gejala
-  photoUrl    String?
-  symptoms    String   // Gejala penyakit/hama
-  diagnosis   String?  // Diagnosa dari Agronomis
-  treatment   String?  // Solusi / Racikan obat
-  isResolved  Boolean  @default(false)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  id         String        @id @default(uuid())
+  seasonId   String
+  hst        Int           // Hari Setelah Tanam saat ditemukannya gejala
+  photoUrl   String?
+  location   String?       // Petak/blok tempat temuan, kalau relevan
+  symptoms   String        // Gejala penyakit/hama
+  severity   Severity      @default(MEDIUM)
+  status     FindingStatus @default(REPORTED)
+  diagnosis  String?       // Diagnosa dari Agronomis
+  treatment  String?       // Solusi / Racikan obat
+  diagnosedAt DateTime?
+  resolvedAt  DateTime?
+  createdAt  DateTime      @default(now())
+  updatedAt  DateTime      @updatedAt
 
-  season Season @relation(fields: [seasonId], references: [id], onDelete: Cascade)
+  reportedById  String?
+  diagnosedById String?
+
+  season       Season @relation(fields: [seasonId], references: [id], onDelete: Cascade)
+  // Restrict, konsisten dengan TaskAssignee: anggota dinonaktifkan lewat
+  // deletedAt, bukan dihapus, supaya riwayat temuan tetap bisa ditelusuri.
+  reportedBy   User?  @relation("ReportedFindings", fields: [reportedById], references: [id], onDelete: Restrict)
+  diagnosedBy  User?  @relation("DiagnosedFindings", fields: [diagnosedById], references: [id], onDelete: Restrict)
 
   @@index([seasonId])
-  @@index([seasonId, isResolved]) // Daftar gejala yang belum tertangani
+  @@index([seasonId, status]) // Antrean temuan per tahap
+  @@index([reportedById])
+  @@index([diagnosedById])
 }
 
 model Inventory {

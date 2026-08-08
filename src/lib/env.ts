@@ -36,6 +36,11 @@ const schema = z.object({
   NODE_ENV: z
     .enum(["development", "test", "production"])
     .default("development"),
+
+  // Photo upload. Optional on purpose: the rest of the app runs without it,
+  // and the finding form degrades to text-only rather than failing to render.
+  SUPABASE_URL: z.url().optional(),
+  SUPABASE_SERVICE_ROLE_KEY: z.string().min(20).optional(),
 });
 
 export type Env = z.infer<typeof schema>;
@@ -55,6 +60,17 @@ export function parseEnv(source: Record<string, string | undefined>): Env {
   }
 
   return result.data;
+}
+
+/**
+ * Supabase's REST host is derivable from the pooler username, which carries the
+ * project ref (`postgres.<ref>`). Deriving it means only the secret key has to
+ * be configured by hand — one fewer value to get wrong.
+ */
+export function deriveSupabaseUrl(databaseUrl: string): string | undefined {
+  const user = databaseUrl.match(/^[a-z+]+:\/\/([^:@/]+)/i)?.[1];
+  const ref = user?.startsWith("postgres.") ? user.slice("postgres.".length) : undefined;
+  return ref ? `https://${ref}.supabase.co` : undefined;
 }
 
 let cached: Env | undefined;

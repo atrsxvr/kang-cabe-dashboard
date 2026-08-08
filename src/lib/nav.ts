@@ -21,7 +21,7 @@ export const navItems: NavItem[] = [
   { href: "/", label: "Dashboard", icon: LayoutDashboard },
   { href: "/seasons", label: "Manajemen Musim", icon: Sprout },
   { href: "/tasks", label: "Jadwal & Tugas", icon: CalendarCheck },
-  { href: "/health", label: "Kesehatan Tanaman", icon: Stethoscope },
+  { href: "/health", label: "Kesehatan & Monitoring", icon: Stethoscope },
   { href: "/inventory", label: "Inventaris & Alat", icon: Package },
   { href: "/harvest", label: "Panen & Penjualan", icon: Wheat },
   { href: "/finance", label: "Keuangan & Kas", icon: Wallet },

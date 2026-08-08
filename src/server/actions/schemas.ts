@@ -65,6 +65,62 @@ export const createTaskSchema = z.object({
 
 export type CreateTaskInput = z.input<typeof createTaskSchema>;
 
+export const findingStatuses = [
+  "REPORTED",
+  "DIAGNOSED",
+  "TREATED",
+  "RESOLVED",
+] as const;
+
+export const severities = ["LOW", "MEDIUM", "HIGH"] as const;
+
+export const createFindingSchema = z.object({
+  seasonId: z.string().min(1, "Musim tanam belum dipilih"),
+  hst: z.coerce
+    .number()
+    .int("HST harus bilangan bulat")
+    .min(0, "HST tidak boleh negatif")
+    .max(1000),
+  symptoms: z
+    .string()
+    .trim()
+    .min(10, "Jelaskan gejalanya minimal 10 karakter")
+    .max(2000),
+  severity: z.enum(severities),
+  location: z.string().trim().max(120).optional().or(z.literal("")),
+  reportedById: z.string().optional().or(z.literal("")),
+  photoUrl: z.url().optional().or(z.literal("")),
+});
+
+export const diagnoseFindingSchema = z.object({
+  findingId: z.string().min(1),
+  // Carried so the mutation cannot reach a finding in another season.
+  seasonId: z.string().min(1),
+  diagnosis: z.string().trim().min(5, "Diagnosa minimal 5 karakter").max(2000),
+  treatment: z
+    .string()
+    .trim()
+    .min(5, "Tuliskan perlakuan yang disarankan")
+    .max(2000),
+  diagnosedById: z.string().optional().or(z.literal("")),
+});
+
+export const updateFindingStatusSchema = z.object({
+  findingId: z.string().min(1),
+  seasonId: z.string().min(1),
+  status: z.enum(findingStatuses),
+});
+
+/** A finding cannot be marked treated before anyone has diagnosed it. */
+export function canAdvanceFinding(
+  current: (typeof findingStatuses)[number],
+  target: (typeof findingStatuses)[number]
+): boolean {
+  if (current === target) return false;
+  if (current === "REPORTED") return target === "DIAGNOSED";
+  return findingStatuses.indexOf(target) > findingStatuses.indexOf(current);
+}
+
 export const updateTaskStatusSchema = z.object({
   taskId: z.string().min(1),
   // Carried so the mutation can prove the task belongs to the season the user
