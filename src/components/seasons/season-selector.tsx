@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 
 import {
   Select,
@@ -9,6 +9,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { SEASON_PARAM } from "@/lib/season-param";
 import type { SeasonSummary } from "@/server/queries/seasons";
 
 const statusLabel: Record<string, string> = {
@@ -19,12 +20,21 @@ const statusLabel: Record<string, string> = {
   ARCHIVED: "Arsip",
 };
 
-/**
- * Sprint 1: the pick is presentational only — nothing filters on it yet.
- * Wire it to the URL when the first season-scoped module lands.
- */
-export function SeasonSelector({ seasons }: { seasons: SeasonSummary[] }) {
-  const [value, setValue] = useState(seasons[0]?.id ?? "");
+export function SeasonSelector({
+  seasons,
+  defaultSeasonId,
+}: {
+  seasons: SeasonSummary[];
+  /**
+   * Used when the URL carries no season yet. Resolved on the server so the
+   * first paint already names the right one — layouts cannot read
+   * searchParams, so the selection itself is read from the client.
+   */
+  defaultSeasonId?: string;
+}) {
+  const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
 
   if (seasons.length === 0) {
     return (
@@ -32,8 +42,17 @@ export function SeasonSelector({ seasons }: { seasons: SeasonSummary[] }) {
     );
   }
 
+  const selectedId =
+    searchParams.get(SEASON_PARAM) ?? defaultSeasonId ?? seasons[0].id;
+
+  const onChange = (value: string) => {
+    const next = new URLSearchParams(searchParams);
+    next.set(SEASON_PARAM, value);
+    router.push(`${pathname}?${next}`);
+  };
+
   return (
-    <Select value={value} onValueChange={setValue}>
+    <Select value={selectedId} onValueChange={onChange}>
       <SelectTrigger
         className="w-47.5 sm:w-60"
         aria-label="Pilih musim tanam"

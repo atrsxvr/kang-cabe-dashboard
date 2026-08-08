@@ -151,7 +151,7 @@ export function AppShell({
         </div>
 
         <p className="text-muted-foreground border-sidebar-border border-t px-4 py-3 text-xs">
-          Sprint 1 — UI &amp; navigasi
+          Sprint 2 — Musim &amp; Tugas
         </p>
       </aside>
 

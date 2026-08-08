@@ -2,7 +2,7 @@ import { connection } from "next/server";
 import { CloudOff } from "lucide-react";
 
 import { SeasonSelector } from "@/components/seasons/season-selector";
-import { listSeasons } from "@/server/queries/seasons";
+import { getDefaultSeason, listSeasons } from "@/server/queries/seasons";
 
 /**
  * Reads the season list at request time.
@@ -20,14 +20,20 @@ export async function SeasonSelectorLoader() {
   //
   // The catch is attached to the promise rather than wrapping the JSX, so a
   // render error inside SeasonSelector still reaches a real error boundary.
-  const seasons = await listSeasons().catch((error: unknown) => {
-    console.error("Gagal memuat daftar musim:", error);
-    return null;
-  });
+  const data = await Promise.all([listSeasons(), getDefaultSeason()]).catch(
+    (error: unknown) => {
+      console.error("Gagal memuat daftar musim:", error);
+      return null;
+    }
+  );
 
-  if (!seasons) return <SeasonSelectorUnavailable />;
+  if (!data) return <SeasonSelectorUnavailable />;
 
-  return <SeasonSelector seasons={seasons} />;
+  const [seasons, fallback] = data;
+
+  return (
+    <SeasonSelector seasons={seasons} defaultSeasonId={fallback?.id} />
+  );
 }
 
 function SeasonSelectorUnavailable() {

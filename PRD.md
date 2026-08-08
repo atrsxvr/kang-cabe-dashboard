@@ -73,10 +73,21 @@ Aturan coding dan struktur folder ada di `CLAUDE.md`.
 - Fondasi: skema Prisma lengkap + RLS aktif, lapisan query di `src/server/`,
   validasi environment, error/loading boundary, Vitest, dan CI GitHub Actions.
 
+### Sprint 2 — selesai
+- **Manajemen Musim Tanam:** tabel semua musim, dialog tambah musim, dan tombol
+  maju tahap (PLANNING → ACTIVE → HARVESTING → COMPLETED).
+- **Jadwal & Tugas:** Board/Kanban dan Tabel, dialog tambah tugas dengan
+  banyak penugas, quick-update status, dan kalkulator HST otomatis.
+- **Logbook Kebun:** riwayat tugas selesai, diurutkan dengan `completedAt`.
+- Season Selector kini benar-benar menyaring data; pilihannya tersimpan di URL
+  (`?season=`) sehingga bisa dibagikan antar anggota.
+
 ### Belum dibangun
 - **Autentikasi & RBAC.** Empat peran di bagian 2 belum punya mekanisme login
-  sama sekali; seluruh aplikasi masih terbuka.
+  sama sekali. Sejak Sprint 2 aplikasi sudah bisa **menulis** ke database, dan
+  Server Actions adalah endpoint HTTP publik — siapa pun yang tahu URL-nya bisa
+  membuat atau mengubah data. Ini prioritas utama Sprint 3.
 - Angka nyata untuk kartu dashboard, grafik akumulasi panen, dan status cuaca.
-- Filter per musim yang benar-benar berfungsi dari Season Selector.
-- Dark/light mode toggle.
-- Seluruh isi modul 2–8.
+- Sunting dan hapus musim (baru bisa tambah dan maju tahap).
+- Sunting tugas (baru bisa tambah, ubah status, dan hapus lewat action).
+- Modul 4–8: Kesehatan, Inventaris, Panen, Keuangan, Settings.

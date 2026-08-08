@@ -4,7 +4,8 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 vi.mock("next/server", () => ({ connection: async () => undefined }));
 
 const listSeasons = vi.fn();
-vi.mock("@/server/queries/seasons", () => ({ listSeasons }));
+const getDefaultSeason = vi.fn();
+vi.mock("@/server/queries/seasons", () => ({ listSeasons, getDefaultSeason }));
 
 const { SeasonSelectorLoader } = await import(
   "@/components/seasons/season-selector-loader"
@@ -13,6 +14,8 @@ const { SeasonSelectorLoader } = await import(
 describe("SeasonSelectorLoader", () => {
   beforeEach(() => {
     listSeasons.mockReset();
+    getDefaultSeason.mockReset();
+    getDefaultSeason.mockResolvedValue(null);
     vi.spyOn(console, "error").mockImplementation(() => {});
   });
 

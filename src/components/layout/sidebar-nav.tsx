@@ -1,12 +1,43 @@
 "use client";
 
+import { Suspense } from "react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useSearchParams } from "next/navigation";
 
 import { isActive, navItems } from "@/lib/nav";
+import { SEASON_PARAM, withSeason } from "@/lib/season-param";
 import { cn } from "@/lib/utils";
 
+/**
+ * useSearchParams opts the whole route out of prerendering unless it sits
+ * behind a Suspense boundary. The fallback renders the same links without the
+ * season attached, so the menu never flickers — only the hrefs settle.
+ */
 export function SidebarNav({ onNavigate }: { onNavigate?: () => void }) {
+  return (
+    <Suspense fallback={<NavLinks onNavigate={onNavigate} />}>
+      <SeasonAwareNavLinks onNavigate={onNavigate} />
+    </Suspense>
+  );
+}
+
+function SeasonAwareNavLinks({ onNavigate }: { onNavigate?: () => void }) {
+  const searchParams = useSearchParams();
+
+  // Navigation must not silently drop the season, or every click would reset
+  // the user back to the default one.
+  return (
+    <NavLinks seasonId={searchParams.get(SEASON_PARAM)} onNavigate={onNavigate} />
+  );
+}
+
+function NavLinks({
+  seasonId,
+  onNavigate,
+}: {
+  seasonId?: string | null;
+  onNavigate?: () => void;
+}) {
   const pathname = usePathname();
 
   return (
@@ -17,7 +48,7 @@ export function SidebarNav({ onNavigate }: { onNavigate?: () => void }) {
         return (
           <Link
             key={href}
-            href={href}
+            href={withSeason(href, seasonId)}
             onClick={onNavigate}
             aria-current={active ? "page" : undefined}
             className={cn(
