@@ -2,10 +2,11 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Stethoscope } from "lucide-react";
+import { Stethoscope, ZoomIn } from "lucide-react";
 import { toast } from "sonner";
 
 import { NativeSelect } from "@/components/common/native-select";
+import { PhotoViewer } from "@/components/health/photo-viewer";
 import { SubmitButton } from "@/components/common/submit-button";
 import { Button } from "@/components/ui/button";
 import {
@@ -91,12 +92,26 @@ export function DiagnoseDialog({
         </div>
 
         {finding.photoUrl ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img
+          <PhotoViewer
             src={finding.photoUrl}
-            alt="Foto temuan"
-            className="max-h-56 w-full rounded-md border object-cover"
-          />
+            caption={`Temuan HST ${finding.hst}${finding.location ? ` · ${finding.location}` : ""}`}
+          >
+            <button
+              type="button"
+              className="focus-visible:ring-ring group relative block w-full overflow-hidden rounded-md border focus-visible:ring-2 focus-visible:outline-none"
+            >
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={finding.photoUrl}
+                alt="Foto temuan"
+                className="max-h-56 w-full object-cover"
+              />
+              <span className="absolute right-2 bottom-2 inline-flex items-center gap-1 rounded-md bg-black/65 px-2 py-1 text-xs text-white">
+                <ZoomIn className="size-3.5" aria-hidden />
+                Perbesar
+              </span>
+            </button>
+          </PhotoViewer>
         ) : null}
 
         <form action={onSubmit} className="grid gap-4">

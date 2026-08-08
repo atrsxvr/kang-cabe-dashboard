@@ -1,6 +1,7 @@
-import { MapPin, User as UserIcon } from "lucide-react";
+import { ImageIcon, MapPin, User as UserIcon } from "lucide-react";
 
 import { DiagnoseDialog } from "@/components/health/diagnose-dialog";
+import { PhotoViewer } from "@/components/health/photo-viewer";
 import { FindingStatusAction } from "@/components/health/finding-status-action";
 import {
   findingStatusLabels,
@@ -26,17 +27,7 @@ export function FindingCard({
 }) {
   return (
     <Card className="overflow-hidden py-0">
-      <div className="sm:flex">
-        {finding.photoUrl ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img
-            src={finding.photoUrl}
-            alt={`Foto temuan HST ${finding.hst}`}
-            loading="lazy"
-            className="h-44 w-full object-cover sm:h-auto sm:w-44 sm:shrink-0"
-          />
-        ) : null}
-
+      <div>
         <CardContent className="min-w-0 flex-1 p-4">
           <div className="mb-2 flex flex-wrap items-center gap-2">
             <Badge
@@ -73,6 +64,23 @@ export function FindingCard({
                 <UserIcon className="size-3.5" aria-hidden />
                 {finding.reportedBy.name}
               </span>
+            ) : null}
+            {finding.photoUrl ? (
+              // Not the photo itself — a way in. A resolved finding has no
+              // diagnose button, and without this its photo would be
+              // unreachable from the app entirely.
+              <PhotoViewer
+                src={finding.photoUrl}
+                caption={`Temuan HST ${finding.hst}${finding.location ? ` · ${finding.location}` : ""}`}
+              >
+                <button
+                  type="button"
+                  className="hover:text-foreground focus-visible:ring-ring inline-flex items-center gap-1 underline-offset-2 hover:underline focus-visible:ring-2 focus-visible:outline-none"
+                >
+                  <ImageIcon className="size-3.5" aria-hidden />
+                  Lihat foto
+                </button>
+              </PhotoViewer>
             ) : null}
           </div>
 
