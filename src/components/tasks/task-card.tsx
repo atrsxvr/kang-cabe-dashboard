@@ -73,6 +73,7 @@ export function TaskCard({
           taskId={task.id}
           seasonId={seasonId}
           status={task.status}
+          variant="card"
         />
       </CardContent>
     </Card>
