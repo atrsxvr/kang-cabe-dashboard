@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { Camera, Plus } from "lucide-react";
 import { toast } from "sonner";
 
+import { NativeSelect } from "@/components/common/native-select";
 import { SubmitButton } from "@/components/common/submit-button";
 import { severityLabels } from "@/components/health/finding-labels";
 import { Button } from "@/components/ui/button";
@@ -153,18 +154,17 @@ export function ReportFindingDialog({
 
           <div className="grid gap-4 sm:grid-cols-2">
             <Field id="severity" label="Tingkat keparahan" error={errors.severity}>
-              <select
+              <NativeSelect
                 id="severity"
                 name="severity"
                 defaultValue="MEDIUM"
-                className="border-input bg-transparent dark:bg-input/30 h-9 w-full rounded-md border px-3 py-1 text-sm shadow-xs"
               >
                 {Object.entries(severityLabels).map(([value, label]) => (
                   <option key={value} value={value}>
                     {label}
                   </option>
                 ))}
-              </select>
+              </NativeSelect>
             </Field>
 
             <Field
@@ -190,11 +190,10 @@ export function ReportFindingDialog({
           </Field>
 
           <Field id="reportedById" label="Ditemukan oleh" error={errors.reportedById}>
-            <select
+            <NativeSelect
               id="reportedById"
               name="reportedById"
               defaultValue=""
-              className="border-input bg-transparent dark:bg-input/30 h-9 w-full rounded-md border px-3 py-1 text-sm shadow-xs"
             >
               <option value="">— tidak disebutkan —</option>
               {members.map((member) => (
@@ -202,7 +201,7 @@ export function ReportFindingDialog({
                   {member.name}
                 </option>
               ))}
-            </select>
+            </NativeSelect>
           </Field>
 
           <DialogFooter>
@@ -237,7 +236,9 @@ function Field({
   children: React.ReactNode;
 }) {
   return (
-    <div className="grid gap-2">
+    // content-start: a sibling Field carrying a hint is taller, and a stretched
+    // grid would widen this one's gaps instead, pushing its control out of line.
+    <div className="grid content-start gap-2">
       <Label htmlFor={id}>{label}</Label>
       {children}
       {hint && !error ? (

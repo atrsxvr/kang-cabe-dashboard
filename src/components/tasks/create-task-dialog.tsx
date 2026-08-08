@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { Plus } from "lucide-react";
 import { toast } from "sonner";
 
+import { NativeSelect } from "@/components/common/native-select";
 import { SubmitButton } from "@/components/common/submit-button";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -138,16 +139,15 @@ export function CreateTaskDialog({
           </div>
 
           <Field id="status" label="Status" error={errors.status}>
-            <select
+            <NativeSelect
               id="status"
               name="status"
               defaultValue="TODO"
-              className="border-input bg-transparent dark:bg-input/30 h-9 w-full rounded-md border px-3 py-1 text-sm shadow-xs"
             >
               <option value="TODO">Belum dikerjakan</option>
               <option value="IN_PROGRESS">Dikerjakan</option>
               <option value="DONE">Selesai</option>
-            </select>
+            </NativeSelect>
           </Field>
 
           <fieldset className="grid gap-2">
@@ -208,7 +208,9 @@ function Field({
   children: React.ReactNode;
 }) {
   return (
-    <div className="grid gap-2">
+    // content-start: a sibling Field carrying a hint is taller, and a stretched
+    // grid would widen this one's gaps instead, pushing its control out of line.
+    <div className="grid content-start gap-2">
       <Label htmlFor={id}>{label}</Label>
       {children}
       {hint && !error ? (

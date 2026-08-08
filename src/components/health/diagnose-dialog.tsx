@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { Stethoscope } from "lucide-react";
 import { toast } from "sonner";
 
+import { NativeSelect } from "@/components/common/native-select";
 import { SubmitButton } from "@/components/common/submit-button";
 import { Button } from "@/components/ui/button";
 import {
@@ -142,11 +143,10 @@ export function DiagnoseDialog({
 
           <div className="grid gap-2">
             <Label htmlFor={`diagnosedById-${finding.id}`}>Didiagnosa oleh</Label>
-            <select
+            <NativeSelect
               id={`diagnosedById-${finding.id}`}
               name="diagnosedById"
               defaultValue={finding.diagnosedBy?.id ?? sorted[0]?.id ?? ""}
-              className="border-input bg-transparent dark:bg-input/30 h-9 w-full rounded-md border px-3 py-1 text-sm shadow-xs"
             >
               <option value="">— tidak disebutkan —</option>
               {sorted.map((member) => (
@@ -154,7 +154,7 @@ export function DiagnoseDialog({
                   {member.name}
                 </option>
               ))}
-            </select>
+            </NativeSelect>
           </div>
 
           <DialogFooter>

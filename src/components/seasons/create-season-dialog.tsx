@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { Plus } from "lucide-react";
 import { toast } from "sonner";
 
+import { NativeSelect } from "@/components/common/native-select";
 import { SubmitButton } from "@/components/common/submit-button";
 import { Button } from "@/components/ui/button";
 import {
@@ -137,18 +138,17 @@ export function CreateSeasonDialog() {
           <Field id="status" label="Status" error={errors.status}>
             {/* Native select: inside a form action, its value is submitted
                 without extra client wiring. */}
-            <select
+            <NativeSelect
               id="status"
               name="status"
               defaultValue="PLANNING"
-              className="border-input bg-transparent dark:bg-input/30 h-9 w-full rounded-md border px-3 py-1 text-sm shadow-xs"
             >
               {statusOptions.map((option) => (
                 <option key={option.value} value={option.value}>
                   {option.label}
                 </option>
               ))}
-            </select>
+            </NativeSelect>
           </Field>
 
           <Field id="notes" label="Catatan (opsional)" error={errors.notes}>
