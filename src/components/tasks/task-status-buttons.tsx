@@ -67,10 +67,15 @@ export function TaskStatusButtons({
 
   const isTable = variant === "table";
 
-  // On a card the group hugs the trailing corner, except on the last column
-  // where only the back button remains — pinning that to the right would leave
-  // it floating far from the card it belongs to.
-  const cardAlignment = status === "DONE" ? "justify-start" : "justify-end";
+  // On a card each button owns the corner matching its direction: back on the
+  // left, forward on the right. With only one of them present it takes its own
+  // corner rather than being centred or stranded at the far side.
+  const cardAlignment =
+    previous && next
+      ? "justify-between"
+      : next
+        ? "justify-end"
+        : "justify-start";
 
   const backButton = previous ? (
     <Button
@@ -105,7 +110,10 @@ export function TaskStatusButtons({
 
   return (
     <div
-      className={cn("flex items-center gap-1", !isTable && cardAlignment)}
+      className={cn(
+        "flex items-center gap-1",
+        !isTable && `w-full ${cardAlignment}`
+      )}
     >
       {isTable ? (
         <>
