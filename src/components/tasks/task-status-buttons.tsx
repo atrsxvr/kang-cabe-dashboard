@@ -6,6 +6,7 @@ import { Check, ChevronLeft, ChevronRight } from "lucide-react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 import { updateTaskStatus } from "@/server/actions/tasks";
 import { taskStatuses } from "@/server/actions/schemas";
 
@@ -58,38 +59,64 @@ export function TaskStatusButtons({
   };
 
   return (
+    // Both slots are always occupied — an absent button leaves an equally sized
+    // gap. Statuses differ in how many buttons apply, and without this the cell
+    // resizes on every change, nudging the whole row.
     <div className="flex items-center gap-1">
-      {previous ? (
-        <Button
-          size="sm"
-          variant="ghost"
-          disabled={pending}
-          onClick={() => move(previous)}
-          aria-label={`Pindahkan ke ${labels[previous]}`}
-        >
-          <ChevronLeft className="size-4" aria-hidden />
-        </Button>
-      ) : null}
+      {/* Back is icon-only, so its slot only needs one button's width. */}
+      <ButtonSlot className="min-w-9">
+        {previous ? (
+          <Button
+            size="sm"
+            variant="ghost"
+            disabled={pending}
+            onClick={() => move(previous)}
+            aria-label={`Pindahkan ke ${labels[previous]}`}
+          >
+            <ChevronLeft className="size-4" aria-hidden />
+          </Button>
+        ) : null}
+      </ButtonSlot>
 
-      {next ? (
-        <Button
-          size="sm"
-          variant="ghost"
-          className="ml-auto"
-          disabled={pending}
-          onClick={() => move(next)}
-          aria-label={`Pindahkan ke ${labels[next]}`}
-        >
-          {next === "DONE" ? (
-            <>
-              <Check className="size-4" aria-hidden />
-              Selesai
-            </>
-          ) : (
-            <ChevronRight className="size-4" aria-hidden />
-          )}
-        </Button>
-      ) : null}
+      {/* Forward carries "✓ Selesai" on the last step, the widest thing here. */}
+      <ButtonSlot>
+        {next ? (
+          <Button
+            size="sm"
+            variant="ghost"
+            disabled={pending}
+            onClick={() => move(next)}
+            aria-label={`Pindahkan ke ${labels[next]}`}
+          >
+            {next === "DONE" ? (
+              <>
+                <Check className="size-4" aria-hidden />
+                Selesai
+              </>
+            ) : (
+              <ChevronRight className="size-4" aria-hidden />
+            )}
+          </Button>
+        ) : null}
+      </ButtonSlot>
     </div>
+  );
+}
+
+/**
+ * Reserves the width of the widest button that can appear here ("✓ Selesai"),
+ * so the row keeps its geometry whichever status the task is in.
+ */
+function ButtonSlot({
+  className,
+  children,
+}: {
+  className?: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <span className={cn("flex min-w-24 items-center", className)}>
+      {children}
+    </span>
   );
 }

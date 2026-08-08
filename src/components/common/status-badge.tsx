@@ -32,17 +32,29 @@ export function StatusBadge({
   status,
   kind,
   className,
+  block = false,
 }: {
   status: string;
   kind: "season" | "task";
   className?: string;
+  /**
+   * Fills its container instead of hugging the label. Labels differ in length
+   * ("Belum dikerjakan" vs "Selesai"), which would otherwise resize a table
+   * column every time a status changes.
+   */
+  block?: boolean;
 }) {
   const labels = kind === "season" ? seasonLabels : taskLabels;
 
   return (
     <Badge
       variant="secondary"
-      className={cn("border-transparent", tones[status], className)}
+      className={cn(
+        "border-transparent",
+        block && "w-full justify-center",
+        tones[status],
+        className
+      )}
     >
       {labels[status] ?? status}
     </Badge>

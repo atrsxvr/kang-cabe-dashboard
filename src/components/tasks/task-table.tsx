@@ -56,8 +56,10 @@ export function TaskTable({
                 <TableHead className="text-right">HST</TableHead>
                 <TableHead>Jatuh Tempo</TableHead>
                 <TableHead>Penugas</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead className="text-right">Aksi</TableHead>
+                {/* Pinned: their content changes with status, and an auto-sized
+                    column would re-measure and shift the row on every update. */}
+                <TableHead className="w-40">Status</TableHead>
+                <TableHead className="w-44">Aksi</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -96,17 +98,15 @@ export function TaskTable({
                         ? task.assignees.map((a) => a.name).join(", ")
                         : "—"}
                     </TableCell>
-                    <TableCell>
-                      <StatusBadge status={task.status} kind="task" />
+                    <TableCell className="w-40">
+                      <StatusBadge status={task.status} kind="task" block />
                     </TableCell>
-                    <TableCell>
-                      <div className="flex justify-end">
-                        <TaskStatusButtons
-                          taskId={task.id}
-                          seasonId={seasonId}
-                          status={task.status}
-                        />
-                      </div>
+                    <TableCell className="w-44">
+                      <TaskStatusButtons
+                        taskId={task.id}
+                        seasonId={seasonId}
+                        status={task.status}
+                      />
                     </TableCell>
                   </TableRow>
                 );
