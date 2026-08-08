@@ -1,71 +1,125 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import { CalendarCheck, Sprout, Wallet, Wheat } from "lucide-react";
 
 import { PageHeader } from "@/components/common/page-header";
+import { StatusBadge } from "@/components/common/status-badge";
 import { SummaryCard } from "@/components/common/summary-card";
+import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { calculateHst, formatDate, formatDateRange } from "@/lib/hst";
+import { readSeasonParam, withSeason } from "@/lib/season-param";
+import { countWeekendTasks } from "@/server/queries/dashboard";
+import { resolveSeason } from "@/server/queries/seasons";
 
 export const metadata: Metadata = { title: "Dashboard" };
 
-// Sprint 1 renders static figures. These become Prisma aggregates once the
-// season-scoped modules exist.
-const summary = [
-  {
-    title: "Umur Tanaman",
-    value: "45",
-    unit: "HST",
-    hint: "Fase generatif awal",
-    icon: Sprout,
-  },
-  {
-    title: "Estimasi Kas",
-    value: "Rp 4.250.000",
-    hint: "Pemasukan dikurangi pengeluaran",
-    icon: Wallet,
-  },
-  {
-    title: "Tugas Weekend Ini",
-    value: "3",
-    unit: "tugas",
-    hint: "Belum ada yang selesai",
-    icon: CalendarCheck,
-  },
-  {
-    title: "Total Panen Sementara",
-    value: "128,5",
-    unit: "kg",
-    hint: "Akumulasi musim berjalan",
-    icon: Wheat,
-  },
-];
+export default async function DashboardPage(props: PageProps<"/">) {
+  const searchParams = await props.searchParams;
 
-export default function DashboardPage() {
+  // Reading searchParams already opts this page out of prerendering, so the
+  // figures below are computed per request rather than frozen at build time.
+  const season = await resolveSeason(readSeasonParam(searchParams));
+
+  if (!season) return <NoSeason />;
+
+  const weekend = await countWeekendTasks(season.id);
+  const currentHst = calculateHst(season.startDate);
+  const notPlanted = season.status === "PLANNING";
+
   return (
     <>
       <PageHeader
         title="Dashboard Overview"
-        description="Ringkasan kondisi musim tanam yang sedang berjalan."
+        description={`${season.name} · ditanam ${formatDate(season.startDate)}`}
       />
 
+      <div className="mb-6">
+        <StatusBadge status={season.status} kind="season" />
+      </div>
+
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        {summary.map((item) => (
-          <SummaryCard key={item.title} {...item} />
-        ))}
+        <SummaryCard
+          title="Umur Tanaman"
+          value={notPlanted ? "—" : String(currentHst)}
+          unit={notPlanted ? undefined : "HST"}
+          hint={
+            notPlanted
+              ? `Tanam dijadwalkan ${formatDate(season.startDate)}`
+              : `${season.variety} · ${season.plantCount.toLocaleString("id-ID")} tanaman`
+          }
+          icon={Sprout}
+        />
+
+        <SummaryCard
+          title="Tugas Weekend Ini"
+          value={String(weekend.outstanding)}
+          unit="tugas"
+          hint={
+            weekend.total === 0
+              ? `Tidak ada jadwal ${formatDateRange(weekend.from, weekend.to)}`
+              : `Sab–Min ${formatDateRange(weekend.from, weekend.to)} · ${weekend.total - weekend.outstanding} selesai`
+          }
+          icon={CalendarCheck}
+        />
+
+        <SummaryCard
+          title="Estimasi Kas"
+          value="Rp 4.250.000"
+          hint="Contoh — modul Keuangan belum dibangun"
+          icon={Wallet}
+        />
+
+        <SummaryCard
+          title="Total Panen Sementara"
+          value="128,5"
+          unit="kg"
+          hint="Contoh — modul Panen belum dibangun"
+          icon={Wheat}
+        />
       </div>
 
       <Card className="mt-6">
         <CardHeader>
-          <CardTitle className="text-base">Catatan Sprint 1</CardTitle>
+          <CardTitle className="text-base">Status Data</CardTitle>
         </CardHeader>
         <CardContent className="text-muted-foreground space-y-2 text-sm">
           <p>
-            Angka pada keempat kartu di atas masih statis. Grafik akumulasi
-            panen dan status cuaca dari PRD belum dibangun.
+            <strong className="text-foreground">Umur Tanaman</strong> dan{" "}
+            <strong className="text-foreground">Tugas Weekend Ini</strong>{" "}
+            dihitung dari database untuk musim yang dipilih di navbar.
           </p>
           <p>
-            Season Selector di kanan atas sudah mengambil data asli dari
-            database, tetapi pilihannya belum menyaring isi halaman.
+            Dua kartu lainnya masih berisi angka contoh karena modul Keuangan
+            dan Panen belum dibangun.
           </p>
+          <Button asChild size="sm" variant="secondary" className="mt-2">
+            <Link href={withSeason("/tasks", season.id)}>Lihat semua tugas</Link>
+          </Button>
+        </CardContent>
+      </Card>
+    </>
+  );
+}
+
+function NoSeason() {
+  return (
+    <>
+      <PageHeader title="Dashboard Overview" />
+      <Card>
+        <CardContent className="flex flex-col items-center gap-3 py-14 text-center">
+          <div className="bg-muted rounded-lg p-3">
+            <Sprout className="text-muted-foreground size-6" aria-hidden />
+          </div>
+          <div>
+            <p className="font-medium">Belum ada musim tanam</p>
+            <p className="text-muted-foreground mt-1 text-sm">
+              Ringkasan dihitung per musim, jadi buat musimnya dulu.
+            </p>
+          </div>
+          <Button asChild size="sm">
+            <Link href="/seasons">Ke Manajemen Musim</Link>
+          </Button>
         </CardContent>
       </Card>
     </>

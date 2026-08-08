@@ -60,3 +60,66 @@ export function daysUntil(due: Date, now: Date = new Date()): number {
     (startOfDayInJakarta(due) - startOfDayInJakarta(now)) / MS_PER_DAY
   );
 }
+
+/**
+ * Jakarta is a fixed UTC+7 with no daylight saving, so a calendar day's
+ * midnight is always seven hours before the same date at midnight UTC.
+ */
+const JAKARTA_OFFSET_MS = 7 * 60 * 60 * 1000;
+
+function jakartaMidnightAsInstant(dayMarkerUtc: number): Date {
+  return new Date(dayMarkerUtc - JAKARTA_OFFSET_MS);
+}
+
+/**
+ * The Saturday and Sunday of the week `now` falls in, as a half-open instant
+ * range [start, end) suitable for a database filter.
+ *
+ * Weeks run Monday–Sunday, so on a Sunday "this weekend" still means the
+ * Saturday just gone plus today — not next week's.
+ */
+export function weekendRange(now: Date = new Date()): {
+  start: Date;
+  end: Date;
+  saturday: Date;
+  sunday: Date;
+} {
+  const todayMarker = startOfDayInJakarta(now);
+
+  // Day of week read in Jakarta, remapped so Monday is 0 and Sunday is 6.
+  const jakartaWeekday = new Date(todayMarker).getUTCDay();
+  const mondayBased = (jakartaWeekday + 6) % 7;
+
+  const saturdayMarker = todayMarker + (5 - mondayBased) * MS_PER_DAY;
+  const sundayMarker = saturdayMarker + MS_PER_DAY;
+
+  return {
+    start: jakartaMidnightAsInstant(saturdayMarker),
+    end: jakartaMidnightAsInstant(sundayMarker + MS_PER_DAY),
+    saturday: jakartaMidnightAsInstant(saturdayMarker),
+    sunday: jakartaMidnightAsInstant(sundayMarker),
+  };
+}
+
+/** "9–10 Agu" — the weekend dates, for labelling the dashboard card. */
+export function formatDateRange(from: Date, to: Date): string {
+  const day = new Intl.DateTimeFormat("id-ID", {
+    timeZone: TIMEZONE,
+    day: "numeric",
+  });
+  const dayMonth = new Intl.DateTimeFormat("id-ID", {
+    timeZone: TIMEZONE,
+    day: "numeric",
+    month: "short",
+  });
+
+  const sameMonth =
+    new Intl.DateTimeFormat("en-CA", { timeZone: TIMEZONE, month: "2-digit" })
+      .format(from) ===
+    new Intl.DateTimeFormat("en-CA", { timeZone: TIMEZONE, month: "2-digit" })
+      .format(to);
+
+  return sameMonth
+    ? `${day.format(from)}–${dayMonth.format(to)}`
+    : `${dayMonth.format(from)} – ${dayMonth.format(to)}`;
+}
