@@ -38,18 +38,38 @@ export function ReportFindingDialog({
 }) {
   const [open, setOpen] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
+  /**
+   * The chosen file is held here rather than read back off the input at submit
+   * time. React resets a form after its action returns — including when the
+   * action reports a validation error — which empties the file input while the
+   * preview beside it stays on screen. The photo then vanishes silently on the
+   * next attempt. Owning the File makes the preview and what gets uploaded the
+   * same thing.
+   */
+  const [photo, setPhoto] = useState<File | null>(null);
   const [preview, setPreview] = useState<string | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
   const router = useRouter();
 
-  async function onSubmit(formData: FormData) {
-    const file = formData.get("photo");
+  const choosePhoto = (file: File | null) => {
+    setPhoto(file);
+    setPreview((previous) => {
+      if (previous) URL.revokeObjectURL(previous);
+      return file ? URL.createObjectURL(file) : null;
+    });
+  };
 
+  const resetForm = () => {
+    setErrors({});
+    choosePhoto(null);
+    if (fileRef.current) fileRef.current.value = "";
+  };
+
+  async function onSubmit(formData: FormData) {
     // Shrink before the request leaves the phone; a raw camera file is several
     // megabytes and would crawl over a field connection.
-    if (file instanceof File && file.size > 0) {
-      formData.set("photo", await downscaleImage(file));
-    }
+    if (photo) formData.set("photo", await downscaleImage(photo));
+    else formData.delete("photo");
 
     const result = await createFinding(formData);
 
@@ -59,22 +79,23 @@ export function ReportFindingDialog({
       return;
     }
 
-    setErrors({});
-    setPreview(null);
+    resetForm();
     setOpen(false);
     toast.success("Temuan dicatat. Menunggu diagnosa Agronomis.");
     router.refresh();
   }
+
+  const close = () => {
+    setOpen(false);
+    resetForm();
+  };
 
   return (
     <Dialog
       open={open}
       onOpenChange={(next) => {
         setOpen(next);
-        if (!next) {
-          setErrors({});
-          setPreview(null);
-        }
+        if (!next) resetForm();
       }}
     >
       <DialogTrigger asChild>
@@ -110,10 +131,7 @@ export function ReportFindingDialog({
                   // gallery — this form is filled standing in the field.
                   capture="environment"
                   className="sr-only"
-                  onChange={(event) => {
-                    const file = event.target.files?.[0];
-                    setPreview(file ? URL.createObjectURL(file) : null);
-                  }}
+                  onChange={(event) => choosePhoto(event.target.files?.[0] ?? null)}
                 />
                 {preview ? (
                   // eslint-disable-next-line @next/next/no-img-element
@@ -205,11 +223,9 @@ export function ReportFindingDialog({
           </Field>
 
           <DialogFooter>
-            <Button
-              type="button"
-              variant="secondary"
-              onClick={() => setOpen(false)}
-            >
+            {/* Routed through the same reset as onOpenChange — closing by this
+                button used to leave a stale preview behind. */}
+            <Button type="button" variant="secondary" onClick={close}>
               Batal
             </Button>
             <SubmitButton pendingLabel="Mengunggah…">

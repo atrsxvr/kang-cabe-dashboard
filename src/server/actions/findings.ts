@@ -24,17 +24,9 @@ function fieldErrorsOf(error: {
 }
 
 export async function createFinding(formData: FormData): Promise<ActionResult> {
-  const photo = formData.get("photo");
-  let photoUrl = "";
-
-  // Upload first: a finding saved without its photo cannot be repaired from
-  // the UI, whereas a failed upload can simply be retried.
-  if (photo instanceof File && photo.size > 0) {
-    const uploaded = await uploadFindingPhoto(photo);
-    if (!uploaded.ok) return { ok: false, message: uploaded.message };
-    photoUrl = uploaded.url;
-  }
-
+  // Validate before uploading. Uploading first left a file in the bucket every
+  // time the form came back with an error — storage filling up with photos
+  // belonging to findings that were never saved.
   const parsed = createFindingSchema.safeParse({
     seasonId: formData.get("seasonId"),
     hst: formData.get("hst"),
@@ -42,7 +34,7 @@ export async function createFinding(formData: FormData): Promise<ActionResult> {
     severity: formData.get("severity"),
     location: formData.get("location") ?? "",
     reportedById: formData.get("reportedById") ?? "",
-    photoUrl,
+    photoUrl: "",
   });
 
   if (!parsed.success) {
@@ -62,11 +54,20 @@ export async function createFinding(formData: FormData): Promise<ActionResult> {
 
   if (!season) return { ok: false, message: "Musim tidak ditemukan." };
 
+  const photo = formData.get("photo");
+  let photoUrl: string | null = null;
+
+  if (photo instanceof File && photo.size > 0) {
+    const uploaded = await uploadFindingPhoto(photo);
+    if (!uploaded.ok) return { ok: false, message: uploaded.message };
+    photoUrl = uploaded.url;
+  }
+
   await prisma.healthLog.create({
     data: {
       ...rest,
       seasonId,
-      photoUrl: photoUrl || null,
+      photoUrl,
       location: location ? location : null,
       reportedById: reportedById ? reportedById : null,
     },
