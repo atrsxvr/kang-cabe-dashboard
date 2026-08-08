@@ -7,6 +7,9 @@ export default defineConfig({
   schema: "prisma/schema.prisma",
   migrations: {
     path: "prisma/migrations",
+    // tsx, not plain node: the generated client uses extensionless imports
+    // that Node's ESM resolver rejects.
+    seed: "tsx prisma/seed.ts",
   },
   datasource: {
     // CLI-only (migrate, studio, db execute). Uses the session-mode pooler,

@@ -57,3 +57,26 @@ Dashboard web untuk mengelola proyek budidaya cabai rawit merah berbasis komunit
 - **UI/UX:** Modern, clean, dark/light mode toggle.
 - **Tech Stack:** Next.js (App Router), TypeScript, Tailwind CSS, shadcn/ui, Prisma ORM, Lucide Icons, Recharts.
 - **Data Integrity:** Semua data operasional (tugas, log, panen, keuangan) WAJIB terikat dengan `season_id`.
+
+---
+
+## 5. Status Implementasi
+
+Aturan coding dan struktur folder ada di `CLAUDE.md`.
+
+### Sprint 1 — selesai
+- App shell: sidebar 8 menu (responsive, drawer di mobile) dan top navbar.
+- Season Selector membaca daftar musim dari database secara *request-time*.
+  Pilihannya belum menyaring data halaman.
+- Dashboard Overview dengan 4 kartu ringkasan — **angkanya masih statis**.
+- Tujuh modul lain berupa halaman placeholder "Segera hadir".
+- Fondasi: skema Prisma lengkap + RLS aktif, lapisan query di `src/server/`,
+  validasi environment, error/loading boundary, Vitest, dan CI GitHub Actions.
+
+### Belum dibangun
+- **Autentikasi & RBAC.** Empat peran di bagian 2 belum punya mekanisme login
+  sama sekali; seluruh aplikasi masih terbuka.
+- Angka nyata untuk kartu dashboard, grafik akumulasi panen, dan status cuaca.
+- Filter per musim yang benar-benar berfungsi dari Season Selector.
+- Dark/light mode toggle.
+- Seluruh isi modul 2–8.

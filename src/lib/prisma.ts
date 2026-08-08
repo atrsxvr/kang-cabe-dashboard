@@ -1,12 +1,13 @@
+import "server-only";
+
 import { PrismaPg } from "@prisma/adapter-pg";
 
+import { getEnv } from "@/lib/env";
 import { PrismaClient } from "@/generated/prisma/client";
 
-const connectionString = process.env.DATABASE_URL;
-
-if (!connectionString) {
-  throw new Error("DATABASE_URL is not set. Copy .env.example to .env first.");
-}
+// Evaluated when this module is first imported, so a misconfigured environment
+// fails immediately with a named variable rather than a connection error later.
+const env = getEnv();
 
 // `next dev` reloads modules on every change, which would otherwise open a new
 // connection pool each time. Reuse a single client across reloads.
@@ -16,8 +17,10 @@ const globalForPrisma = globalThis as typeof globalThis & {
 
 export const prisma =
   globalForPrisma.prisma ??
-  new PrismaClient({ adapter: new PrismaPg({ connectionString }) });
+  new PrismaClient({
+    adapter: new PrismaPg({ connectionString: env.DATABASE_URL }),
+  });
 
-if (process.env.NODE_ENV !== "production") {
+if (env.NODE_ENV !== "production") {
   globalForPrisma.prisma = prisma;
 }
