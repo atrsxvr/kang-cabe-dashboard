@@ -82,12 +82,38 @@ Aturan coding dan struktur folder ada di `CLAUDE.md`.
 - Season Selector kini benar-benar menyaring data; pilihannya tersimpan di URL
   (`?season=`) sehingga bisa dibagikan antar anggota.
 
+### Setelah Sprint 2
+
+**Dashboard — dua kartu tersambung data asli.** *Umur Tanaman* dan *Tugas
+Weekend Ini* dihitung dari database untuk musim yang dipilih. "Weekend"
+berarti Sabtu–Minggu pada pekan berjalan menurut WIB, dan kartunya menghitung
+tugas yang **belum** selesai. *Estimasi Kas* dan *Total Panen* masih angka
+contoh, dan kini diberi label demikian di kartunya.
+
+**Monitoring temuan lapangan** — bagian dari modul 4, di menu yang dilabeli
+ulang **"Kesehatan & Monitoring"**:
+
+- Siapa pun mencatat temuan: gejala, tingkat keparahan, lokasi petak, foto,
+  dan HST saat ditemukan.
+- Agronomis mengisi diagnosa dan perlakuan; pelapor serta pendiagnosa terekam.
+- Status bertahap `REPORTED → DIAGNOSED → TREATED → RESOLVED`. Server menolak
+  melewati tahap diagnosa, jadi temuan tidak bisa ditutup atas perlakuan yang
+  tidak pernah ditentukan.
+- Foto diunggah ke Supabase Storage lewat server, dikecilkan dulu di browser.
+  Butuh `SUPABASE_SERVICE_ROLE_KEY`; tanpa itu temuan tetap bisa dicatat tanpa
+  foto.
+
+Yang **belum** dari modul 4: database SOP nutrisi dan dosis pemupukan, serta
+kaitan otomatis dari perlakuan ke tugas terjadwal — keduanya sengaja ditunda.
+
 ### Belum dibangun
 - **Autentikasi & RBAC.** Empat peran di bagian 2 belum punya mekanisme login
   sama sekali. Sejak Sprint 2 aplikasi sudah bisa **menulis** ke database, dan
   Server Actions adalah endpoint HTTP publik — siapa pun yang tahu URL-nya bisa
   membuat atau mengubah data. Ini prioritas utama Sprint 3.
-- Angka nyata untuk kartu dashboard, grafik akumulasi panen, dan status cuaca.
+- Kartu *Estimasi Kas* dan *Total Panen* di dashboard — menunggu modul
+  Keuangan dan Panen. Grafik akumulasi panen dan status cuaca juga belum ada.
 - Sunting dan hapus musim (baru bisa tambah dan maju tahap).
 - Sunting tugas (baru bisa tambah, ubah status, dan hapus lewat action).
-- Modul 4–8: Kesehatan, Inventaris, Panen, Keuangan, Settings.
+- Sisa modul 4: SOP nutrisi & dosis pemupukan.
+- Modul 5–8: Inventaris, Panen, Keuangan, Settings.
