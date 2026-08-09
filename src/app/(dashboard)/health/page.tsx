@@ -5,14 +5,13 @@ import { Leaf, Sprout } from "lucide-react";
 import { PageHeader } from "@/components/common/page-header";
 import { FindingCard } from "@/components/health/finding-card";
 import { HealthTabs } from "@/components/health/health-tabs";
-import {
-  FindingStatusFilter,
-  readStatusParam,
-} from "@/components/health/finding-status-filter";
+import { FindingStatusBoxes } from "@/components/health/finding-status-boxes";
+import { FindingStatusSelect } from "@/components/health/finding-status-select";
 import { ReportFindingDialog } from "@/components/health/report-finding-dialog";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { calculateHst, formatDate } from "@/lib/hst";
+import { readStatusParam } from "@/lib/finding-filter";
 import { readSeasonParam } from "@/lib/season-param";
 import {
   countFindingsByStatus,
@@ -42,8 +41,6 @@ export default async function HealthPage(props: PageProps<"/health">) {
     listTreatmentRecipes(),
   ]);
 
-  const total = Object.values(counts).reduce((sum, n) => sum + n, 0);
-
   const currentHst = calculateHst(season.startDate);
 
   return (
@@ -55,20 +52,20 @@ export default async function HealthPage(props: PageProps<"/health">) {
           title="Kesehatan & Monitoring"
           description={`${season.name} · HST ${currentHst} · ditanam ${formatDate(season.startDate)}`}
         />
-        <ReportFindingDialog
-          seasonId={season.id}
-          members={members}
-          currentHst={currentHst}
-          photoEnabled={isPhotoUploadEnabled()}
-        />
+        {/* Filter sits with the page actions rather than on its own row —
+            on a phone every extra row pushes the findings further down. */}
+        <div className="flex flex-wrap items-center gap-2">
+          <FindingStatusSelect active={activeStatus} />
+          <ReportFindingDialog
+            seasonId={season.id}
+            members={members}
+            currentHst={currentHst}
+            photoEnabled={isPhotoUploadEnabled()}
+          />
+        </div>
       </div>
 
-      <FindingStatusFilter
-        counts={counts}
-        active={activeStatus}
-        seasonId={season.id}
-        total={total}
-      />
+      <FindingStatusBoxes counts={counts} active={activeStatus} />
 
       {findings.length === 0 ? (
         <EmptyFindings filtered={Boolean(activeStatus)} />
