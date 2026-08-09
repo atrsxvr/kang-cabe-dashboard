@@ -5,7 +5,10 @@ import { Leaf, Sprout } from "lucide-react";
 import { PageHeader } from "@/components/common/page-header";
 import { FindingCard } from "@/components/health/finding-card";
 import { HealthTabs } from "@/components/health/health-tabs";
-import { findingStatusLabels } from "@/components/health/finding-labels";
+import {
+  FindingStatusFilter,
+  readStatusParam,
+} from "@/components/health/finding-status-filter";
 import { ReportFindingDialog } from "@/components/health/report-finding-dialog";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -28,12 +31,18 @@ export default async function HealthPage(props: PageProps<"/health">) {
 
   if (!season) return <NoSeason />;
 
+  const activeStatus = readStatusParam(searchParams);
+
   const [findings, counts, members, treatmentRecipes] = await Promise.all([
-    listFindingsBySeason(season.id),
+    listFindingsBySeason(season.id, activeStatus),
+    // Counts stay unfiltered — they are the filter control, so they have to
+    // keep showing what each stage holds even while one is selected.
     countFindingsByStatus(season.id),
     listActiveMembers(),
     listTreatmentRecipes(),
   ]);
+
+  const total = Object.values(counts).reduce((sum, n) => sum + n, 0);
 
   const currentHst = calculateHst(season.startDate);
 
@@ -54,23 +63,15 @@ export default async function HealthPage(props: PageProps<"/health">) {
         />
       </div>
 
-      <div className="mb-6 grid grid-cols-2 gap-3 sm:grid-cols-4">
-        {(["REPORTED", "DIAGNOSED", "TREATED", "RESOLVED"] as const).map(
-          (status) => (
-            <div key={status} className="rounded-lg border px-3 py-2">
-              <p className="text-lg font-semibold tabular-nums">
-                {counts[status]}
-              </p>
-              <p className="text-muted-foreground text-xs">
-                {findingStatusLabels[status]}
-              </p>
-            </div>
-          )
-        )}
-      </div>
+      <FindingStatusFilter
+        counts={counts}
+        active={activeStatus}
+        seasonId={season.id}
+        total={total}
+      />
 
       {findings.length === 0 ? (
-        <EmptyFindings />
+        <EmptyFindings filtered={Boolean(activeStatus)} />
       ) : (
         <div className="grid gap-4">
           {findings.map((finding) => (
@@ -88,7 +89,7 @@ export default async function HealthPage(props: PageProps<"/health">) {
   );
 }
 
-function EmptyFindings() {
+function EmptyFindings({ filtered }: { filtered: boolean }) {
   return (
     <Card>
       <CardContent className="flex flex-col items-center gap-3 py-14 text-center">
@@ -96,10 +97,13 @@ function EmptyFindings() {
           <Leaf className="text-muted-foreground size-6" aria-hidden />
         </div>
         <div>
-          <p className="font-medium">Belum ada temuan</p>
+          <p className="font-medium">
+            {filtered ? "Tidak ada temuan di tahap ini" : "Belum ada temuan"}
+          </p>
           <p className="text-muted-foreground mt-1 text-sm">
-            Catat apa pun yang terlihat tidak beres saat keliling kebun —
-            Agronomis akan menindaklanjuti.
+            {filtered
+              ? "Pilih tahap lain, atau tampilkan semua temuan."
+              : "Catat apa pun yang terlihat tidak beres saat keliling kebun — Agronomis akan menindaklanjuti."}
           </p>
         </div>
       </CardContent>

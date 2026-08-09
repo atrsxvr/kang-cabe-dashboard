@@ -3,6 +3,10 @@ import "server-only";
 import { prisma } from "@/lib/prisma";
 import type { FindingStatus, Severity } from "@/generated/prisma/client";
 
+// Re-exported so components can name these without reaching into the generated
+// client, which ESLint blocks outside src/server.
+export type { FindingStatus, Severity };
+
 /** Scoped by season, by rule — a finding only means anything within its crop. */
 
 export type FindingRow = {
@@ -40,10 +44,11 @@ const findingSelect = {
 } as const;
 
 export async function listFindingsBySeason(
-  seasonId: string
+  seasonId: string,
+  status?: FindingStatus
 ): Promise<FindingRow[]> {
   return prisma.healthLog.findMany({
-    where: { seasonId },
+    where: { seasonId, ...(status ? { status } : {}) },
     select: findingSelect,
     // Unresolved first, worst first, then newest — the agronomist's queue.
     orderBy: [{ status: "asc" }, { severity: "desc" }, { createdAt: "desc" }],
