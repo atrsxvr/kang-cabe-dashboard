@@ -4,7 +4,6 @@ import { Leaf, Sprout } from "lucide-react";
 
 import { PageHeader } from "@/components/common/page-header";
 import { FindingCard } from "@/components/health/finding-card";
-import { HealthTabs } from "@/components/health/health-tabs";
 import { FindingStatusBoxes } from "@/components/health/finding-status-boxes";
 import { FindingStatusSelect } from "@/components/health/finding-status-select";
 import { ReportFindingDialog } from "@/components/health/report-finding-dialog";
@@ -45,8 +44,6 @@ export default async function HealthPage(props: PageProps<"/health">) {
 
   return (
     <>
-      <HealthTabs />
-
       <div className="mb-6 flex flex-wrap items-start justify-between gap-3">
         <PageHeader
           title="Kesehatan & Monitoring"

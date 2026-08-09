@@ -5,7 +5,6 @@ import { ScrollText } from "lucide-react";
 import { PageHeader } from "@/components/common/page-header";
 import { CreateMaterialDialog } from "@/components/health/create-material-dialog";
 import { CreateRecipeDialog } from "@/components/health/create-recipe-dialog";
-import { HealthTabs } from "@/components/health/health-tabs";
 import { RecipeBrowser } from "@/components/health/recipe-browser";
 import { materialCategoryLabels } from "@/components/health/recipe-labels";
 import { Card, CardContent } from "@/components/ui/card";
@@ -25,8 +24,6 @@ export default async function RecipeLibraryPage() {
 
   return (
     <>
-      <HealthTabs />
-
       <div className="mb-6 flex flex-wrap items-start justify-between gap-3">
         <PageHeader
           title="Pustaka Racikan"
