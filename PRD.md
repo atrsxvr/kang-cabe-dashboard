@@ -1,134 +1,226 @@
-# Product Requirement Document (PRD) - Chili Farming Dashboard
+# Product Requirement Document — Kang Cabe Dashboard
 
-## 1. Executive Summary
-Dashboard web untuk mengelola proyek budidaya cabai rawit merah berbasis komunitas/RT. Aplikasi ini dirancang untuk mendukung siklus tanam berkelanjutan (multi-season) serta mempermudah kolaborasi 4 peran anggota dengan latar belakang yang berbeda.
-
-## 2. Target Users & Roles (RBAC)
-1. **Admin / Project Manager (Frontend Dev):** Mengelola jadwal, keuangan, alokasi tugas, dan konfigurasi sistem.
-2. **Agronomis / Lead Teknis (Ahli Pertanian):** Mengelola SOP nutrisi, kesehatan tanaman, dan diagnosa hama/penyakit.
-3. **Logistik & Ops (Buruh Pabrik):** Mengontrol stok bahan (saprodi), kelayakan alat kerja, dan pengadaan.
-4. **Pascapanen & Sales (Koki):** Mengelola data panen, grading, tren harga pasar, dan penjualan.
+Dokumen ini menggambarkan produk **sebagaimana adanya sekarang**, beserta yang
+direncanakan. Aturan coding dan struktur folder ada di `CLAUDE.md`.
 
 ---
 
-## 3. Core Features & Menu Structure
+## 1. Ringkasan
 
-### Global Feature
-- **Season Selector (Top Navbar):** Filter konteks data berdasarkan musim tanam aktif atau arsip musim terdahulu.
+Dashboard web untuk mengelola proyek budidaya cabai rawit merah berbasis
+komunitas/RT. Mendukung siklus tanam berkelanjutan (multi-musim) dan
+mempermudah kolaborasi empat anggota dengan latar belakang yang berbeda —
+hanya satu di antaranya berlatar teknis.
 
-### Menu Modules
-1. **Dashboard Overview:**
-   - Summary card: Umur tanaman (HST), Estimasi Panen, Sisa Kas, Tugas Weekend Ini.
-   - Status cuaca & grafik singkat akumulasi panen.
+**Kebun rujukan** yang datanya dipakai membangun produk ini: 5.000 tanaman
+varietas Rawit Ori 212, ditanam 10 Januari 2026, kini melewati **HST 200** dan
+berada pada fase produksi dengan **panen berjalan terus-menerus**. Racikan
+nutrisi dicampur dalam tangki **45 liter** untuk sekali aplikasi satu kebun.
 
-2. **Manajemen Musim Tanam (Season Management):**
-   - Inisiasi musim baru (Varietas benih, tanggal tanam, jumlah populasi).
-   - Penutupan musim & laporan *post-mortem*.
-   - **Cross-Season Analytics:** Tabel komparasi performa antar-musim (modal vs hasil vs profit).
-
-3. **Jadwal & Tugas (Task & Logbook):**
-   - Kalender & Kanban board kegiatan (*To-Do, In Progress, Done*).
-   - Jurnal Kebun (Logbook) riwayat aktivitas yang selesai.
-
-4. **Kesehatan & Monitoring (Health & Agronomy):**
-   - Database SOP Nutrisi & Dosis Pemupukan/Pestisida.
-   - **Health Log:** Upload foto tanaman sakit, diagnosa, dan instruksi penanganan.
-   - Riwayat perlakuan medis (*Treatment History*).
-
-5. **Inventaris & Alat (Inventory & Tools):**
-   - Monitoring stok bahan (Pupuk, Obat, Mulsa) dengan status indikator (*Aman / Critical / Habis*).
-   - Kelayakan alat kerja & pengajuan pembelian (*Restock Request*).
-
-6. **Panen & Penjualan (Harvest & Sales):**
-   - Input hasil panen per tanggal, total bobot (kg), dan *grading* (Grade A, B, C).
-   - Pencatatan transaksi penjualan & riset tren harga pasar lokal.
-
-7. **Keuangan & Kas (Finance):**
-   - Pencatatan Pemasukan & Pengeluaran + upload foto bukti transaksi.
-   - Laporan Laba/Rugi per musim tanam & kalkulator bagi hasil 4 anggota.
-
-8. **Settings & Users:**
-   - Manajemen akun anggota dan hak akses menu.
+Fakta-fakta itu membentuk banyak keputusan produk: fase produksi tidak berujung,
+perlakuan berulang dalam rotasi bukan sekali jalan, dan penyemprotan pestisida
+memblokir panen selama beberapa hari.
 
 ---
 
-## 4. Technical Constraints & Design Principles
-- **Mobile-First Responsive:** Dioptimalkan untuk layar ponsel karena sering diakses di lapangan.
-- **UI/UX:** Modern, clean, dark/light mode toggle.
-- **Tech Stack:** Next.js (App Router), TypeScript, Tailwind CSS, shadcn/ui, Prisma ORM, Lucide Icons, Recharts.
-- **Data Integrity:** Semua data operasional (tugas, log, panen, keuangan) WAJIB terikat dengan `season_id`.
+## 2. Pengguna & Peran
+
+| Peran | Anggota | Tanggung jawab |
+| --- | --- | --- |
+| Admin / Project Manager | Atras | Jadwal, keuangan, alokasi tugas, konfigurasi |
+| Agronomis / Lead Teknis | Tole | SOP nutrisi, kesehatan tanaman, diagnosa hama/penyakit |
+| Logistik & Ops | Gotay | Stok saprodi, kelayakan alat, pengadaan |
+| Pascapanen & Sales | Ican | Data panen, grading, tren harga, penjualan |
+
+> **Peran ini belum ditegakkan sistem.** Belum ada autentikasi; aplikasi tidak
+> bisa membedakan satu anggota dari yang lain. Pembagian di atas adalah
+> kesepakatan kerja, dan menjadi dasar RBAC yang akan dibangun. Lihat bagian 6.
+
+**Alur kerja yang disepakati:** pembuatan tugas dilakukan Admin, hasil
+koordinasi dengan Agronomis. Racikan disusun Agronomis.
 
 ---
 
-## 5. Status Implementasi
+## 3. Fitur Global
 
-Aturan coding dan struktur folder ada di `CLAUDE.md`.
+**Season Selector (navbar).** Menentukan konteks musim untuk seluruh halaman.
+Pilihannya tersimpan di URL (`?season=`) sehingga bisa dibagikan antar anggota
+dan bertahan saat berpindah halaman. Semua data operasional disaring
+berdasarkan musim yang dipilih.
 
-### Sprint 1 — selesai
-- App shell: sidebar 8 menu (responsive, drawer di mobile) dan top navbar.
-- Season Selector membaca daftar musim dari database secara *request-time*.
-  Pilihannya belum menyaring data halaman.
-- Dashboard Overview dengan 4 kartu ringkasan — **angkanya masih statis**.
-- Tujuh modul lain berupa halaman placeholder "Segera hadir".
-- Fondasi: skema Prisma lengkap + RLS aktif, lapisan query di `src/server/`,
-  validasi environment, error/loading boundary, Vitest, dan CI GitHub Actions.
+**Tema terang/gelap.** Mengikuti preferensi sistem, bisa diubah manual.
 
-### Sprint 2 — selesai
-- **Manajemen Musim Tanam:** tabel semua musim, dialog tambah musim, dan tombol
-  maju tahap (PLANNING → ACTIVE → HARVESTING → COMPLETED).
-- **Jadwal & Tugas:** Board/Kanban dan Tabel, dialog tambah tugas dengan
-  banyak penugas, quick-update status, dan kalkulator HST otomatis.
-- **Logbook Kebun:** riwayat tugas selesai, diurutkan dengan `completedAt`.
-- Season Selector kini benar-benar menyaring data; pilihannya tersimpan di URL
-  (`?season=`) sehingga bisa dibagikan antar anggota.
+---
 
-### Setelah Sprint 2
+## 4. Modul
 
-**Dashboard — dua kartu tersambung data asli.** *Umur Tanaman* dan *Tugas
-Weekend Ini* dihitung dari database untuk musim yang dipilih. "Weekend"
-berarti Sabtu–Minggu pada pekan berjalan menurut WIB, dan kartunya menghitung
-tugas yang **belum** selesai. *Estimasi Kas* dan *Total Panen* masih angka
-contoh, dan kini diberi label demikian di kartunya.
+### 4.1 Dashboard Overview — sebagian jalan
 
-**Monitoring temuan lapangan** — bagian dari modul 4, di menu yang dilabeli
-ulang **"Kesehatan & Monitoring"**:
+Empat kartu ringkasan untuk musim yang dipilih:
 
-- Siapa pun mencatat temuan: gejala, tingkat keparahan, lokasi petak, foto,
-  dan HST saat ditemukan.
-- Agronomis mengisi diagnosa dan perlakuan; pelapor serta pendiagnosa terekam.
-- Status bertahap `REPORTED → DIAGNOSED → TREATED → RESOLVED`. Server menolak
+| Kartu | Status |
+| --- | --- |
+| Umur Tanaman (HST) | data asli |
+| Tugas Weekend Ini | data asli |
+| Estimasi Kas | angka contoh, menunggu modul Keuangan |
+| Total Panen Sementara | angka contoh, menunggu modul Panen |
+
+"Weekend" berarti Sabtu–Minggu pada pekan berjalan menurut WIB, dan yang
+dihitung adalah tugas yang **belum** selesai. Kartu berlabel jelas mana yang
+masih contoh.
+
+**Belum ada:** grafik akumulasi panen, status cuaca.
+
+### 4.2 Manajemen Musim Tanam — jalan
+
+- Tabel seluruh musim: varietas, populasi, tanggal tanam, HST berjalan, jumlah
+  tugas, status.
+- Tambah dan sunting musim.
+- Tombol maju tahap: `PLANNING → ACTIVE → HARVESTING → COMPLETED`.
+- **Arsipkan**, bukan hapus. Menghapus musim akan menghanyutkan seluruh tugas,
+  temuan, panen, dan transaksi di dalamnya; arsip menyembunyikannya tanpa
+  merusak apa pun dan bisa dibatalkan.
+
+**Belum ada:** laporan post-mortem, analitik komparasi antar musim (modal vs
+hasil vs profit).
+
+### 4.3 Jadwal & Tugas — jalan
+
+- Tiga tampilan: **Board/Kanban**, **Tabel**, dan **Logbook**.
+- Tambah, sunting, hapus tugas. Satu tugas bisa ditugaskan ke beberapa anggota.
+- Ubah status lewat tombol cepat (`TODO → IN_PROGRESS → DONE`), bukan
+  drag-and-drop — tombol bekerja dengan sentuhan, tetikus, dan keyboard tanpa
+  perlakuan khusus, dan tidak bentrok dengan scroll papan di ponsel.
+- Kalkulator HST otomatis; kartu menandai tugas yang lewat jatuh tempo atau
+  lewat HST rencananya.
+- **Logbook Kebun:** riwayat tugas selesai secara kronologis, diurutkan dengan
+  waktu penyelesaian sebenarnya sehingga menyunting entri lama tidak mengacak
+  urutannya.
+
+**Belum ada:** tampilan kalender.
+
+### 4.4 Kesehatan & Monitoring — sebagian jalan
+
+Dua bagian, dalam satu menu bertab.
+
+**Temuan Lapangan — jalan.** Siapa pun yang keliling kebun mencatat apa yang
+dilihat; Agronomis menindaklanjuti.
+
+- Catat temuan: gejala, tingkat keparahan, lokasi petak, foto, HST saat
+  ditemukan, dan siapa yang menemukan.
+- Agronomis mengisi diagnosa dan perlakuan; pendiagnosa serta waktunya terekam.
+- Status bertahap `REPORTED → DIAGNOSED → TREATED → RESOLVED`. Sistem menolak
   melewati tahap diagnosa, jadi temuan tidak bisa ditutup atas perlakuan yang
   tidak pernah ditentukan.
-- Foto diunggah ke Supabase Storage lewat server, dikecilkan dulu di browser.
-  Butuh `SUPABASE_SERVICE_ROLE_KEY`; tanpa itu temuan tetap bisa dicatat tanpa
-  foto.
+- Foto bisa diperbesar untuk memeriksa detail daun.
+- Saring daftar berdasarkan tahap.
 
-**Pustaka Racikan** — SOP nutrisi dan dosis, di tab kedua menu Kesehatan:
+**Pustaka Racikan — jalan.** SOP nutrisi dan dosis, berlaku lintas musim.
 
-- Racikan **rutin** dikelompokkan per fase (Vegetatif, Generatif, Produksi)
-  dan bisa menyebut interval pengulangan; racikan **penanganan** dikaitkan ke
-  masalah tertentu, mis. Antraknosa.
-- **Kalkulator dosis:** takaran disimpan per liter, jadi mengubah volume
-  tangki langsung menghasilkan angka yang benar tanpa hitung manual.
-- **Masa tunggu panen** ditampilkan mencolok pada racikan pestisida. Kebun
-  panen terus-menerus, jadi menyemprot memblokir panen beberapa hari.
-- Racikan penanganan bisa diisikan langsung ke form Diagnosa. Takarannya
-  **disalin**, bukan ditautkan, supaya revisi racikan tidak mengubah catatan
-  perlakuan yang sudah terjadi.
-- Berbeda dari data lain, racikan **tidak terikat musim** — ini pengetahuan
-  yang dipakai ulang. Pengecualiannya dicatat di `CLAUDE.md`.
+- Racikan **rutin** dikelompokkan per fase (Vegetatif, Generatif, Produksi),
+  bisa menyebut interval pengulangan.
+- Racikan **penanganan** dikaitkan ke masalah tertentu, dan bisa diisikan
+  langsung ke form Diagnosa.
+- **Kalkulator dosis:** takaran disimpan per liter, jadi mengubah volume tangki
+  langsung menghasilkan angka yang benar tanpa hitung manual.
+- **Masa tunggu panen** ditampilkan mencolok pada racikan pestisida.
+- Bahan berdiri sebagai data tersendiri, siap dipakai modul Inventaris.
 
-Yang **belum** dari modul 4: program per-HST yang otomatis membuat tugas, dan
-kaitan ke stok Inventaris.
+**Belum ada:** program per-HST yang otomatis menjadwalkan tugas, kaitan ke stok.
 
-### Belum dibangun
-- **Autentikasi & RBAC.** Empat peran di bagian 2 belum punya mekanisme login
-  sama sekali. Sejak Sprint 2 aplikasi sudah bisa **menulis** ke database, dan
-  Server Actions adalah endpoint HTTP publik — siapa pun yang tahu URL-nya bisa
-  membuat atau mengubah data. Ini prioritas utama Sprint 3.
-- Kartu *Estimasi Kas* dan *Total Panen* di dashboard — menunggu modul
-  Keuangan dan Panen. Grafik akumulasi panen dan status cuaca juga belum ada.
-- Sunting dan hapus musim (baru bisa tambah dan maju tahap).
-- Sunting tugas (baru bisa tambah, ubah status, dan hapus lewat action).
-- Sisa modul 4: program per-HST yang otomatis menjadwalkan tugas.
-- Modul 5–8: Inventaris, Panen, Keuangan, Settings.
+### 4.5 Inventaris & Alat — belum dibangun
+
+Monitoring stok saprodi dengan indikator Aman / Critical / Habis, kelayakan
+alat kerja, dan pengajuan pembelian. Model data sudah ada; bahan racikan sudah
+disiapkan untuk ditempeli stok.
+
+### 4.6 Panen & Penjualan — belum dibangun
+
+Input hasil panen per tanggal dengan bobot dan grading A/B/C, pencatatan
+transaksi penjualan, dan tren harga pasar lokal.
+
+### 4.7 Keuangan & Kas — belum dibangun
+
+Pemasukan dan pengeluaran dengan foto bukti, laporan laba/rugi per musim, dan
+kalkulator bagi hasil empat anggota.
+
+### 4.8 Settings & Users — belum dibangun
+
+Manajemen akun anggota dan hak akses menu. Bergantung pada autentikasi.
+
+---
+
+## 5. Kriteria Produk
+
+Hal-hal yang berlaku di seluruh aplikasi, bukan pada satu modul.
+
+**Mobile-first, dipakai di lapangan.** Diakses sambil berdiri di kebun: sidebar
+jadi drawer, papan Kanban bisa di-scroll horizontal, tabel berubah jadi kartu
+di layar kecil, dan form foto membuka kamera langsung. Setiap halaman
+diverifikasi tidak melebar horizontal di lebar 390px.
+
+**Waktu selalu WIB.** Server berjalan di UTC, yang berganti hari pukul 07:00
+WIB — menghitung HST di UTC akan menampilkan angka kemarin bagi orang yang
+membuka aplikasi pagi hari.
+
+**Semua data operasional terikat musim.** Tugas, temuan, panen, dan keuangan
+wajib menyertakan `season_id`; aturan ini ditegakkan lint, bukan sekadar
+konvensi. **Pengecualian:** Pustaka Racikan tidak terikat musim — ia
+pengetahuan yang justru gunanya dipakai ulang musim berikutnya.
+
+**Angka yang dipakai bertindak harus bisa dipercaya.** Takaran disalin, bukan
+ditautkan, saat racikan dipakai — merevisi racikan tidak boleh mengubah catatan
+perlakuan yang sudah terjadi. Waktu penyelesaian tugas terpisah dari waktu
+penyuntingan. Data contoh diberi label sebagai contoh.
+
+**Keselamatan hasil panen.** Masa tunggu panen setelah penyemprotan ditampilkan
+mencolok. Kebun panen terus-menerus, dan pelanggarannya tidak terlihat pada
+tanaman.
+
+**Kesalahan input bisa diperbaiki sendiri.** Tiga dari empat pengguna bukan
+orang teknis. Semua entitas bisa disunting; penghapusan selalu meminta
+konfirmasi yang menyebutkan konsekuensinya.
+
+**Gagal dengan jujur.** Koneksi database putus tidak mematikan navigasi;
+kegagalan menampilkan pesan yang bisa ditindaklanjuti, bukan halaman kosong.
+
+---
+
+## 6. Batasan Teknis
+
+**Stack:** Next.js 16 (App Router, Turbopack) · React 19 · TypeScript ·
+Tailwind CSS 4 · shadcn/ui · Prisma 7 · PostgreSQL (Supabase) · Supabase
+Storage · Lucide · Vitest · pnpm.
+
+Recharts disebut untuk grafik tetapi **belum dipasang** — ditambahkan saat
+grafik pertama dibangun.
+
+**Keamanan data:** Row-level security aktif di seluruh tabel, hak akses role
+publik dicabut. Kunci layanan hanya dipakai di sisi server. Setiap tabel baru
+wajib mengaktifkan RLS di migrasinya.
+
+**Kualitas:** lint, typecheck, unit test, dan build berjalan di CI setiap push.
+
+---
+
+## 7. Yang Belum Ada
+
+Diurutkan menurut prioritas.
+
+**1. Autentikasi & RBAC — prioritas utama.** Belum ada login sama sekali.
+Aplikasi sudah bisa menulis dan menghapus data lewat endpoint HTTP publik:
+siapa pun yang tahu URL-nya bisa mengubah isi database. Peran di bagian 2 juga
+tetap menjadi fiksi sampai ini ada. **Jangan deploy ke publik sebelum
+autentikasi terpasang.**
+
+**2. Deployment.** Belum pernah dijalankan di luar localhost, sehingga belum
+pernah dipakai di kebun. Branch `main` dan `production` masih di commit awal.
+
+**3. Modul Inventaris, Panen, dan Keuangan** — sekaligus melengkapi dua kartu
+Dashboard yang masih berisi angka contoh.
+
+**4. Pengujian alur di CI.** Tes yang ada mencakup logika murni; alur seperti
+unggah foto dan penyaringan per musim baru diperiksa manual lewat browser.
+
+**5. Sisa fitur per modul** — dirinci di bagian 4: grafik panen, status cuaca,
+analitik antar musim, tampilan kalender, program nutrisi per-HST.
