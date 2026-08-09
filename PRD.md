@@ -30,7 +30,7 @@ Dashboard web untuk mengelola proyek budidaya cabai rawit merah berbasis komunit
    - Kalender & Kanban board kegiatan (*To-Do, In Progress, Done*).
    - Jurnal Kebun (Logbook) riwayat aktivitas yang selesai.
 
-4. **Kesehatan & Perawatan (Health & Agronomy):**
+4. **Kesehatan & Monitoring (Health & Agronomy):**
    - Database SOP Nutrisi & Dosis Pemupukan/Pestisida.
    - **Health Log:** Upload foto tanaman sakit, diagnosa, dan instruksi penanganan.
    - Riwayat perlakuan medis (*Treatment History*).
@@ -103,8 +103,23 @@ ulang **"Kesehatan & Monitoring"**:
   Butuh `SUPABASE_SERVICE_ROLE_KEY`; tanpa itu temuan tetap bisa dicatat tanpa
   foto.
 
-Yang **belum** dari modul 4: database SOP nutrisi dan dosis pemupukan, serta
-kaitan otomatis dari perlakuan ke tugas terjadwal — keduanya sengaja ditunda.
+**Pustaka Racikan** — SOP nutrisi dan dosis, di tab kedua menu Kesehatan:
+
+- Racikan **rutin** dikelompokkan per fase (Vegetatif, Generatif, Produksi)
+  dan bisa menyebut interval pengulangan; racikan **penanganan** dikaitkan ke
+  masalah tertentu, mis. Antraknosa.
+- **Kalkulator dosis:** takaran disimpan per liter, jadi mengubah volume
+  tangki langsung menghasilkan angka yang benar tanpa hitung manual.
+- **Masa tunggu panen** ditampilkan mencolok pada racikan pestisida. Kebun
+  panen terus-menerus, jadi menyemprot memblokir panen beberapa hari.
+- Racikan penanganan bisa diisikan langsung ke form Diagnosa. Takarannya
+  **disalin**, bukan ditautkan, supaya revisi racikan tidak mengubah catatan
+  perlakuan yang sudah terjadi.
+- Berbeda dari data lain, racikan **tidak terikat musim** — ini pengetahuan
+  yang dipakai ulang. Pengecualiannya dicatat di `CLAUDE.md`.
+
+Yang **belum** dari modul 4: program per-HST yang otomatis membuat tugas, dan
+kaitan ke stok Inventaris.
 
 ### Belum dibangun
 - **Autentikasi & RBAC.** Empat peran di bagian 2 belum punya mekanisme login
@@ -115,5 +130,5 @@ kaitan otomatis dari perlakuan ke tugas terjadwal — keduanya sengaja ditunda.
   Keuangan dan Panen. Grafik akumulasi panen dan status cuaca juga belum ada.
 - Sunting dan hapus musim (baru bisa tambah dan maju tahap).
 - Sunting tugas (baru bisa tambah, ubah status, dan hapus lewat action).
-- Sisa modul 4: SOP nutrisi & dosis pemupukan.
+- Sisa modul 4: program per-HST yang otomatis menjadwalkan tugas.
 - Modul 5–8: Inventaris, Panen, Keuangan, Settings.

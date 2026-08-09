@@ -7,6 +7,7 @@ import { toast } from "sonner";
 
 import { NativeSelect } from "@/components/common/native-select";
 import { PhotoViewer } from "@/components/health/photo-viewer";
+import { TreatmentPicker } from "@/components/health/treatment-picker";
 import { SubmitButton } from "@/components/common/submit-button";
 import { Button } from "@/components/ui/button";
 import {
@@ -22,19 +23,24 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { diagnoseFinding } from "@/server/actions/findings";
 import type { FindingRow } from "@/server/queries/findings";
+import type { RecipeRow } from "@/server/queries/recipes";
 import type { MemberOption } from "@/server/queries/users";
 
 export function DiagnoseDialog({
   finding,
   seasonId,
   members,
+  treatmentRecipes,
 }: {
   finding: FindingRow;
   seasonId: string;
   members: MemberOption[];
+  treatmentRecipes: RecipeRow[];
 }) {
   const [open, setOpen] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
+  // Controlled so the recipe picker can write into it.
+  const [treatment, setTreatment] = useState(finding.treatment ?? "");
   const router = useRouter();
 
   // Agronomists first: this form is theirs, so their name should be the
@@ -140,12 +146,21 @@ export function DiagnoseDialog({
             <Label htmlFor={`treatment-${finding.id}`}>
               Perlakuan yang disarankan
             </Label>
+            <TreatmentPicker
+              recipes={treatmentRecipes}
+              onApply={(text) =>
+                setTreatment((current) =>
+                  current.trim() ? `${current.trim()}\n\n${text}` : text
+                )
+              }
+            />
             <Textarea
               id={`treatment-${finding.id}`}
               name="treatment"
-              rows={3}
+              rows={5}
               required
-              defaultValue={finding.treatment ?? ""}
+              value={treatment}
+              onChange={(event) => setTreatment(event.target.value)}
               placeholder="Semprot fungisida berbahan aktif azoksistrobin, 2 ml/L, ulangi 7 hari"
               aria-invalid={Boolean(errors.treatment)}
             />

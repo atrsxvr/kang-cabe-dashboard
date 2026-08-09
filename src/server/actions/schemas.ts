@@ -121,6 +121,63 @@ export function canAdvanceFinding(
   return findingStatuses.indexOf(target) > findingStatuses.indexOf(current);
 }
 
+export const growthPhases = ["VEGETATIVE", "GENERATIVE", "PRODUCTION"] as const;
+export const recipeKinds = ["ROUTINE", "TREATMENT"] as const;
+export const applicationMethods = ["KOCOR", "SEMPROT"] as const;
+export const materialCategories = [
+  "FERTILIZER",
+  "PESTICIDE",
+  "FUNGICIDE",
+  "GROWTH_REGULATOR",
+  "OTHER",
+] as const;
+
+export const createMaterialSchema = z.object({
+  name: z.string().trim().min(2, "Nama bahan minimal 2 karakter").max(120),
+  unit: z.string().trim().min(1, "Satuan wajib diisi").max(16),
+  category: z.enum(materialCategories),
+  notes: z.string().trim().max(500).optional().or(z.literal("")),
+});
+
+const recipeItemSchema = z.object({
+  materialId: z.string().min(1),
+  amountPerLiter: z.coerce
+    .number()
+    .positive("Takaran harus lebih dari 0")
+    .max(100_000),
+});
+
+export const createRecipeSchema = z
+  .object({
+    name: z.string().trim().min(3, "Nama racikan minimal 3 karakter").max(160),
+    kind: z.enum(recipeKinds),
+    method: z.enum(applicationMethods),
+    phase: z.enum(growthPhases).optional(),
+    targetIssue: z.string().trim().max(160).optional().or(z.literal("")),
+    intervalDays: z.coerce.number().int().min(1).max(365).optional(),
+    basisVolumeL: z.coerce
+      .number()
+      .positive("Volume acuan harus lebih dari 0")
+      .max(10_000),
+    preHarvestIntervalDays: z.coerce.number().int().min(0).max(365).optional(),
+    notes: z.string().trim().max(2000).optional().or(z.literal("")),
+    items: z.array(recipeItemSchema).min(1, "Tambahkan minimal satu bahan"),
+  })
+  // A routine recipe without a phase cannot answer "what does this phase
+  // need", and a treatment without a target cannot be found when it is needed.
+  .refine((r) => r.kind !== "ROUTINE" || Boolean(r.phase), {
+    message: "Racikan rutin harus punya fase",
+    path: ["phase"],
+  })
+  .refine((r) => r.kind !== "TREATMENT" || Boolean(r.targetIssue), {
+    message: "Racikan penanganan harus menyebut masalah yang disasar",
+    path: ["targetIssue"],
+  })
+  .refine(
+    (r) => new Set(r.items.map((i) => i.materialId)).size === r.items.length,
+    { message: "Bahan yang sama tercantum dua kali", path: ["items"] }
+  );
+
 export const updateTaskStatusSchema = z.object({
   taskId: z.string().min(1),
   // Carried so the mutation can prove the task belongs to the season the user

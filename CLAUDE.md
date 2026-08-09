@@ -43,6 +43,14 @@ src/
 - **Every farming data query takes `seasonId` as a required argument.** Tasks,
   logs, harvests, and finance are meaningless unscoped, and an unfiltered query
   leaks one season's numbers into another's report.
+- **Exception: the recipe library** (`Material`, `Recipe`, `RecipeItem`, in
+  `src/server/queries/recipes.ts`). Those are knowledge, not a season's record —
+  their value is being reused next season, so scoping them would defeat the
+  point. Anything that records *an application* of a recipe still belongs to a
+  season. Do not widen this exception without the same reasoning.
+- **Copy a recipe's amounts into whatever records using it**, rather than only
+  linking. A revised recipe must not silently rewrite what was actually applied
+  last season, or the post-mortem lies.
 - Reads that must be fresh need **both** `await connection()` and a `<Suspense>`
   boundary. Suspense alone still prerenders at build time and freezes the data.
 - Anything rendered from a **layout** must handle its own failure. A layout's

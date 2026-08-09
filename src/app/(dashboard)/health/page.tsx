@@ -4,6 +4,7 @@ import { Leaf, Sprout } from "lucide-react";
 
 import { PageHeader } from "@/components/common/page-header";
 import { FindingCard } from "@/components/health/finding-card";
+import { HealthTabs } from "@/components/health/health-tabs";
 import { findingStatusLabels } from "@/components/health/finding-labels";
 import { ReportFindingDialog } from "@/components/health/report-finding-dialog";
 import { Button } from "@/components/ui/button";
@@ -15,6 +16,7 @@ import {
   listFindingsBySeason,
 } from "@/server/queries/findings";
 import { resolveSeason } from "@/server/queries/seasons";
+import { listTreatmentRecipes } from "@/server/queries/recipes";
 import { listActiveMembers } from "@/server/queries/users";
 import { isPhotoUploadEnabled } from "@/server/storage";
 
@@ -26,16 +28,19 @@ export default async function HealthPage(props: PageProps<"/health">) {
 
   if (!season) return <NoSeason />;
 
-  const [findings, counts, members] = await Promise.all([
+  const [findings, counts, members, treatmentRecipes] = await Promise.all([
     listFindingsBySeason(season.id),
     countFindingsByStatus(season.id),
     listActiveMembers(),
+    listTreatmentRecipes(),
   ]);
 
   const currentHst = calculateHst(season.startDate);
 
   return (
     <>
+      <HealthTabs />
+
       <div className="mb-6 flex flex-wrap items-start justify-between gap-3">
         <PageHeader
           title="Kesehatan & Monitoring"
@@ -74,6 +79,7 @@ export default async function HealthPage(props: PageProps<"/health">) {
               finding={finding}
               seasonId={season.id}
               members={members}
+              treatmentRecipes={treatmentRecipes}
             />
           ))}
         </div>

@@ -14,16 +14,19 @@ import { Card, CardContent } from "@/components/ui/card";
 import { formatDate } from "@/lib/hst";
 import { cn } from "@/lib/utils";
 import type { FindingRow } from "@/server/queries/findings";
+import type { RecipeRow } from "@/server/queries/recipes";
 import type { MemberOption } from "@/server/queries/users";
 
 export function FindingCard({
   finding,
   seasonId,
   members,
+  treatmentRecipes,
 }: {
   finding: FindingRow;
   seasonId: string;
   members: MemberOption[];
+  treatmentRecipes: RecipeRow[];
 }) {
   return (
     <Card className="overflow-hidden py-0">
@@ -98,7 +101,8 @@ export function FindingCard({
                   <p className="text-muted-foreground text-xs font-medium">
                     Perlakuan
                   </p>
-                  <p>{finding.treatment}</p>
+                  {/* Recipes are written in as a list, so the breaks matter. */}
+                  <p className="whitespace-pre-line">{finding.treatment}</p>
                 </div>
               ) : null}
             </div>
@@ -110,6 +114,7 @@ export function FindingCard({
                 finding={finding}
                 seasonId={seasonId}
                 members={members}
+                treatmentRecipes={treatmentRecipes}
               />
             ) : null}
             <FindingStatusAction

@@ -44,6 +44,32 @@ enum Severity {
   HIGH
 }
 
+/// Fase yang dipakai di lapangan. PRODUCTION terbuka ujungnya — cabai rawit
+/// terus berproduksi berbulan-bulan, kebun rujukan sudah lewat HST 200.
+enum GrowthPhase {
+  VEGETATIVE
+  GENERATIVE
+  PRODUCTION
+}
+
+enum RecipeKind {
+  ROUTINE // kebutuhan rutin per fase
+  TREATMENT // penanganan masalah tertentu
+}
+
+enum ApplicationMethod {
+  KOCOR
+  SEMPROT
+}
+
+enum MaterialCategory {
+  FERTILIZER
+  PESTICIDE
+  FUNGICIDE
+  GROWTH_REGULATOR
+  OTHER
+}
+
 enum InventoryStatus {
   SAFE
   LOW
@@ -71,9 +97,10 @@ model User {
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt
 
-  tasksAssigned      TaskAssignee[]
-  findingsReported   HealthLog[]   @relation("ReportedFindings")
-  findingsDiagnosed  HealthLog[]   @relation("DiagnosedFindings")
+  tasksAssigned     TaskAssignee[]
+  findingsReported  HealthLog[]   @relation("ReportedFindings")
+  findingsDiagnosed HealthLog[]   @relation("DiagnosedFindings")
+  recipesAuthored   Recipe[]      @relation("AuthoredRecipes")
 
   @@index([deletedAt])
 }
@@ -162,6 +189,75 @@ model HealthLog {
   @@index([seasonId, status]) // Antrean temuan per tahap
   @@index([reportedById])
   @@index([diagnosedById])
+}
+
+/// Bahan yang bisa masuk racikan. Sengaja berdiri sendiri sejak awal: modul
+/// Inventaris nanti menempelkan stok ke baris yang sama, tanpa migrasi dan
+/// tanpa membereskan nama yang terlanjur diketik bebas.
+model Material {
+  id        String           @id @default(uuid())
+  name      String           @unique
+  unit      String // gram, ml
+  category  MaterialCategory @default(FERTILIZER)
+  notes     String?
+  createdAt DateTime         @default(now())
+  updatedAt DateTime         @updatedAt
+
+  recipeItems RecipeItem[]
+
+  @@index([category])
+}
+
+/// Racikan — pengetahuan yang dipakai ulang lintas musim, jadi **tidak**
+/// terikat seasonId. Lihat pengecualian yang dicatat di CLAUDE.md.
+model Recipe {
+  id     String            @id @default(uuid())
+  name   String
+  kind   RecipeKind        @default(ROUTINE)
+  method ApplicationMethod @default(SEMPROT)
+
+  /// Diisi untuk racikan rutin.
+  phase       GrowthPhase?
+  /// Diisi untuk racikan penanganan, mis. "Antraknosa".
+  targetIssue String?
+  /// "Ulangi tiap N hari" — di fase produksi perlakuan berputar, bukan sekali
+  /// jalan di HST tertentu.
+  intervalDays Int?
+
+  /// Volume acuan saat racikan ditampilkan. Takaran disimpan per liter supaya
+  /// tangki ukuran lain tetap benar tanpa hitung ulang.
+  basisVolumeL Float @default(45)
+
+  /// Masa tunggu panen setelah aplikasi, hari. Penting untuk kebun yang panen
+  /// terus-menerus: menyemprot memblokir panen selama sekian hari.
+  preHarvestIntervalDays Int?
+
+  notes     String?
+  authorId  String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  author User?        @relation("AuthoredRecipes", fields: [authorId], references: [id], onDelete: Restrict)
+  items  RecipeItem[]
+
+  @@index([kind, phase])
+  @@index([authorId])
+}
+
+model RecipeItem {
+  id         String @id @default(uuid())
+  recipeId   String
+  materialId String
+
+  /// Satuannya mengikuti Material.unit.
+  amountPerLiter Float
+  note           String?
+
+  recipe   Recipe   @relation(fields: [recipeId], references: [id], onDelete: Cascade)
+  material Material @relation(fields: [materialId], references: [id], onDelete: Restrict)
+
+  @@unique([recipeId, materialId])
+  @@index([materialId])
 }
 
 model Inventory {
