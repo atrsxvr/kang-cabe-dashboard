@@ -2,9 +2,10 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Plus, Trash2 } from "lucide-react";
+import { Pencil, Plus, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 
+import { Field } from "@/components/common/form-field";
 import { NativeSelect } from "@/components/common/native-select";
 import { SubmitButton } from "@/components/common/submit-button";
 import {
@@ -26,28 +27,37 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { DEFAULT_TANK_LITRES } from "@/lib/dose";
-import { createRecipe } from "@/server/actions/recipes";
+import { createRecipe, updateRecipe } from "@/server/actions/recipes";
+import type { RecipeRow } from "@/server/queries/recipes";
 import type { MaterialRow } from "@/server/queries/recipes";
 
-export function CreateRecipeDialog({
+export function RecipeDialog({
   materials,
+  recipe,
 }: {
   materials: MaterialRow[];
+  recipe?: RecipeRow;
 }) {
+  const editing = Boolean(recipe);
   const [open, setOpen] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
-  const [kind, setKind] = useState("ROUTINE");
-  const [rows, setRows] = useState([0]);
+  const [kind, setKind] = useState<string>(recipe?.kind ?? "ROUTINE");
+  // One row per existing ingredient when editing, otherwise a single blank.
+  const [rows, setRows] = useState(() =>
+    recipe ? recipe.items.map((_, index) => index) : [0]
+  );
   const router = useRouter();
 
   const reset = () => {
     setErrors({});
-    setKind("ROUTINE");
-    setRows([0]);
+    setKind(recipe?.kind ?? "ROUTINE");
+    setRows(recipe ? recipe.items.map((_, index) => index) : [0]);
   };
 
   async function onSubmit(formData: FormData) {
-    const result = await createRecipe(formData);
+    const result = editing
+      ? await updateRecipe(formData)
+      : await createRecipe(formData);
 
     if (!result.ok) {
       setErrors(result.fieldErrors ?? {});
@@ -57,7 +67,7 @@ export function CreateRecipeDialog({
 
     reset();
     setOpen(false);
-    toast.success("Racikan disimpan.");
+    toast.success(editing ? "Racikan diperbarui." : "Racikan disimpan.");
     router.refresh();
   }
 
@@ -84,15 +94,22 @@ export function CreateRecipeDialog({
       }}
     >
       <DialogTrigger asChild>
-        <Button size="sm">
-          <Plus className="size-4" aria-hidden />
-          Tambah Racikan
-        </Button>
+        {editing ? (
+          <Button variant="ghost" size="sm" aria-label={`Sunting ${recipe!.name}`}>
+            <Pencil className="size-4" aria-hidden />
+            Sunting
+          </Button>
+        ) : (
+          <Button size="sm">
+            <Plus className="size-4" aria-hidden />
+            Tambah Racikan
+          </Button>
+        )}
       </DialogTrigger>
 
       <DialogContent className="max-h-[90dvh] overflow-y-auto sm:max-w-2xl">
         <DialogHeader>
-          <DialogTitle>Tambah Racikan</DialogTitle>
+          <DialogTitle>{editing ? "Sunting Racikan" : "Tambah Racikan"}</DialogTitle>
           <DialogDescription>
             Takaran diisi per liter. Volume acuan hanya menentukan angka yang
             ditampilkan pertama kali.
@@ -100,11 +117,16 @@ export function CreateRecipeDialog({
         </DialogHeader>
 
         <form action={onSubmit} className="grid gap-4">
+          {editing ? (
+            <input type="hidden" name="recipeId" value={recipe!.id} />
+          ) : null}
+
           <Field id="name" label="Nama Racikan" error={errors.name}>
             <Input
               id="name"
               name="name"
               required
+              defaultValue={recipe?.name}
               placeholder="Kocor NPK fase produksi"
               aria-invalid={Boolean(errors.name)}
             />
@@ -127,7 +149,11 @@ export function CreateRecipeDialog({
             </Field>
 
             <Field id="method" label="Cara Aplikasi" error={errors.method}>
-              <NativeSelect id="method" name="method" defaultValue="SEMPROT">
+              <NativeSelect
+                id="method"
+                name="method"
+                defaultValue={recipe?.method ?? "SEMPROT"}
+              >
                 {Object.entries(methodLabels).map(([value, label]) => (
                   <option key={value} value={value}>
                     {label}
@@ -142,7 +168,11 @@ export function CreateRecipeDialog({
           {kind === "ROUTINE" ? (
             <div className="grid gap-4 sm:grid-cols-2">
               <Field id="phase" label="Fase" error={errors.phase}>
-                <NativeSelect id="phase" name="phase" defaultValue="PRODUCTION">
+                <NativeSelect
+                  id="phase"
+                  name="phase"
+                  defaultValue={recipe?.phase ?? "PRODUCTION"}
+                >
                   {Object.entries(phaseLabels).map(([value, label]) => (
                     <option key={value} value={value}>
                       {label}
@@ -162,6 +192,7 @@ export function CreateRecipeDialog({
                   name="intervalDays"
                   type="number"
                   min={1}
+                  defaultValue={recipe?.intervalDays ?? ""}
                   placeholder="10"
                 />
               </Field>
@@ -175,6 +206,7 @@ export function CreateRecipeDialog({
               <Input
                 id="targetIssue"
                 name="targetIssue"
+                defaultValue={recipe?.targetIssue ?? ""}
                 placeholder="Antraknosa"
                 aria-invalid={Boolean(errors.targetIssue)}
               />
@@ -195,7 +227,7 @@ export function CreateRecipeDialog({
                 min={1}
                 step="any"
                 required
-                defaultValue={DEFAULT_TANK_LITRES}
+                defaultValue={recipe?.basisVolumeL ?? DEFAULT_TANK_LITRES}
                 aria-invalid={Boolean(errors.basisVolumeL)}
               />
             </Field>
@@ -211,6 +243,7 @@ export function CreateRecipeDialog({
                 name="preHarvestIntervalDays"
                 type="number"
                 min={0}
+                defaultValue={recipe?.preHarvestIntervalDays ?? ""}
                 placeholder="7"
               />
             </Field>
@@ -234,7 +267,11 @@ export function CreateRecipeDialog({
                       htmlFor={`materialId-${row}`}
                       className="sr-only"
                     >{`Bahan ${index + 1}`}</Label>
-                    <NativeSelect id={`materialId-${row}`} name="materialId">
+                    <NativeSelect
+                      id={`materialId-${row}`}
+                      name="materialId"
+                      defaultValue={recipe?.items[index]?.material.id}
+                    >
                       {materials.map((material) => (
                         <option key={material.id} value={material.id}>
                           {material.name} ({material.unit})
@@ -254,6 +291,7 @@ export function CreateRecipeDialog({
                       min={0}
                       step="any"
                       required
+                      defaultValue={recipe?.items[index]?.amountPerLiter ?? ""}
                       placeholder="per liter"
                     />
                   </div>
@@ -288,6 +326,7 @@ export function CreateRecipeDialog({
               id="notes"
               name="notes"
               rows={2}
+              defaultValue={recipe?.notes ?? ""}
               placeholder="Aplikasi pagi hari, hindari saat akan hujan"
             />
           </Field>
@@ -296,7 +335,9 @@ export function CreateRecipeDialog({
             <Button type="button" variant="secondary" onClick={close}>
               Batal
             </Button>
-            <SubmitButton>Simpan Racikan</SubmitButton>
+            <SubmitButton>
+              {editing ? "Simpan Perubahan" : "Simpan Racikan"}
+            </SubmitButton>
           </DialogFooter>
         </form>
       </DialogContent>
@@ -304,31 +345,3 @@ export function CreateRecipeDialog({
   );
 }
 
-function Field({
-  id,
-  label,
-  error,
-  hint,
-  children,
-}: {
-  id: string;
-  label: string;
-  error?: string;
-  hint?: string;
-  children: React.ReactNode;
-}) {
-  return (
-    <div className="grid content-start gap-2">
-      <Label htmlFor={id}>{label}</Label>
-      {children}
-      {hint && !error ? (
-        <p className="text-muted-foreground text-xs">{hint}</p>
-      ) : null}
-      {error ? (
-        <p className="text-destructive text-xs" role="alert">
-          {error}
-        </p>
-      ) : null}
-    </div>
-  );
-}

@@ -178,6 +178,30 @@ export const createRecipeSchema = z
     { message: "Bahan yang sama tercantum dua kali", path: ["items"] }
   );
 
+/**
+ * Update schemas reuse the create shapes with an id bolted on. Keeping them
+ * derived means a rule added to creation cannot be quietly skipped on edit.
+ */
+export const updateSeasonSchema = createSeasonSchema.extend({
+  seasonId: z.string().min(1),
+});
+
+export const updateTaskSchema = createTaskSchema.extend({
+  taskId: z.string().min(1),
+});
+
+export const updateFindingSchema = createFindingSchema.extend({
+  findingId: z.string().min(1),
+});
+
+export const updateRecipeSchema = createRecipeSchema.safeExtend({
+  recipeId: z.string().min(1),
+});
+
+export const updateMaterialSchema = createMaterialSchema.extend({
+  materialId: z.string().min(1),
+});
+
 export const updateTaskStatusSchema = z.object({
   taskId: z.string().min(1),
   // Carried so the mutation can prove the task belongs to the season the user

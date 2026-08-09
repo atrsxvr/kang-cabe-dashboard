@@ -2,9 +2,10 @@
 
 import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Camera, Plus } from "lucide-react";
+import { Camera, Pencil, Plus } from "lucide-react";
 import { toast } from "sonner";
 
+import { Field } from "@/components/common/form-field";
 import { NativeSelect } from "@/components/common/native-select";
 import { SubmitButton } from "@/components/common/submit-button";
 import { severityLabels } from "@/components/health/finding-labels";
@@ -22,29 +23,30 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { downscaleImage } from "@/lib/downscale-image";
-import { createFinding } from "@/server/actions/findings";
+import { createFinding, updateFinding } from "@/server/actions/findings";
+import type { FindingRow } from "@/server/queries/findings";
 import type { MemberOption } from "@/server/queries/users";
 
-export function ReportFindingDialog({
+export function FindingDialog({
   seasonId,
   members,
   currentHst,
   photoEnabled,
+  finding,
 }: {
   seasonId: string;
   members: MemberOption[];
   currentHst: number;
   photoEnabled: boolean;
+  finding?: FindingRow;
 }) {
+  const editing = Boolean(finding);
   const [open, setOpen] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
   /**
    * The chosen file is held here rather than read back off the input at submit
-   * time. React resets a form after its action returns — including when the
-   * action reports a validation error — which empties the file input while the
-   * preview beside it stays on screen. The photo then vanishes silently on the
-   * next attempt. Owning the File makes the preview and what gets uploaded the
-   * same thing.
+   * time: React resets a form once its action returns, including on a
+   * validation error, which empties the input while the preview stays put.
    */
   const [photo, setPhoto] = useState<File | null>(null);
   const [preview, setPreview] = useState<string | null>(null);
@@ -71,7 +73,9 @@ export function ReportFindingDialog({
     if (photo) formData.set("photo", await downscaleImage(photo));
     else formData.delete("photo");
 
-    const result = await createFinding(formData);
+    const result = editing
+      ? await updateFinding(formData)
+      : await createFinding(formData);
 
     if (!result.ok) {
       setErrors(result.fieldErrors ?? {});
@@ -81,7 +85,9 @@ export function ReportFindingDialog({
 
     resetForm();
     setOpen(false);
-    toast.success("Temuan dicatat. Menunggu diagnosa Agronomis.");
+    toast.success(
+      editing ? "Temuan diperbarui." : "Temuan dicatat. Menunggu diagnosa Agronomis."
+    );
     router.refresh();
   }
 
@@ -89,6 +95,9 @@ export function ReportFindingDialog({
     setOpen(false);
     resetForm();
   };
+
+  // Editing shows what is already attached until a replacement is picked.
+  const shownPhoto = preview ?? (editing ? finding!.photoUrl : null);
 
   return (
     <Dialog
@@ -99,23 +108,36 @@ export function ReportFindingDialog({
       }}
     >
       <DialogTrigger asChild>
-        <Button size="sm">
-          <Plus className="size-4" aria-hidden />
-          Catat Temuan
-        </Button>
+        {editing ? (
+          <Button variant="ghost" size="sm" aria-label="Sunting temuan">
+            <Pencil className="size-4" aria-hidden />
+            Sunting
+          </Button>
+        ) : (
+          <Button size="sm">
+            <Plus className="size-4" aria-hidden />
+            Catat Temuan
+          </Button>
+        )}
       </DialogTrigger>
 
       <DialogContent className="max-h-[90dvh] overflow-y-auto sm:max-w-lg">
         <DialogHeader>
-          <DialogTitle>Catat Temuan di Kebun</DialogTitle>
+          <DialogTitle>
+            {editing ? "Sunting Temuan" : "Catat Temuan di Kebun"}
+          </DialogTitle>
           <DialogDescription>
-            Cukup jelaskan yang kamu lihat. Diagnosa dan perlakuan diisi
-            Agronomis setelah ini.
+            {editing
+              ? "Diagnosa dan perlakuan disunting lewat tombol Diagnosa."
+              : "Cukup jelaskan yang kamu lihat. Diagnosa dan perlakuan diisi Agronomis setelah ini."}
           </DialogDescription>
         </DialogHeader>
 
         <form action={onSubmit} className="grid gap-4">
           <input type="hidden" name="seasonId" value={seasonId} />
+          {editing ? (
+            <input type="hidden" name="findingId" value={finding!.id} />
+          ) : null}
 
           <div className="grid gap-2">
             <Label htmlFor="photo">Foto</Label>
@@ -131,13 +153,15 @@ export function ReportFindingDialog({
                   // gallery — this form is filled standing in the field.
                   capture="environment"
                   className="sr-only"
-                  onChange={(event) => choosePhoto(event.target.files?.[0] ?? null)}
+                  onChange={(event) =>
+                    choosePhoto(event.target.files?.[0] ?? null)
+                  }
                 />
-                {preview ? (
+                {shownPhoto ? (
                   // eslint-disable-next-line @next/next/no-img-element
                   <img
-                    src={preview}
-                    alt="Pratinjau foto temuan"
+                    src={shownPhoto}
+                    alt={preview ? "Pratinjau foto temuan" : "Foto temuan saat ini"}
                     className="max-h-48 w-full rounded-md border object-cover"
                   />
                 ) : null}
@@ -147,8 +171,13 @@ export function ReportFindingDialog({
                   onClick={() => fileRef.current?.click()}
                 >
                   <Camera className="size-4" aria-hidden />
-                  {preview ? "Ganti foto" : "Ambil / pilih foto"}
+                  {shownPhoto ? "Ganti foto" : "Ambil / pilih foto"}
                 </Button>
+                {editing && finding!.photoUrl && !preview ? (
+                  <p className="text-muted-foreground text-xs">
+                    Biarkan saja kalau fotonya tidak berubah.
+                  </p>
+                ) : null}
               </>
             ) : (
               <p className="text-muted-foreground rounded-md border border-dashed px-3 py-2 text-xs">
@@ -165,6 +194,7 @@ export function ReportFindingDialog({
               name="symptoms"
               rows={3}
               required
+              defaultValue={finding?.symptoms}
               placeholder="Daun menguning dari bawah, ada bercak coklat di beberapa tanaman…"
               aria-invalid={Boolean(errors.symptoms)}
             />
@@ -175,7 +205,7 @@ export function ReportFindingDialog({
               <NativeSelect
                 id="severity"
                 name="severity"
-                defaultValue="MEDIUM"
+                defaultValue={finding?.severity ?? "MEDIUM"}
               >
                 {Object.entries(severityLabels).map(([value, label]) => (
                   <option key={value} value={value}>
@@ -197,21 +227,26 @@ export function ReportFindingDialog({
                 type="number"
                 min={0}
                 required
-                defaultValue={currentHst}
+                defaultValue={finding?.hst ?? currentHst}
                 aria-invalid={Boolean(errors.hst)}
               />
             </Field>
           </div>
 
           <Field id="location" label="Lokasi / petak (opsional)" error={errors.location}>
-            <Input id="location" name="location" placeholder="Blok A baris 3" />
+            <Input
+              id="location"
+              name="location"
+              defaultValue={finding?.location ?? ""}
+              placeholder="Blok A baris 3"
+            />
           </Field>
 
           <Field id="reportedById" label="Ditemukan oleh" error={errors.reportedById}>
             <NativeSelect
               id="reportedById"
               name="reportedById"
-              defaultValue=""
+              defaultValue={finding?.reportedBy?.id ?? ""}
             >
               <option value="">— tidak disebutkan —</option>
               {members.map((member) => (
@@ -223,48 +258,15 @@ export function ReportFindingDialog({
           </Field>
 
           <DialogFooter>
-            {/* Routed through the same reset as onOpenChange — closing by this
-                button used to leave a stale preview behind. */}
             <Button type="button" variant="secondary" onClick={close}>
               Batal
             </Button>
-            <SubmitButton pendingLabel="Mengunggah…">
-              Simpan Temuan
+            <SubmitButton pendingLabel="Menyimpan…">
+              {editing ? "Simpan Perubahan" : "Simpan Temuan"}
             </SubmitButton>
           </DialogFooter>
         </form>
       </DialogContent>
     </Dialog>
-  );
-}
-
-function Field({
-  id,
-  label,
-  error,
-  hint,
-  children,
-}: {
-  id: string;
-  label: string;
-  error?: string;
-  hint?: string;
-  children: React.ReactNode;
-}) {
-  return (
-    // content-start: a sibling Field carrying a hint is taller, and a stretched
-    // grid would widen this one's gaps instead, pushing its control out of line.
-    <div className="grid content-start gap-2">
-      <Label htmlFor={id}>{label}</Label>
-      {children}
-      {hint && !error ? (
-        <p className="text-muted-foreground text-xs">{hint}</p>
-      ) : null}
-      {error ? (
-        <p className="text-destructive text-xs" role="alert">
-          {error}
-        </p>
-      ) : null}
-    </div>
   );
 }

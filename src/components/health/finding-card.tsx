@@ -1,6 +1,8 @@
 import { ImageIcon, MapPin, User as UserIcon } from "lucide-react";
 
+import { ConfirmDelete } from "@/components/common/confirm-delete";
 import { DiagnoseDialog } from "@/components/health/diagnose-dialog";
+import { FindingDialog } from "@/components/health/finding-dialog";
 import { PhotoViewer } from "@/components/health/photo-viewer";
 import { FindingStatusAction } from "@/components/health/finding-status-action";
 import {
@@ -13,6 +15,7 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { formatDate } from "@/lib/hst";
 import { cn } from "@/lib/utils";
+import { deleteFinding } from "@/server/actions/findings";
 import type { FindingRow } from "@/server/queries/findings";
 import type { RecipeRow } from "@/server/queries/recipes";
 import type { MemberOption } from "@/server/queries/users";
@@ -22,11 +25,15 @@ export function FindingCard({
   seasonId,
   members,
   treatmentRecipes,
+  currentHst,
+  photoEnabled,
 }: {
   finding: FindingRow;
   seasonId: string;
   members: MemberOption[];
   treatmentRecipes: RecipeRow[];
+  currentHst: number;
+  photoEnabled: boolean;
 }) {
   return (
     <Card className="overflow-hidden py-0">
@@ -122,6 +129,25 @@ export function FindingCard({
               seasonId={seasonId}
               status={finding.status}
             />
+            <div className="ml-auto flex items-center gap-1">
+              <FindingDialog
+                seasonId={seasonId}
+                members={members}
+                currentHst={currentHst}
+                photoEnabled={photoEnabled}
+                finding={finding}
+              />
+              <ConfirmDelete
+                title="Hapus temuan ini?"
+                itemName={finding.symptoms.slice(0, 60)}
+                consequence={
+                  finding.photoUrl ? "fotonya ikut terhapus." : undefined
+                }
+                action={deleteFinding}
+                fields={{ findingId: finding.id, seasonId }}
+                iconOnly
+              />
+            </div>
           </div>
         </CardContent>
       </div>

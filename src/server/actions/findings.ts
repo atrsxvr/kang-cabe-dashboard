@@ -3,25 +3,15 @@
 import { revalidatePath } from "next/cache";
 
 import { prisma } from "@/lib/prisma";
-import type { ActionResult } from "@/server/actions/seasons";
+import { invalidForm, type ActionResult } from "@/server/actions/result";
 import {
   canAdvanceFinding,
   createFindingSchema,
   diagnoseFindingSchema,
+  updateFindingSchema,
   updateFindingStatusSchema,
 } from "@/server/actions/schemas";
-import { uploadFindingPhoto } from "@/server/storage";
-
-function fieldErrorsOf(error: {
-  issues: { path: PropertyKey[]; message: string }[];
-}) {
-  const fieldErrors: Record<string, string> = {};
-  for (const issue of error.issues) {
-    const key = String(issue.path[0] ?? "");
-    if (key && !fieldErrors[key]) fieldErrors[key] = issue.message;
-  }
-  return fieldErrors;
-}
+import { deleteFindingPhoto, uploadFindingPhoto } from "@/server/storage";
 
 export async function createFinding(formData: FormData): Promise<ActionResult> {
   // Validate before uploading. Uploading first left a file in the bucket every
@@ -38,11 +28,7 @@ export async function createFinding(formData: FormData): Promise<ActionResult> {
   });
 
   if (!parsed.success) {
-    return {
-      ok: false,
-      message: "Periksa kembali isian formulir.",
-      fieldErrors: fieldErrorsOf(parsed.error),
-    };
+    return invalidForm(parsed.error);
   }
 
   const { seasonId, location, reportedById, ...rest } = parsed.data;
@@ -89,11 +75,7 @@ export async function diagnoseFinding(
   });
 
   if (!parsed.success) {
-    return {
-      ok: false,
-      message: "Periksa kembali isian formulir.",
-      fieldErrors: fieldErrorsOf(parsed.error),
-    };
+    return invalidForm(parsed.error);
   }
 
   const { findingId, seasonId, diagnosedById, ...rest } = parsed.data;
@@ -155,6 +137,86 @@ export async function updateFindingStatus(
       resolvedAt: status === "RESOLVED" ? new Date() : null,
     },
   });
+
+  revalidatePath("/health");
+  return { ok: true };
+}
+
+export async function updateFinding(formData: FormData): Promise<ActionResult> {
+  const parsed = updateFindingSchema.safeParse({
+    findingId: formData.get("findingId"),
+    seasonId: formData.get("seasonId"),
+    hst: formData.get("hst"),
+    symptoms: formData.get("symptoms"),
+    severity: formData.get("severity"),
+    location: formData.get("location") ?? "",
+    reportedById: formData.get("reportedById") ?? "",
+    photoUrl: "",
+  });
+
+  if (!parsed.success) return invalidForm(parsed.error);
+
+  const { findingId, seasonId, location, reportedById, ...rest } = parsed.data;
+
+  const existing = await prisma.healthLog.findFirst({
+    where: { id: findingId, seasonId },
+    select: { photoUrl: true },
+  });
+
+  if (!existing) {
+    return { ok: false, message: "Temuan tidak ditemukan pada musim ini." };
+  }
+
+  // Only touch the photo when a new one is supplied. Submitting the form with
+  // the file input untouched must not wipe the picture already attached.
+  const photo = formData.get("photo");
+  let photoUrl = existing.photoUrl;
+
+  if (photo instanceof File && photo.size > 0) {
+    const uploaded = await uploadFindingPhoto(photo);
+    if (!uploaded.ok) return { ok: false, message: uploaded.message };
+    photoUrl = uploaded.url;
+
+    // The replaced file has nothing pointing at it any more.
+    if (existing.photoUrl) await deleteFindingPhoto(existing.photoUrl);
+  }
+
+  await prisma.healthLog.updateMany({
+    where: { id: findingId, seasonId },
+    data: {
+      ...rest,
+      photoUrl,
+      location: location ? location : null,
+      reportedById: reportedById ? reportedById : null,
+    },
+  });
+
+  revalidatePath("/health");
+  return { ok: true };
+}
+
+export async function deleteFinding(formData: FormData): Promise<ActionResult> {
+  const findingId = String(formData.get("findingId") ?? "");
+  const seasonId = String(formData.get("seasonId") ?? "");
+
+  if (!findingId || !seasonId) {
+    return { ok: false, message: "Permintaan tidak valid." };
+  }
+
+  const existing = await prisma.healthLog.findFirst({
+    where: { id: findingId, seasonId },
+    select: { photoUrl: true },
+  });
+
+  if (!existing) {
+    return { ok: false, message: "Temuan tidak ditemukan pada musim ini." };
+  }
+
+  await prisma.healthLog.deleteMany({ where: { id: findingId, seasonId } });
+
+  // After the row, so a storage failure cannot leave a finding that the UI
+  // shows but whose photo is already gone.
+  if (existing.photoUrl) await deleteFindingPhoto(existing.photoUrl);
 
   revalidatePath("/health");
   return { ok: true };

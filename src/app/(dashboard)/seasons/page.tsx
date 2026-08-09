@@ -4,7 +4,8 @@ import { Sprout } from "lucide-react";
 
 import { PageHeader } from "@/components/common/page-header";
 import { StatusBadge } from "@/components/common/status-badge";
-import { CreateSeasonDialog } from "@/components/seasons/create-season-dialog";
+import { SeasonArchiveAction } from "@/components/seasons/season-archive-action";
+import { SeasonDialog } from "@/components/seasons/season-dialog";
 import { SeasonStatusAction } from "@/components/seasons/season-status-action";
 import { Card, CardContent } from "@/components/ui/card";
 import {
@@ -32,7 +33,7 @@ export default async function SeasonsPage() {
           title="Manajemen Musim Tanam"
           description="Semua siklus tanam, dari perencanaan sampai arsip."
         />
-        <CreateSeasonDialog />
+        <SeasonDialog />
       </div>
 
       {seasons.length === 0 ? (
@@ -52,7 +53,7 @@ export default async function SeasonsPage() {
                   <TableHead className="text-right">HST</TableHead>
                   <TableHead className="text-right">Tugas</TableHead>
                   <TableHead>Status</TableHead>
-                  <TableHead className="text-right">Aksi</TableHead>
+                  <TableHead className="w-72 text-right">Aksi</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -85,11 +86,19 @@ export default async function SeasonsPage() {
                       <StatusBadge status={season.status} kind="season" />
                     </TableCell>
                     <TableCell className="text-right">
-                      <div className="flex justify-end">
+                      <div className="flex justify-end gap-1">
                         <SeasonStatusAction
                           seasonId={season.id}
                           status={season.status}
                         />
+                        <SeasonDialog season={season} />
+                        {season.status !== "ARCHIVED" ? (
+                          <SeasonArchiveAction
+                            seasonId={season.id}
+                            name={season.name}
+                            taskCount={season._count.tasks}
+                          />
+                        ) : null}
                       </div>
                     </TableCell>
                   </TableRow>

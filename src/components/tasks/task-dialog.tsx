@@ -2,9 +2,10 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Plus } from "lucide-react";
+import { Pencil, Plus } from "lucide-react";
 import { toast } from "sonner";
 
+import { dateInputValue, Field } from "@/components/common/form-field";
 import { NativeSelect } from "@/components/common/native-select";
 import { SubmitButton } from "@/components/common/submit-button";
 import { Button } from "@/components/ui/button";
@@ -19,9 +20,9 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { createTask } from "@/server/actions/tasks";
+import { createTask, updateTask } from "@/server/actions/tasks";
+import type { TaskRow } from "@/server/queries/tasks";
 import type { MemberOption } from "@/server/queries/users";
 
 const roleLabels: Record<string, string> = {
@@ -31,27 +32,28 @@ const roleLabels: Record<string, string> = {
   SALES: "Sales",
 };
 
-function todayInJakarta() {
-  return new Intl.DateTimeFormat("en-CA", {
-    timeZone: "Asia/Jakarta",
-  }).format(new Date());
-}
-
-export function CreateTaskDialog({
+export function TaskDialog({
   seasonId,
   members,
   currentHst,
+  task,
 }: {
   seasonId: string;
   members: MemberOption[];
   currentHst: number;
+  task?: TaskRow;
 }) {
+  const editing = Boolean(task);
   const [open, setOpen] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const router = useRouter();
 
+  const assigned = new Set(task?.assignees.map((a) => a.userId) ?? []);
+
   async function onSubmit(formData: FormData) {
-    const result = await createTask(formData);
+    const result = editing
+      ? await updateTask(formData)
+      : await createTask(formData);
 
     if (!result.ok) {
       setErrors(result.fieldErrors ?? {});
@@ -61,7 +63,7 @@ export function CreateTaskDialog({
 
     setErrors({});
     setOpen(false);
-    toast.success("Tugas ditambahkan.");
+    toast.success(editing ? "Tugas diperbarui." : "Tugas ditambahkan.");
     router.refresh();
   }
 
@@ -74,15 +76,25 @@ export function CreateTaskDialog({
       }}
     >
       <DialogTrigger asChild>
-        <Button size="sm">
-          <Plus className="size-4" aria-hidden />
-          Tambah Tugas
-        </Button>
+        {editing ? (
+          <Button
+            variant="ghost"
+            size="sm"
+            aria-label={`Sunting ${task!.title}`}
+          >
+            <Pencil className="size-4" aria-hidden />
+          </Button>
+        ) : (
+          <Button size="sm">
+            <Plus className="size-4" aria-hidden />
+            Tambah Tugas
+          </Button>
+        )}
       </DialogTrigger>
 
       <DialogContent className="max-h-[90dvh] overflow-y-auto sm:max-w-lg">
         <DialogHeader>
-          <DialogTitle>Tambah Tugas Baru</DialogTitle>
+          <DialogTitle>{editing ? "Sunting Tugas" : "Tambah Tugas Baru"}</DialogTitle>
           <DialogDescription>
             Tugas melekat pada musim yang sedang dipilih di navbar.
           </DialogDescription>
@@ -90,12 +102,16 @@ export function CreateTaskDialog({
 
         <form action={onSubmit} className="grid gap-4">
           <input type="hidden" name="seasonId" value={seasonId} />
+          {editing ? (
+            <input type="hidden" name="taskId" value={task!.id} />
+          ) : null}
 
           <Field id="title" label="Judul Tugas" error={errors.title}>
             <Input
               id="title"
               name="title"
               required
+              defaultValue={task?.title}
               placeholder="Semprot fungisida"
               aria-invalid={Boolean(errors.title)}
             />
@@ -106,7 +122,12 @@ export function CreateTaskDialog({
             label="Deskripsi (opsional)"
             error={errors.description}
           >
-            <Textarea id="description" name="description" rows={2} />
+            <Textarea
+              id="description"
+              name="description"
+              rows={2}
+              defaultValue={task?.description ?? ""}
+            />
           </Field>
 
           <div className="grid gap-4 sm:grid-cols-2">
@@ -121,6 +142,7 @@ export function CreateTaskDialog({
                 name="hst"
                 type="number"
                 min={0}
+                defaultValue={task?.hst ?? ""}
                 placeholder={String(currentHst)}
                 aria-invalid={Boolean(errors.hst)}
               />
@@ -132,7 +154,7 @@ export function CreateTaskDialog({
                 name="dueDate"
                 type="date"
                 required
-                defaultValue={todayInJakarta()}
+                defaultValue={dateInputValue(task?.dueDate)}
                 aria-invalid={Boolean(errors.dueDate)}
               />
             </Field>
@@ -142,7 +164,7 @@ export function CreateTaskDialog({
             <NativeSelect
               id="status"
               name="status"
-              defaultValue="TODO"
+              defaultValue={task?.status ?? "TODO"}
             >
               <option value="TODO">Belum dikerjakan</option>
               <option value="IN_PROGRESS">Dikerjakan</option>
@@ -165,7 +187,11 @@ export function CreateTaskDialog({
                     key={member.id}
                     className="hover:bg-accent flex items-center gap-2 rounded-md border px-3 py-2 text-sm"
                   >
-                    <Checkbox name="assigneeIds" value={member.id} />
+                    <Checkbox
+                      name="assigneeIds"
+                      value={member.id}
+                      defaultChecked={assigned.has(member.id)}
+                    />
                     <span className="min-w-0 truncate">
                       {member.name}
                       <span className="text-muted-foreground ml-1 text-xs">
@@ -186,41 +212,12 @@ export function CreateTaskDialog({
             >
               Batal
             </Button>
-            <SubmitButton>Simpan Tugas</SubmitButton>
+            <SubmitButton>
+              {editing ? "Simpan Perubahan" : "Simpan Tugas"}
+            </SubmitButton>
           </DialogFooter>
         </form>
       </DialogContent>
     </Dialog>
-  );
-}
-
-function Field({
-  id,
-  label,
-  error,
-  hint,
-  children,
-}: {
-  id: string;
-  label: string;
-  error?: string;
-  hint?: string;
-  children: React.ReactNode;
-}) {
-  return (
-    // content-start: a sibling Field carrying a hint is taller, and a stretched
-    // grid would widen this one's gaps instead, pushing its control out of line.
-    <div className="grid content-start gap-2">
-      <Label htmlFor={id}>{label}</Label>
-      {children}
-      {hint && !error ? (
-        <p className="text-muted-foreground text-xs">{hint}</p>
-      ) : null}
-      {error ? (
-        <p className="text-destructive text-xs" role="alert">
-          {error}
-        </p>
-      ) : null}
-    </div>
   );
 }

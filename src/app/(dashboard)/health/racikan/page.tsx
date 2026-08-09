@@ -3,11 +3,13 @@ import { connection } from "next/server";
 import { ScrollText } from "lucide-react";
 
 import { PageHeader } from "@/components/common/page-header";
-import { CreateMaterialDialog } from "@/components/health/create-material-dialog";
-import { CreateRecipeDialog } from "@/components/health/create-recipe-dialog";
+import { ConfirmDelete } from "@/components/common/confirm-delete";
+import { MaterialDialog } from "@/components/health/material-dialog";
+import { RecipeDialog } from "@/components/health/recipe-dialog";
 import { RecipeBrowser } from "@/components/health/recipe-browser";
 import { materialCategoryLabels } from "@/components/health/recipe-labels";
 import { Card, CardContent } from "@/components/ui/card";
+import { deleteMaterial } from "@/server/actions/recipes";
 import { listMaterials, listRecipes } from "@/server/queries/recipes";
 
 export const metadata: Metadata = { title: "Pustaka Racikan" };
@@ -30,15 +32,15 @@ export default async function RecipeLibraryPage() {
           description="Kebutuhan tiap fase dan penanganan masalah. Berlaku untuk semua musim."
         />
         <div className="flex flex-wrap gap-2">
-          <CreateMaterialDialog />
-          <CreateRecipeDialog materials={materials} />
+          <MaterialDialog />
+          <RecipeDialog materials={materials} />
         </div>
       </div>
 
       {recipes.length === 0 ? (
         <EmptyState hasMaterials={materials.length > 0} />
       ) : (
-        <RecipeBrowser recipes={recipes} />
+        <RecipeBrowser recipes={recipes} materials={materials} />
       )}
 
       {materials.length > 0 ? (
@@ -53,12 +55,25 @@ export default async function RecipeLibraryPage() {
             {materials.map((material) => (
               <span
                 key={material.id}
-                className="text-muted-foreground rounded-md border px-2.5 py-1 text-xs"
+                className="text-muted-foreground flex items-center gap-1 rounded-md border py-1 pr-1 pl-2.5 text-xs"
               >
                 {material.name}
-                <span className="ml-1.5 opacity-70">
+                <span className="opacity-70">
                   {material.unit} · {materialCategoryLabels[material.category]}
                 </span>
+                <MaterialDialog material={material} />
+                <ConfirmDelete
+                  title="Hapus bahan ini?"
+                  itemName={material.name}
+                  consequence={
+                    material._count.recipeItems > 0
+                      ? `masih dipakai ${material._count.recipeItems} racikan.`
+                      : undefined
+                  }
+                  action={deleteMaterial}
+                  fields={{ materialId: material.id }}
+                  iconOnly
+                />
               </span>
             ))}
           </div>

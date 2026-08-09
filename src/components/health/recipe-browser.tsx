@@ -8,7 +8,7 @@ import { phaseLabels } from "@/components/health/recipe-labels";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
-import type { RecipeRow } from "@/server/queries/recipes";
+import type { MaterialRow, RecipeRow } from "@/server/queries/recipes";
 
 type Group = "ALL" | "VEGETATIVE" | "GENERATIVE" | "PRODUCTION" | "TREATMENT";
 
@@ -32,7 +32,13 @@ function matchesGroup(recipe: RecipeRow, group: Group) {
  * responds as you type — the round trip a URL-driven filter needs would make
  * it feel worse, and a recipe filter is not something you send to someone.
  */
-export function RecipeBrowser({ recipes }: { recipes: RecipeRow[] }) {
+export function RecipeBrowser({
+  recipes,
+  materials,
+}: {
+  recipes: RecipeRow[];
+  materials: MaterialRow[];
+}) {
   const [group, setGroup] = useState<Group>("ALL");
   const [query, setQuery] = useState("");
 
@@ -125,7 +131,7 @@ export function RecipeBrowser({ recipes }: { recipes: RecipeRow[] }) {
       ) : (
         <div className="grid gap-3">
           {visible.map((recipe) => (
-            <RecipeCard key={recipe.id} recipe={recipe} />
+            <RecipeCard key={recipe.id} recipe={recipe} materials={materials} />
           ))}
         </div>
       )}

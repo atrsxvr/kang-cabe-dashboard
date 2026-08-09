@@ -4,7 +4,7 @@ import { Sprout } from "lucide-react";
 
 import { PageHeader } from "@/components/common/page-header";
 import { StatusBadge } from "@/components/common/status-badge";
-import { CreateTaskDialog } from "@/components/tasks/create-task-dialog";
+import { TaskDialog } from "@/components/tasks/task-dialog";
 import { TaskBoard } from "@/components/tasks/task-board";
 import { TaskLogbook } from "@/components/tasks/task-logbook";
 import { TaskTable } from "@/components/tasks/task-table";
@@ -46,7 +46,7 @@ export default async function TasksPage(props: PageProps<"/tasks">) {
           title="Jadwal & Tugas"
           description={`${season.name} · ditanam ${formatDate(season.startDate)}`}
         />
-        <CreateTaskDialog
+        <TaskDialog
           seasonId={season.id}
           members={members}
           currentHst={currentHst}
@@ -73,6 +73,7 @@ export default async function TasksPage(props: PageProps<"/tasks">) {
             tasks={tasks}
             seasonId={season.id}
             currentHst={currentHst}
+            members={members}
           />
         }
         table={
@@ -80,6 +81,7 @@ export default async function TasksPage(props: PageProps<"/tasks">) {
             tasks={tasks}
             seasonId={season.id}
             currentHst={currentHst}
+            members={members}
           />
         }
         logbook={

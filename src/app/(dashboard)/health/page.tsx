@@ -6,7 +6,7 @@ import { PageHeader } from "@/components/common/page-header";
 import { FindingCard } from "@/components/health/finding-card";
 import { FindingStatusBoxes } from "@/components/health/finding-status-boxes";
 import { FindingStatusSelect } from "@/components/health/finding-status-select";
-import { ReportFindingDialog } from "@/components/health/report-finding-dialog";
+import { FindingDialog } from "@/components/health/finding-dialog";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { calculateHst, formatDate } from "@/lib/hst";
@@ -53,7 +53,7 @@ export default async function HealthPage(props: PageProps<"/health">) {
             on a phone every extra row pushes the findings further down. */}
         <div className="flex flex-wrap items-center gap-2">
           <FindingStatusSelect active={activeStatus} />
-          <ReportFindingDialog
+          <FindingDialog
             seasonId={season.id}
             members={members}
             currentHst={currentHst}
@@ -75,6 +75,8 @@ export default async function HealthPage(props: PageProps<"/health">) {
               seasonId={season.id}
               members={members}
               treatmentRecipes={treatmentRecipes}
+              currentHst={currentHst}
+              photoEnabled={isPhotoUploadEnabled()}
             />
           ))}
         </div>

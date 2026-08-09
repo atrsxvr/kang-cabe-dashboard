@@ -76,3 +76,38 @@ export async function uploadFindingPhoto(file: File): Promise<UploadResult> {
     url: `${config.url}/storage/v1/object/public/${PHOTO_BUCKET}/${path}`,
   };
 }
+
+/**
+ * Removes the stored object behind a photo URL.
+ *
+ * Deleting only the database row would leave the file behind — the same orphan
+ * problem a failed form submission used to cause, except this one accumulates
+ * every time a finding is tidied away.
+ *
+ * Returns nothing: a photo that outlives its finding is worth logging, not
+ * worth blocking the deletion the user asked for.
+ */
+export async function deleteFindingPhoto(photoUrl: string): Promise<void> {
+  const config = storageConfig();
+  if (!config) return;
+
+  const marker = `/storage/v1/object/public/${PHOTO_BUCKET}/`;
+  const path = photoUrl.split(marker)[1];
+
+  if (!path) {
+    console.error("Tidak bisa menentukan path foto dari URL:", photoUrl);
+    return;
+  }
+
+  const response = await fetch(
+    `${config.url}/storage/v1/object/${PHOTO_BUCKET}/${path}`,
+    { method: "DELETE", headers: { Authorization: `Bearer ${config.key}` } }
+  ).catch((error: unknown) => {
+    console.error("Gagal menghapus foto:", error);
+    return null;
+  });
+
+  if (response && !response.ok) {
+    console.error("Gagal menghapus foto:", response.status, path);
+  }
+}

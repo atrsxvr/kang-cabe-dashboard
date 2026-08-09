@@ -3,22 +3,12 @@
 import { revalidatePath } from "next/cache";
 
 import { prisma } from "@/lib/prisma";
-import type { ActionResult } from "@/server/actions/seasons";
+import { invalidForm, type ActionResult } from "@/server/actions/result";
 import {
   createTaskSchema,
+  updateTaskSchema,
   updateTaskStatusSchema,
 } from "@/server/actions/schemas";
-
-function fieldErrorsOf(error: {
-  issues: { path: PropertyKey[]; message: string }[];
-}) {
-  const fieldErrors: Record<string, string> = {};
-  for (const issue of error.issues) {
-    const key = String(issue.path[0] ?? "");
-    if (key && !fieldErrors[key]) fieldErrors[key] = issue.message;
-  }
-  return fieldErrors;
-}
 
 export async function createTask(formData: FormData): Promise<ActionResult> {
   const parsed = createTaskSchema.safeParse({
@@ -32,11 +22,7 @@ export async function createTask(formData: FormData): Promise<ActionResult> {
   });
 
   if (!parsed.success) {
-    return {
-      ok: false,
-      message: "Periksa kembali isian formulir.",
-      fieldErrors: fieldErrorsOf(parsed.error),
-    };
+    return invalidForm(parsed.error);
   }
 
   const { seasonId, assigneeIds, description, status, ...rest } = parsed.data;
@@ -113,6 +99,59 @@ export async function deleteTask(formData: FormData): Promise<ActionResult> {
   if (result.count === 0) {
     return { ok: false, message: "Tugas tidak ditemukan pada musim ini." };
   }
+
+  revalidatePath("/tasks");
+  return { ok: true };
+}
+
+export async function updateTask(formData: FormData): Promise<ActionResult> {
+  const parsed = updateTaskSchema.safeParse({
+    taskId: formData.get("taskId"),
+    seasonId: formData.get("seasonId"),
+    title: formData.get("title"),
+    description: formData.get("description") ?? "",
+    hst: formData.get("hst") === "" ? undefined : formData.get("hst"),
+    dueDate: formData.get("dueDate"),
+    status: formData.get("status"),
+    assigneeIds: formData.getAll("assigneeIds").map(String),
+  });
+
+  if (!parsed.success) return invalidForm(parsed.error);
+
+  const { taskId, seasonId, assigneeIds, description, status, ...rest } =
+    parsed.data;
+
+  const existing = await prisma.task.findFirst({
+    where: { id: taskId, seasonId },
+    select: { status: true, completedAt: true },
+  });
+
+  if (!existing) {
+    return { ok: false, message: "Tugas tidak ditemukan pada musim ini." };
+  }
+
+  await prisma.$transaction([
+    prisma.task.update({
+      where: { id: taskId },
+      data: {
+        ...rest,
+        status,
+        description: description ? description : null,
+        // Editing a task that was already done must not restamp when it was
+        // done — the Logbook is ordered by this, and re-dating history is the
+        // reason completedAt exists apart from updatedAt.
+        completedAt:
+          status === "DONE" ? (existing.completedAt ?? new Date()) : null,
+      },
+    }),
+    // Assignees are replaced wholesale: the form submits the full set, and
+    // diffing would only add a way for the two to drift apart.
+    prisma.taskAssignee.deleteMany({ where: { taskId } }),
+    prisma.taskAssignee.createMany({
+      data: assigneeIds.map((userId) => ({ taskId, userId })),
+      skipDuplicates: true,
+    }),
+  ]);
 
   revalidatePath("/tasks");
   return { ok: true };

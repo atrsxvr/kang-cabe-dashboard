@@ -3,26 +3,13 @@
 import { revalidatePath } from "next/cache";
 
 import { prisma } from "@/lib/prisma";
+import { invalidForm, type ActionResult } from "@/server/actions/result";
 import {
   createSeasonSchema,
   nextSeasonStatus,
   seasonStatuses,
+  updateSeasonSchema,
 } from "@/server/actions/schemas";
-
-export type ActionResult =
-  | { ok: true; seasonId?: string }
-  | { ok: false; message: string; fieldErrors?: Record<string, string> };
-
-function fieldErrorsOf(error: {
-  issues: { path: PropertyKey[]; message: string }[];
-}) {
-  const fieldErrors: Record<string, string> = {};
-  for (const issue of error.issues) {
-    const key = String(issue.path[0] ?? "");
-    if (key && !fieldErrors[key]) fieldErrors[key] = issue.message;
-  }
-  return fieldErrors;
-}
 
 export async function createSeason(formData: FormData): Promise<ActionResult> {
   const parsed = createSeasonSchema.safeParse({
@@ -35,11 +22,7 @@ export async function createSeason(formData: FormData): Promise<ActionResult> {
   });
 
   if (!parsed.success) {
-    return {
-      ok: false,
-      message: "Periksa kembali isian formulir.",
-      fieldErrors: fieldErrorsOf(parsed.error),
-    };
+    return invalidForm(parsed.error);
   }
 
   const { notes, ...rest } = parsed.data;
@@ -101,6 +84,64 @@ export async function setSeasonStatus(
       endDate: status === "COMPLETED" ? new Date() : null,
     },
   });
+
+  revalidatePath("/", "layout");
+  return { ok: true, seasonId };
+}
+
+export async function updateSeason(formData: FormData): Promise<ActionResult> {
+  const parsed = updateSeasonSchema.safeParse({
+    seasonId: formData.get("seasonId"),
+    name: formData.get("name"),
+    variety: formData.get("variety"),
+    plantCount: formData.get("plantCount"),
+    startDate: formData.get("startDate"),
+    status: formData.get("status"),
+    notes: formData.get("notes") ?? "",
+  });
+
+  if (!parsed.success) return invalidForm(parsed.error);
+
+  const { seasonId, notes, ...rest } = parsed.data;
+
+  const result = await prisma.season.updateMany({
+    where: { id: seasonId },
+    data: {
+      ...rest,
+      notes: notes ? notes : null,
+      // Reaching COMPLETED stamps the end; moving back off it clears the stamp
+      // rather than leaving a season "ended" while it is running again.
+      endDate: rest.status === "COMPLETED" ? new Date() : null,
+    },
+  });
+
+  if (result.count === 0) {
+    return { ok: false, message: "Musim tidak ditemukan." };
+  }
+
+  // The selector lives in the layout, so a renamed season needs the whole tree.
+  revalidatePath("/", "layout");
+  return { ok: true, seasonId };
+}
+
+/**
+ * Archive rather than delete. A season cascades to every task, finding,
+ * harvest and transaction beneath it, and with no authentication in place a
+ * delete button is a single click between a stranger and the entire record.
+ * ARCHIVED has been in the schema since the start with no way to reach it.
+ */
+export async function archiveSeason(formData: FormData): Promise<ActionResult> {
+  const seasonId = String(formData.get("seasonId") ?? "");
+  if (!seasonId) return { ok: false, message: "Musim tidak dikenali." };
+
+  const result = await prisma.season.updateMany({
+    where: { id: seasonId },
+    data: { status: "ARCHIVED" },
+  });
+
+  if (result.count === 0) {
+    return { ok: false, message: "Musim tidak ditemukan." };
+  }
 
   revalidatePath("/", "layout");
   return { ok: true, seasonId };

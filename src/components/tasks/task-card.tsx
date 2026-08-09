@@ -1,22 +1,28 @@
 import { CalendarDays, Users } from "lucide-react";
 
+import { ConfirmDelete } from "@/components/common/confirm-delete";
 import { StatusBadge } from "@/components/common/status-badge";
+import { TaskDialog } from "@/components/tasks/task-dialog";
 import { TaskStatusButtons } from "@/components/tasks/task-status-buttons";
 import { Card, CardContent } from "@/components/ui/card";
 import { daysUntil, formatDate } from "@/lib/hst";
 import { cn } from "@/lib/utils";
+import { deleteTask } from "@/server/actions/tasks";
 import type { TaskRow } from "@/server/queries/tasks";
+import type { MemberOption } from "@/server/queries/users";
 
 export function TaskCard({
   task,
   seasonId,
   currentHst,
+  members,
   showStatus = false,
 }: {
   task: TaskRow;
   seasonId: string;
   /** Season age today, used to judge whether a planned HST has passed. */
   currentHst: number;
+  members: MemberOption[];
   showStatus?: boolean;
 }) {
   const remaining = daysUntil(task.dueDate);
@@ -69,12 +75,29 @@ export function TaskCard({
           </p>
         ) : null}
 
-        <TaskStatusButtons
-          taskId={task.id}
-          seasonId={seasonId}
-          status={task.status}
-          variant="card"
-        />
+        <div className="flex items-center gap-1 border-t pt-2">
+          <TaskDialog
+            seasonId={seasonId}
+            members={members}
+            currentHst={currentHst}
+            task={task}
+          />
+          <ConfirmDelete
+            title="Hapus tugas ini?"
+            itemName={task.title}
+            action={deleteTask}
+            fields={{ taskId: task.id, seasonId }}
+            iconOnly
+          />
+          <div className="ml-auto">
+            <TaskStatusButtons
+              taskId={task.id}
+              seasonId={seasonId}
+              status={task.status}
+              variant="card"
+            />
+          </div>
+        </div>
       </CardContent>
     </Card>
   );

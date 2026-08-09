@@ -1,5 +1,7 @@
+import { ConfirmDelete } from "@/components/common/confirm-delete";
 import { StatusBadge } from "@/components/common/status-badge";
 import { TaskCard } from "@/components/tasks/task-card";
+import { TaskDialog } from "@/components/tasks/task-dialog";
 import { TaskStatusButtons } from "@/components/tasks/task-status-buttons";
 import { Card } from "@/components/ui/card";
 import {
@@ -12,16 +14,20 @@ import {
 } from "@/components/ui/table";
 import { daysUntil, formatDate } from "@/lib/hst";
 import { cn } from "@/lib/utils";
+import { deleteTask } from "@/server/actions/tasks";
 import type { TaskRow } from "@/server/queries/tasks";
+import type { MemberOption } from "@/server/queries/users";
 
 export function TaskTable({
   tasks,
   seasonId,
   currentHst,
+  members,
 }: {
   tasks: TaskRow[];
   seasonId: string;
   currentHst: number;
+  members: MemberOption[];
 }) {
   if (tasks.length === 0) {
     return (
@@ -42,6 +48,7 @@ export function TaskTable({
             task={task}
             seasonId={seasonId}
             currentHst={currentHst}
+            members={members}
             showStatus
           />
         ))}
@@ -59,7 +66,7 @@ export function TaskTable({
                 {/* Pinned: their content changes with status, and an auto-sized
                     column would re-measure and shift the row on every update. */}
                 <TableHead className="w-40">Status</TableHead>
-                <TableHead className="w-44">Aksi</TableHead>
+                <TableHead className="w-64">Aksi</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -101,12 +108,27 @@ export function TaskTable({
                     <TableCell className="w-40">
                       <StatusBadge status={task.status} kind="task" block />
                     </TableCell>
-                    <TableCell className="w-44">
-                      <TaskStatusButtons
-                        taskId={task.id}
-                        seasonId={seasonId}
-                        status={task.status}
-                      />
+                    <TableCell className="w-64">
+                      <div className="flex items-center gap-1">
+                        <TaskStatusButtons
+                          taskId={task.id}
+                          seasonId={seasonId}
+                          status={task.status}
+                        />
+                        <TaskDialog
+                          seasonId={seasonId}
+                          members={members}
+                          currentHst={currentHst}
+                          task={task}
+                        />
+                        <ConfirmDelete
+                          title="Hapus tugas ini?"
+                          itemName={task.title}
+                          action={deleteTask}
+                          fields={{ taskId: task.id, seasonId }}
+                          iconOnly
+                        />
+                      </div>
                     </TableCell>
                   </TableRow>
                 );

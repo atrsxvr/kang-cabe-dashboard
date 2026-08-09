@@ -1,5 +1,6 @@
 import { TaskCard } from "@/components/tasks/task-card";
 import type { TaskRow } from "@/server/queries/tasks";
+import type { MemberOption } from "@/server/queries/users";
 import { taskStatuses } from "@/server/actions/schemas";
 
 const columnLabels: Record<string, string> = {
@@ -12,10 +13,12 @@ export function TaskBoard({
   tasks,
   seasonId,
   currentHst,
+  members,
 }: {
   tasks: TaskRow[];
   seasonId: string;
   currentHst: number;
+  members: MemberOption[];
 }) {
   return (
     // Three columns do not fit a phone. Scrolling horizontally keeps the board
@@ -46,6 +49,7 @@ export function TaskBoard({
                       task={task}
                       seasonId={seasonId}
                       currentHst={currentHst}
+                      members={members}
                     />
                   ))
                 )}

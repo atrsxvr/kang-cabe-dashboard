@@ -9,7 +9,9 @@ import {
   SprayCan,
 } from "lucide-react";
 
+import { ConfirmDelete } from "@/components/common/confirm-delete";
 import { DoseCalculator } from "@/components/health/dose-calculator";
+import { RecipeDialog } from "@/components/health/recipe-dialog";
 import {
   kindLabels,
   methodLabels,
@@ -20,7 +22,8 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { amountForVolume, formatAmount } from "@/lib/dose";
 import { cn } from "@/lib/utils";
-import type { RecipeRow } from "@/server/queries/recipes";
+import { deleteRecipe } from "@/server/actions/recipes";
+import type { MaterialRow, RecipeRow } from "@/server/queries/recipes";
 
 /**
  * Collapsed by default. Every card carries a full calculator table, so an
@@ -30,7 +33,13 @@ import type { RecipeRow } from "@/server/queries/recipes";
  * The collapsed row still lists the amounts at the reference volume, so it
  * answers "what goes in this" without opening anything.
  */
-export function RecipeCard({ recipe }: { recipe: RecipeRow }) {
+export function RecipeCard({
+  recipe,
+  materials,
+}: {
+  recipe: RecipeRow;
+  materials: MaterialRow[];
+}) {
   const [open, setOpen] = useState(false);
   const Method = recipe.method === "KOCOR" ? Droplets : SprayCan;
 
@@ -129,6 +138,17 @@ export function RecipeCard({ recipe }: { recipe: RecipeRow }) {
           ) : null}
 
           <DoseCalculator recipe={recipe} />
+
+          <div className="flex items-center gap-1 border-t pt-3">
+            <RecipeDialog materials={materials} recipe={recipe} />
+            <ConfirmDelete
+              title="Hapus racikan ini?"
+              itemName={recipe.name}
+              consequence="Perlakuan yang sudah tercatat di temuan tidak ikut hilang."
+              action={deleteRecipe}
+              fields={{ recipeId: recipe.id }}
+            />
+          </div>
         </CardContent>
       ) : null}
     </Card>
