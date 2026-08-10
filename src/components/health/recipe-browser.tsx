@@ -8,7 +8,8 @@ import { phaseLabels } from "@/components/health/recipe-labels";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
-import type { MaterialRow, RecipeRow } from "@/server/queries/recipes";
+import type { StockRow } from "@/server/queries/inventory";
+import type { RecipeRow } from "@/server/queries/recipes";
 
 type Group = "ALL" | "VEGETATIVE" | "GENERATIVE" | "PRODUCTION" | "TREATMENT";
 
@@ -37,7 +38,7 @@ export function RecipeBrowser({
   materials,
 }: {
   recipes: RecipeRow[];
-  materials: MaterialRow[];
+  materials: StockRow[];
 }) {
   const [group, setGroup] = useState<Group>("ALL");
   const [query, setQuery] = useState("");

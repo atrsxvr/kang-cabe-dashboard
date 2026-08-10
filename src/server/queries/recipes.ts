@@ -4,7 +4,6 @@ import { prisma } from "@/lib/prisma";
 import type {
   ApplicationMethod,
   GrowthPhase,
-  MaterialCategory,
   RecipeKind,
 } from "@/generated/prisma/client";
 
@@ -13,22 +12,6 @@ import type {
  * is knowledge, not a season's operational record — its whole value is being
  * reused next season. The exception is documented in CLAUDE.md.
  */
-
-export type MaterialRow = {
-  id: string;
-  name: string;
-  unit: string;
-  category: MaterialCategory;
-  notes: string | null;
-  _count: { recipeItems: number };
-};
-
-export async function listMaterials(): Promise<MaterialRow[]> {
-  return prisma.material.findMany({
-    orderBy: [{ category: "asc" }, { name: "asc" }],
-    include: { _count: { select: { recipeItems: true } } },
-  });
-}
 
 export type RecipeRow = {
   id: string;

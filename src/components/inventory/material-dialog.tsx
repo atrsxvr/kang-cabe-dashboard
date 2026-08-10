@@ -5,9 +5,13 @@ import { useRouter } from "next/navigation";
 import { FlaskConical, Pencil } from "lucide-react";
 import { toast } from "sonner";
 
+import { Field } from "@/components/common/form-field";
 import { NativeSelect } from "@/components/common/native-select";
 import { SubmitButton } from "@/components/common/submit-button";
-import { materialCategoryLabels } from "@/components/health/recipe-labels";
+import {
+  materialCategoryLabels,
+  UNIT_OPTIONS,
+} from "@/components/inventory/inventory-labels";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -19,11 +23,23 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { createMaterial, updateMaterial } from "@/server/actions/recipes";
-import type { MaterialRow } from "@/server/queries/recipes";
+import type { StockRow } from "@/server/queries/inventory";
 
-export function MaterialDialog({ material }: { material?: MaterialRow }) {
+/**
+ * One row per material, shared by the recipe library and the shed. The unit
+ * chosen here is the unit a recipe's dose is written in, which is why stock
+ * uses it too — otherwise "is there enough for this mix" needs a conversion
+ * nobody will get right in a hurry.
+ */
+export function MaterialDialog({
+  material,
+  compact = false,
+}: {
+  material?: StockRow;
+  /** Small pencil for tight rows, e.g. the chips on the recipe page. */
+  compact?: boolean;
+}) {
   const editing = Boolean(material);
   const [open, setOpen] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -58,26 +74,27 @@ export function MaterialDialog({ material }: { material?: MaterialRow }) {
         {editing ? (
           <Button
             variant="ghost"
-            size="icon"
-            className="size-6"
+            size={compact ? "icon" : "sm"}
+            className={compact ? "size-6" : undefined}
             aria-label={`Sunting ${material!.name}`}
           >
-            <Pencil className="size-3" aria-hidden />
+            <Pencil className={compact ? "size-3" : "size-4"} aria-hidden />
+            {compact ? null : "Sunting"}
           </Button>
         ) : (
-          <Button size="sm" variant="secondary">
+          <Button size="sm">
             <FlaskConical className="size-4" aria-hidden />
             Tambah Bahan
           </Button>
         )}
       </DialogTrigger>
 
-      <DialogContent className="sm:max-w-md">
+      <DialogContent className="max-h-[90dvh] overflow-y-auto sm:max-w-lg">
         <DialogHeader>
           <DialogTitle>{editing ? "Sunting Bahan" : "Tambah Bahan"}</DialogTitle>
           <DialogDescription>
-            Bahan dipakai bersama oleh semua racikan — dan nanti oleh modul
-            Inventaris untuk melacak stok.
+            Bahan dipakai bersama oleh Pustaka Racikan dan stok gudang, jadi
+            satuannya berlaku untuk keduanya.
           </DialogDescription>
         </DialogHeader>
 
@@ -86,8 +103,7 @@ export function MaterialDialog({ material }: { material?: MaterialRow }) {
             <input type="hidden" name="materialId" value={material!.id} />
           ) : null}
 
-          <div className="grid gap-2">
-            <Label htmlFor="material-name">Nama Bahan</Label>
+          <Field id="material-name" label="Nama Bahan" error={errors.name}>
             <Input
               id="material-name"
               name="name"
@@ -96,35 +112,24 @@ export function MaterialDialog({ material }: { material?: MaterialRow }) {
               placeholder="NPK 16-16-16"
               aria-invalid={Boolean(errors.name)}
             />
-            {errors.name ? (
-              <p className="text-destructive text-xs" role="alert">
-                {errors.name}
-              </p>
-            ) : null}
-          </div>
+          </Field>
 
           <div className="grid gap-4 sm:grid-cols-2">
-            <div className="grid content-start gap-2">
-              <Label htmlFor="material-unit">Satuan</Label>
+            <Field id="material-unit" label="Satuan" error={errors.unit}>
               <NativeSelect
                 id="material-unit"
                 name="unit"
                 defaultValue={material?.unit ?? "gram"}
               >
-                <option value="gram">gram</option>
-                <option value="ml">ml</option>
-                <option value="kg">kg</option>
-                <option value="liter">liter</option>
+                {UNIT_OPTIONS.map((unit) => (
+                  <option key={unit} value={unit}>
+                    {unit}
+                  </option>
+                ))}
               </NativeSelect>
-              {errors.unit ? (
-                <p className="text-destructive text-xs" role="alert">
-                  {errors.unit}
-                </p>
-              ) : null}
-            </div>
+            </Field>
 
-            <div className="grid content-start gap-2">
-              <Label htmlFor="material-category">Kategori</Label>
+            <Field id="material-category" label="Kategori" error={errors.category}>
               <NativeSelect
                 id="material-category"
                 name="category"
@@ -136,7 +141,49 @@ export function MaterialDialog({ material }: { material?: MaterialRow }) {
                   </option>
                 ))}
               </NativeSelect>
-            </div>
+            </Field>
+          </div>
+
+          <div className="grid gap-4 sm:grid-cols-2">
+            <Field
+              id="material-stock"
+              label="Stok Saat Ini"
+              error={errors.stock}
+              hint={
+                editing
+                  ? "Untuk pemakaian sehari-hari pakai tombol + / − agar tercatat riwayatnya"
+                  : undefined
+              }
+            >
+              <Input
+                id="material-stock"
+                name="stock"
+                type="number"
+                min={0}
+                step="any"
+                required
+                defaultValue={material?.stock ?? 0}
+                aria-invalid={Boolean(errors.stock)}
+              />
+            </Field>
+
+            <Field
+              id="material-minStock"
+              label="Batas Minimum"
+              error={errors.minStock}
+              hint="Di bawah ini akan masuk daftar belanja"
+            >
+              <Input
+                id="material-minStock"
+                name="minStock"
+                type="number"
+                min={0}
+                step="any"
+                required
+                defaultValue={material?.minStock ?? 0}
+                aria-invalid={Boolean(errors.minStock)}
+              />
+            </Field>
           </div>
 
           <DialogFooter>

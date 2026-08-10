@@ -18,6 +18,8 @@ export async function createMaterial(
     name: formData.get("name"),
     unit: formData.get("unit"),
     category: formData.get("category"),
+    stock: formData.get("stock") ?? 0,
+    minStock: formData.get("minStock") ?? 0,
     notes: formData.get("notes") ?? "",
   });
 
@@ -45,6 +47,7 @@ export async function createMaterial(
   });
 
   revalidatePath("/health/racikan");
+  revalidatePath("/inventory");
   return { ok: true };
 }
 
@@ -195,6 +198,8 @@ export async function updateMaterial(
     name: formData.get("name"),
     unit: formData.get("unit"),
     category: formData.get("category"),
+    stock: formData.get("stock") ?? 0,
+    minStock: formData.get("minStock") ?? 0,
     notes: formData.get("notes") ?? "",
   });
 
@@ -225,6 +230,7 @@ export async function updateMaterial(
   }
 
   revalidatePath("/health/racikan");
+  revalidatePath("/inventory");
   return { ok: true };
 }
 
@@ -257,5 +263,6 @@ export async function deleteMaterial(
   }
 
   revalidatePath("/health/racikan");
+  revalidatePath("/inventory");
   return { ok: true };
 }

@@ -129,6 +129,9 @@ export const materialCategories = [
   "PESTICIDE",
   "FUNGICIDE",
   "GROWTH_REGULATOR",
+  "SEED",
+  "MULCH",
+  "SUPPLIES",
   "OTHER",
 ] as const;
 
@@ -136,7 +139,46 @@ export const createMaterialSchema = z.object({
   name: z.string().trim().min(2, "Nama bahan minimal 2 karakter").max(120),
   unit: z.string().trim().min(1, "Satuan wajib diisi").max(16),
   category: z.enum(materialCategories),
+  stock: z.coerce.number().min(0, "Stok tidak boleh negatif").max(10_000_000),
+  minStock: z.coerce
+    .number()
+    .min(0, "Batas minimum tidak boleh negatif")
+    .max(10_000_000),
   notes: z.string().trim().max(500).optional().or(z.literal("")),
+});
+
+export const stockReasons = ["PURCHASE", "USAGE", "CORRECTION", "LOSS"] as const;
+
+export const adjustStockSchema = z
+  .object({
+    materialId: z.string().min(1),
+    delta: z.coerce.number("Jumlah tidak valid"),
+    reason: z.enum(stockReasons),
+    note: z.string().trim().max(300).optional().or(z.literal("")),
+    actorId: z.string().optional().or(z.literal("")),
+  })
+  // A zero movement records nothing and clutters the history.
+  .refine((value) => value.delta !== 0, {
+    message: "Jumlah tidak boleh nol",
+    path: ["delta"],
+  });
+
+export const toolConditions = ["GOOD", "NEEDS_SERVICE", "BROKEN"] as const;
+
+export const createToolSchema = z.object({
+  name: z.string().trim().min(2, "Nama alat minimal 2 karakter").max(120),
+  quantity: z.coerce
+    .number()
+    .int("Jumlah harus bilangan bulat")
+    .min(1, "Jumlah minimal 1")
+    .max(1000),
+  condition: z.enum(toolConditions),
+  lastServicedAt: z.coerce.date().optional(),
+  notes: z.string().trim().max(500).optional().or(z.literal("")),
+});
+
+export const updateToolSchema = createToolSchema.extend({
+  toolId: z.string().min(1),
 });
 
 const recipeItemSchema = z.object({

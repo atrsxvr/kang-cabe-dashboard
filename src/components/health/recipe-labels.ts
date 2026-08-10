@@ -14,14 +14,6 @@ export const methodLabels: Record<string, string> = {
   SEMPROT: "Semprot",
 };
 
-export const materialCategoryLabels: Record<string, string> = {
-  FERTILIZER: "Pupuk",
-  PESTICIDE: "Pestisida",
-  FUNGICIDE: "Fungisida",
-  GROWTH_REGULATOR: "ZPT",
-  OTHER: "Lainnya",
-};
-
 export const phaseTones: Record<string, string> = {
   VEGETATIVE: "bg-emerald-500/12 text-emerald-700 dark:text-emerald-400",
   GENERATIVE: "bg-amber-500/15 text-amber-700 dark:text-amber-400",

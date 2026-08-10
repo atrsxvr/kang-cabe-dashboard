@@ -4,13 +4,14 @@ import { ScrollText } from "lucide-react";
 
 import { PageHeader } from "@/components/common/page-header";
 import { ConfirmDelete } from "@/components/common/confirm-delete";
-import { MaterialDialog } from "@/components/health/material-dialog";
+import { MaterialDialog } from "@/components/inventory/material-dialog";
 import { RecipeDialog } from "@/components/health/recipe-dialog";
 import { RecipeBrowser } from "@/components/health/recipe-browser";
-import { materialCategoryLabels } from "@/components/health/recipe-labels";
+import { materialCategoryLabels } from "@/components/inventory/inventory-labels";
 import { Card, CardContent } from "@/components/ui/card";
 import { deleteMaterial } from "@/server/actions/recipes";
-import { listMaterials, listRecipes } from "@/server/queries/recipes";
+import { listStock } from "@/server/queries/inventory";
+import { listRecipes } from "@/server/queries/recipes";
 
 export const metadata: Metadata = { title: "Pustaka Racikan" };
 
@@ -19,10 +20,7 @@ export default async function RecipeLibraryPage() {
   // but the read is still live, hence connection().
   await connection();
 
-  const [recipes, materials] = await Promise.all([
-    listRecipes(),
-    listMaterials(),
-  ]);
+  const [recipes, materials] = await Promise.all([listRecipes(), listStock()]);
 
   return (
     <>
@@ -61,7 +59,7 @@ export default async function RecipeLibraryPage() {
                 <span className="opacity-70">
                   {material.unit} · {materialCategoryLabels[material.category]}
                 </span>
-                <MaterialDialog material={material} />
+                <MaterialDialog material={material} compact />
                 <ConfirmDelete
                   title="Hapus bahan ini?"
                   itemName={material.name}

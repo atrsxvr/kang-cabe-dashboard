@@ -43,11 +43,17 @@ src/
 - **Every farming data query takes `seasonId` as a required argument.** Tasks,
   logs, harvests, and finance are meaningless unscoped, and an unfiltered query
   leaks one season's numbers into another's report.
-- **Exception: the recipe library** (`Material`, `Recipe`, `RecipeItem`, in
-  `src/server/queries/recipes.ts`). Those are knowledge, not a season's record —
-  their value is being reused next season, so scoping them would defeat the
-  point. Anything that records *an application* of a recipe still belongs to a
-  season. Do not widen this exception without the same reasoning.
+- **Exception: shared assets and knowledge.** The recipe library (`Recipe`,
+  `RecipeItem`) and the shed (`Material`, `StockMovement`, `Tool`). A sack of
+  fertiliser and a hoe outlive any one planting, and a recipe's value is being
+  reused next season — scoping either would defeat the point. Anything that
+  records *an application* of a recipe, or consumption against a season, still
+  belongs to a season. Do not widen this exception without the same reasoning.
+- **`Material` is one row shared by recipes and stock.** Splitting them means
+  typing "NPK 16-16-16" twice and never being able to answer whether there is
+  enough for a mix. Stock uses the recipe's unit for the same reason.
+- **Stock status is derived, never stored** (`src/lib/stock.ts`). A status
+  column and the numbers behind it are two sources for one fact.
 - **Copy a recipe's amounts into whatever records using it**, rather than only
   linking. A revised recipe must not silently rewrite what was actually applied
   last season, or the post-mortem lies.

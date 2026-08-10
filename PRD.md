@@ -124,15 +124,35 @@ dilihat; Agronomis menindaklanjuti.
 - **Kalkulator dosis:** takaran disimpan per liter, jadi mengubah volume tangki
   langsung menghasilkan angka yang benar tanpa hitung manual.
 - **Masa tunggu panen** ditampilkan mencolok pada racikan pestisida.
-- Bahan berdiri sebagai data tersendiri, siap dipakai modul Inventaris.
+- Bahan yang dipakai racikan adalah baris yang sama dengan stok gudang di
+  modul Inventaris, jadi daftar belanja tahu racikan mana yang terdampak.
 
-**Belum ada:** program per-HST yang otomatis menjadwalkan tugas, kaitan ke stok.
+**Belum ada:** program per-HST yang otomatis menjadwalkan tugas.
 
-### 4.5 Inventaris & Alat — belum dibangun
+### 4.5 Inventaris & Alat — jalan
 
-Monitoring stok saprodi dengan indikator Aman / Critical / Habis, kelayakan
-alat kerja, dan pengajuan pembelian. Model data sudah ada; bahan racikan sudah
-disiapkan untuk ditempeli stok.
+Tiga tab. Datanya berlaku lintas musim: sekarung pupuk dan sebuah cangkul
+hidup lebih lama dari satu musim tanam.
+
+**Stok Bahan.** Satu baris per bahan, **dipakai bersama Pustaka Racikan** —
+NPK yang dipakai racikan Tole adalah NPK yang sama yang dicek Gotay di gudang,
+bukan dua catatan terpisah.
+
+- Status stok dihitung dari stok vs batas minimum, tidak disimpan: Aman,
+  Menipis, atau Habis.
+- Tombol + / − untuk pemakaian dan belanja harian. Setiap perubahan mencatat
+  jumlah, alasan (belanja/pemakaian/koreksi/rusak), dan siapa yang mencatat —
+  sehingga "kenapa NPK tinggal segini" bisa ditelusuri.
+- Stok tidak bisa turun di bawah nol.
+- Satuan mengikuti satuan racikan supaya keduanya bisa dibandingkan; tampilan
+  menaikkannya ke kg atau liter saat angkanya besar.
+
+**Belanja.** Rekap otomatis semua bahan yang menipis atau habis, menyebut
+**berapa yang perlu dibeli** dan **racikan mana yang terdampak** kalau tidak
+dibeli. Bisa disalin atau dibagikan langsung ke WhatsApp dari ponsel.
+
+**Alat Kebun.** Daftar alat dengan jumlah, kondisi (Baik / Butuh servis /
+Rusak), tanggal servis terakhir, dan catatan perawatan.
 
 ### 4.6 Panen & Penjualan — belum dibangun
 
@@ -216,8 +236,9 @@ autentikasi terpasang.**
 **2. Deployment.** Belum pernah dijalankan di luar localhost, sehingga belum
 pernah dipakai di kebun. Branch `main` dan `production` masih di commit awal.
 
-**3. Modul Inventaris, Panen, dan Keuangan** — sekaligus melengkapi dua kartu
-Dashboard yang masih berisi angka contoh.
+**3. Modul Panen dan Keuangan** — sekaligus melengkapi dua kartu Dashboard
+yang masih berisi angka contoh. Pembelian yang tercatat di Inventaris nanti
+bisa disambungkan menjadi pengeluaran.
 
 **4. Pengujian alur di CI.** Tes yang ada mencakup logika murni; alur seperti
 unggah foto dan penyaringan per musim baru diperiksa manual lewat browser.

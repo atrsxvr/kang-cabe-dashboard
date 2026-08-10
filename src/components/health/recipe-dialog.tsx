@@ -29,13 +29,13 @@ import { Textarea } from "@/components/ui/textarea";
 import { DEFAULT_TANK_LITRES } from "@/lib/dose";
 import { createRecipe, updateRecipe } from "@/server/actions/recipes";
 import type { RecipeRow } from "@/server/queries/recipes";
-import type { MaterialRow } from "@/server/queries/recipes";
+import type { StockRow } from "@/server/queries/inventory";
 
 export function RecipeDialog({
   materials,
   recipe,
 }: {
-  materials: MaterialRow[];
+  materials: StockRow[];
   recipe?: RecipeRow;
 }) {
   const editing = Boolean(recipe);

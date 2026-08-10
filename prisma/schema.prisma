@@ -67,13 +67,25 @@ enum MaterialCategory {
   PESTICIDE
   FUNGICIDE
   GROWTH_REGULATOR
+  SEED
+  MULCH
+  SUPPLIES // polybag, tali, dan sejenisnya
   OTHER
 }
 
-enum InventoryStatus {
-  SAFE
-  LOW
-  OUT_OF_STOCK
+/// Alasan stok berubah. Tanpa ini angka stok tidak bisa direkonsiliasi saat
+/// terasa janggal, dan pembelian tidak bisa disambungkan ke modul Keuangan.
+enum StockReason {
+  PURCHASE
+  USAGE
+  CORRECTION
+  LOSS
+}
+
+enum ToolCondition {
+  GOOD
+  NEEDS_SERVICE
+  BROKEN
 }
 
 enum TransactionType {
@@ -98,29 +110,30 @@ model User {
   updatedAt DateTime  @updatedAt
 
   tasksAssigned     TaskAssignee[]
-  findingsReported  HealthLog[]   @relation("ReportedFindings")
-  findingsDiagnosed HealthLog[]   @relation("DiagnosedFindings")
-  recipesAuthored   Recipe[]      @relation("AuthoredRecipes")
+  findingsReported  HealthLog[]     @relation("ReportedFindings")
+  findingsDiagnosed HealthLog[]     @relation("DiagnosedFindings")
+  recipesAuthored   Recipe[]        @relation("AuthoredRecipes")
+  stockMovements    StockMovement[] @relation("StockMovements")
 
   @@index([deletedAt])
 }
 
 model Season {
-  id          String       @id @default(uuid())
-  name        String       // Contoh: "Musim Tanam 1 - Rawit Ori 212"
-  variety     String       // Varietas benih
-  plantCount  Int          // Jumlah populasi tanaman
-  startDate   DateTime     // Tanggal tanam (HST 0)
-  endDate     DateTime?    // Tanggal selesai musim
-  status      SeasonStatus @default(PLANNING)
-  notes       String?
-  createdAt   DateTime     @default(now())
-  updatedAt   DateTime     @updatedAt
+  id         String       @id @default(uuid())
+  name       String // Contoh: "Musim Tanam 1 - Rawit Ori 212"
+  variety    String // Varietas benih
+  plantCount Int // Jumlah populasi tanaman
+  startDate  DateTime // Tanggal tanam (HST 0)
+  endDate    DateTime? // Tanggal selesai musim
+  status     SeasonStatus @default(PLANNING)
+  notes      String?
+  createdAt  DateTime     @default(now())
+  updatedAt  DateTime     @updatedAt
 
-  tasks                Task[]
-  healthLogs           HealthLog[]
-  harvestLogs          HarvestLog[]
-  financeTransactions  FinanceTransaction[]
+  tasks               Task[]
+  healthLogs          HealthLog[]
+  harvestLogs         HarvestLog[]
+  financeTransactions FinanceTransaction[]
 }
 
 model Task {
@@ -128,7 +141,7 @@ model Task {
   seasonId    String
   title       String
   description String?
-  hst         Int?       // Hari Setelah Tanam saat tugas direncanakan
+  hst         Int? // Hari Setelah Tanam saat tugas direncanakan
   dueDate     DateTime
   status      TaskStatus @default(TODO)
   // Diisi saat status menjadi DONE, dikosongkan kalau dibatalkan. Terpisah dari
@@ -161,29 +174,29 @@ model TaskAssignee {
 }
 
 model HealthLog {
-  id         String        @id @default(uuid())
-  seasonId   String
-  hst        Int           // Hari Setelah Tanam saat ditemukannya gejala
-  photoUrl   String?
-  location   String?       // Petak/blok tempat temuan, kalau relevan
-  symptoms   String        // Gejala penyakit/hama
-  severity   Severity      @default(MEDIUM)
-  status     FindingStatus @default(REPORTED)
-  diagnosis  String?       // Diagnosa dari Agronomis
-  treatment  String?       // Solusi / Racikan obat
+  id          String        @id @default(uuid())
+  seasonId    String
+  hst         Int // Hari Setelah Tanam saat ditemukannya gejala
+  photoUrl    String?
+  location    String? // Petak/blok tempat temuan, kalau relevan
+  symptoms    String // Gejala penyakit/hama
+  severity    Severity      @default(MEDIUM)
+  status      FindingStatus @default(REPORTED)
+  diagnosis   String? // Diagnosa dari Agronomis
+  treatment   String? // Solusi / Racikan obat
   diagnosedAt DateTime?
   resolvedAt  DateTime?
-  createdAt  DateTime      @default(now())
-  updatedAt  DateTime      @updatedAt
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
 
   reportedById  String?
   diagnosedById String?
 
-  season       Season @relation(fields: [seasonId], references: [id], onDelete: Cascade)
+  season      Season @relation(fields: [seasonId], references: [id], onDelete: Cascade)
   // Restrict, konsisten dengan TaskAssignee: anggota dinonaktifkan lewat
   // deletedAt, bukan dihapus, supaya riwayat temuan tetap bisa ditelusuri.
-  reportedBy   User?  @relation("ReportedFindings", fields: [reportedById], references: [id], onDelete: Restrict)
-  diagnosedBy  User?  @relation("DiagnosedFindings", fields: [diagnosedById], references: [id], onDelete: Restrict)
+  reportedBy  User?  @relation("ReportedFindings", fields: [reportedById], references: [id], onDelete: Restrict)
+  diagnosedBy User?  @relation("DiagnosedFindings", fields: [diagnosedById], references: [id], onDelete: Restrict)
 
   @@index([seasonId])
   @@index([seasonId, status]) // Antrean temuan per tahap
@@ -191,21 +204,65 @@ model HealthLog {
   @@index([diagnosedById])
 }
 
-/// Bahan yang bisa masuk racikan. Sengaja berdiri sendiri sejak awal: modul
-/// Inventaris nanti menempelkan stok ke baris yang sama, tanpa migrasi dan
-/// tanpa membereskan nama yang terlanjur diketik bebas.
+/// Satu baris per bahan, dipakai bersama oleh Pustaka Racikan dan Inventaris.
+/// Dipisah dulu akan berarti "NPK 16-16-16" diketik dua kali dan pertanyaan
+/// "stok cukup untuk racikan ini?" tidak pernah bisa dijawab.
+///
+/// Tidak terikat musim: karung pupuk dipakai lintas musim tanam.
 model Material {
-  id        String           @id @default(uuid())
-  name      String           @unique
-  unit      String // gram, ml
-  category  MaterialCategory @default(FERTILIZER)
+  id       String           @id @default(uuid())
+  name     String           @unique
+  /// Satuan baku untuk bahan ini — takaran racikan dan stok memakai satuan
+  /// yang sama, supaya keduanya bisa dibandingkan tanpa konversi.
+  unit     String
+  category MaterialCategory @default(FERTILIZER)
+
+  stock    Float @default(0)
+  /// Ambang peringatan. Status stok dihitung dari stock vs minStock, tidak
+  /// disimpan — kolom status hanya bisa melenceng dari angka yang diwakilinya.
+  minStock Float @default(0)
+
   notes     String?
-  createdAt DateTime         @default(now())
-  updatedAt DateTime         @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   recipeItems RecipeItem[]
+  movements   StockMovement[]
 
   @@index([category])
+}
+
+/// Riwayat perubahan stok. Menjawab "kenapa NPK tinggal segini".
+model StockMovement {
+  id         String      @id @default(uuid())
+  materialId String
+  /// Positif menambah, negatif mengurangi.
+  delta      Float
+  reason     StockReason
+  note       String?
+  actorId    String?
+  createdAt  DateTime    @default(now())
+
+  material Material @relation(fields: [materialId], references: [id], onDelete: Cascade)
+  actor    User?    @relation("StockMovements", fields: [actorId], references: [id], onDelete: Restrict)
+
+  @@index([materialId, createdAt])
+  @@index([actorId])
+}
+
+/// Alat kerja. Tabel sendiri karena cangkul tidak punya stok, satuan, atau
+/// ambang minimum — yang ia punya kondisi dan riwayat servis.
+model Tool {
+  id             String        @id @default(uuid())
+  name           String
+  quantity       Int           @default(1)
+  condition      ToolCondition @default(GOOD)
+  lastServicedAt DateTime?
+  notes          String?
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+
+  @@index([condition])
 }
 
 /// Racikan — pengetahuan yang dipakai ulang lintas musim, jadi **tidak**
@@ -217,9 +274,9 @@ model Recipe {
   method ApplicationMethod @default(SEMPROT)
 
   /// Diisi untuk racikan rutin.
-  phase       GrowthPhase?
+  phase        GrowthPhase?
   /// Diisi untuk racikan penanganan, mis. "Antraknosa".
-  targetIssue String?
+  targetIssue  String?
   /// "Ulangi tiap N hari" — di fase produksi perlakuan berputar, bukan sekali
   /// jalan di HST tertentu.
   intervalDays Int?
@@ -260,23 +317,11 @@ model RecipeItem {
   @@index([materialId])
 }
 
-model Inventory {
-  id          String          @id @default(uuid())
-  name        String          // Nama pupuk/pestisida/alat
-  category    String          // Pupuk, Pestisida, Alat, Mulsa, dll.
-  stock       Float
-  unit        String          // kg, liter, pcs, roll
-  minStock    Float           // Batas minimum sebelum warning
-  status      InventoryStatus @default(SAFE)
-  createdAt   DateTime        @default(now())
-  updatedAt   DateTime        @updatedAt
-}
-
 model HarvestLog {
   id          String   @id @default(uuid())
   seasonId    String
   harvestDate DateTime
-  weightKg    Float    // Total bobot panen
+  weightKg    Float // Total bobot panen
   gradeA      Float    @default(0) // bobot (kg)
   gradeB      Float    @default(0)
   gradeC      Float    @default(0)
@@ -284,7 +329,7 @@ model HarvestLog {
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
-  season Season @relation(fields: [seasonId], references: [id], onDelete: Cascade)
+  season Season            @relation(fields: [seasonId], references: [id], onDelete: Cascade)
   sales  SaleTransaction[]
 
   @@index([seasonId])
@@ -292,14 +337,14 @@ model HarvestLog {
 }
 
 model SaleTransaction {
-  id           String     @id @default(uuid())
+  id           String   @id @default(uuid())
   harvestLogId String
-  buyerName    String     // Nama pembeli/pengepul/restoran
+  buyerName    String // Nama pembeli/pengepul/restoran
   pricePerKg   Float
   totalAmount  Float
-  isPaid       Boolean    @default(false)
-  createdAt    DateTime   @default(now())
-  updatedAt    DateTime   @updatedAt
+  isPaid       Boolean  @default(false)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
 
   harvestLog HarvestLog @relation(fields: [harvestLogId], references: [id], onDelete: Cascade)
 
@@ -311,10 +356,10 @@ model FinanceTransaction {
   id          String          @id @default(uuid())
   seasonId    String
   type        TransactionType
-  category    String          // Benih, Pupuk, Peralatan, Penjualan, Operasional
+  category    String // Benih, Pupuk, Peralatan, Penjualan, Operasional
   amount      Float
   description String
-  proofUrl    String?         // Foto nota/bukti
+  proofUrl    String? // Foto nota/bukti
   date        DateTime        @default(now())
   createdAt   DateTime        @default(now())
 

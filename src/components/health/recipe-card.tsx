@@ -23,7 +23,8 @@ import { Card, CardContent } from "@/components/ui/card";
 import { amountForVolume, formatAmount } from "@/lib/dose";
 import { cn } from "@/lib/utils";
 import { deleteRecipe } from "@/server/actions/recipes";
-import type { MaterialRow, RecipeRow } from "@/server/queries/recipes";
+import type { StockRow } from "@/server/queries/inventory";
+import type { RecipeRow } from "@/server/queries/recipes";
 
 /**
  * Collapsed by default. Every card carries a full calculator table, so an
@@ -38,7 +39,7 @@ export function RecipeCard({
   materials,
 }: {
   recipe: RecipeRow;
-  materials: MaterialRow[];
+  materials: StockRow[];
 }) {
   const [open, setOpen] = useState(false);
   const Method = recipe.method === "KOCOR" ? Droplets : SprayCan;
