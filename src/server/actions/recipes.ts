@@ -42,9 +42,23 @@ export async function createMaterial(
     };
   }
 
-  await prisma.material.create({
+  const material = await prisma.material.create({
     data: { ...rest, notes: notes ? notes : null },
   });
+
+  // The number typed on registration is a physical count like any other, so it
+  // gets a movement too. Without it the history starts mid-story and the
+  // oldest rows never add up to the stock on hand.
+  if (material.stock > 0) {
+    await prisma.stockMovement.create({
+      data: {
+        materialId: material.id,
+        delta: material.stock,
+        reason: "CORRECTION",
+        note: "Saldo awal saat bahan didaftarkan",
+      },
+    });
+  }
 
   revalidatePath("/health/racikan");
   revalidatePath("/inventory");
@@ -198,7 +212,6 @@ export async function updateMaterial(
     name: formData.get("name"),
     unit: formData.get("unit"),
     category: formData.get("category"),
-    stock: formData.get("stock") ?? 0,
     minStock: formData.get("minStock") ?? 0,
     notes: formData.get("notes") ?? "",
   });

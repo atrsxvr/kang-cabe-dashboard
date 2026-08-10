@@ -296,9 +296,15 @@ export const updateRecipeSchema = createRecipeSchema.safeExtend({
   recipeId: z.string().min(1),
 });
 
-export const updateMaterialSchema = createMaterialSchema.extend({
-  materialId: z.string().min(1),
-});
+/**
+ * Editing a material cannot touch `stock`. The quantity only ever moves
+ * through `adjustStock`, `recordTaskUsage` or an opname, each of which writes
+ * the movement that explains it — an editable number here would be a way to
+ * change the shed with nothing in the log saying who or why.
+ */
+export const updateMaterialSchema = createMaterialSchema
+  .omit({ stock: true })
+  .extend({ materialId: z.string().min(1) });
 
 export const updateTaskStatusSchema = z.object({
   taskId: z.string().min(1),

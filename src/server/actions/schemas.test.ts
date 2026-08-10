@@ -1,11 +1,13 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  createMaterialSchema,
   createSeasonSchema,
   createTaskSchema,
   nextSeasonStatus,
   recordTaskUsageSchema,
   stockOpnameSchema,
+  updateMaterialSchema,
   updateTaskStatusSchema,
 } from "@/server/actions/schemas";
 
@@ -179,5 +181,35 @@ describe("nextSeasonStatus", () => {
 
   it("treats ARCHIVED as outside the progression", () => {
     expect(nextSeasonStatus("ARCHIVED")).toBeNull();
+  });
+});
+
+describe("material schemas", () => {
+  const validMaterial = {
+    name: "NPK 16-16-16",
+    unit: "gram",
+    category: "FERTILIZER",
+    stock: "5000",
+    minStock: "1000",
+    notes: "",
+  };
+
+  it("accepts an opening balance when the material is registered", () => {
+    expect(createMaterialSchema.parse(validMaterial).stock).toBe(5000);
+  });
+
+  /**
+   * Editing must not be a way around the movement log — the quantity only
+   * moves through +/−, a recorded task, or an opname.
+   */
+  it("drops stock from an edit even when the form sends it", () => {
+    const parsed = updateMaterialSchema.parse({
+      ...validMaterial,
+      materialId: "m1",
+      stock: "999999",
+    });
+
+    expect("stock" in parsed).toBe(false);
+    expect(parsed.minStock).toBe(1000);
   });
 });

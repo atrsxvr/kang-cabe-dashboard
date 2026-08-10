@@ -8,6 +8,7 @@ import {
   stockStatusTones,
 } from "@/components/inventory/inventory-labels";
 import { MaterialDialog } from "@/components/inventory/material-dialog";
+import { StockHistoryDialog } from "@/components/inventory/stock-history-dialog";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import {
@@ -53,7 +54,7 @@ export function StockTable({
                 <TableHead className="text-right">Stok</TableHead>
                 <TableHead className="text-right">Minimum</TableHead>
                 <TableHead className="w-28">Status</TableHead>
-                <TableHead className="w-40 text-right">Aksi</TableHead>
+                <TableHead className="w-48 text-right">Aksi</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -90,7 +91,7 @@ export function StockTable({
                         {stockStatusLabels[status]}
                       </Badge>
                     </TableCell>
-                    <TableCell className="w-40">
+                    <TableCell className="w-48">
                       <div className="flex items-center justify-end gap-0.5">
                         <AdjustStockDialog
                           material={row}
@@ -102,6 +103,7 @@ export function StockTable({
                           members={members}
                           direction="in"
                         />
+                        <StockHistoryDialog material={row} compact />
                         <MaterialDialog material={row} compact />
                         <ConfirmDelete
                           title="Hapus bahan ini?"
@@ -175,6 +177,7 @@ function StockCard({
               direction="out"
             />
             <AdjustStockDialog material={row} members={members} direction="in" />
+            <StockHistoryDialog material={row} compact />
             <MaterialDialog material={row} compact />
             <ConfirmDelete
               title="Hapus bahan ini?"

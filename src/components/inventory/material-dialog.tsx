@@ -23,6 +23,7 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
+import { formatStock } from "@/lib/stock";
 import { createMaterial, updateMaterial } from "@/server/actions/recipes";
 import type { StockRow } from "@/server/queries/inventory";
 
@@ -145,27 +146,40 @@ export function MaterialDialog({
           </div>
 
           <div className="grid gap-4 sm:grid-cols-2">
-            <Field
-              id="material-stock"
-              label="Stok Saat Ini"
-              error={errors.stock}
-              hint={
-                editing
-                  ? "Untuk pemakaian sehari-hari pakai tombol + / − agar tercatat riwayatnya"
-                  : undefined
-              }
-            >
-              <Input
+            {/* Read-only once the material exists. Every change to the number
+                has to come from +/−, a recorded task, or an opname, because
+                each of those writes the movement that explains it. An editable
+                box here would be a way around the whole history. */}
+            {editing ? (
+              <div className="grid gap-2">
+                <p className="text-sm font-medium">Stok Saat Ini</p>
+                <p className="text-sm tabular-nums">
+                  {formatStock(material!.stock, material!.unit)}
+                </p>
+                <p className="text-muted-foreground text-xs">
+                  Diubah lewat tombol + / − atau Opname Stok, supaya alasannya
+                  ikut tercatat.
+                </p>
+              </div>
+            ) : (
+              <Field
                 id="material-stock"
-                name="stock"
-                type="number"
-                min={0}
-                step="any"
-                required
-                defaultValue={material?.stock ?? 0}
-                aria-invalid={Boolean(errors.stock)}
-              />
-            </Field>
+                label="Stok Awal"
+                error={errors.stock}
+                hint="Dicatat sebagai saldo awal di riwayat bahan ini"
+              >
+                <Input
+                  id="material-stock"
+                  name="stock"
+                  type="number"
+                  min={0}
+                  step="any"
+                  required
+                  defaultValue={0}
+                  aria-invalid={Boolean(errors.stock)}
+                />
+              </Field>
+            )}
 
             <Field
               id="material-minStock"

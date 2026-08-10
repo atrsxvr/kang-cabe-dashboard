@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 
 import { prisma } from "@/lib/prisma";
 import { OPNAME_PREFIX } from "@/lib/stock";
+import { listMovements, type MovementRow } from "@/server/queries/inventory";
 import { invalidForm, type ActionResult } from "@/server/actions/result";
 import {
   adjustStockSchema,
@@ -15,6 +16,20 @@ import {
   toggleShoppingNoteSchema,
   updateToolSchema,
 } from "@/server/actions/schemas";
+
+/**
+ * The stock history of one material, fetched when its dialog opens.
+ *
+ * Loaded on demand rather than shipped with the table: the shed only ever
+ * shows a handful of rows at a time, and sending every movement for every
+ * material to open one of them would grow with the log forever.
+ */
+export async function getMaterialMovements(
+  materialId: string
+): Promise<MovementRow[]> {
+  if (!materialId) return [];
+  return listMovements(materialId, 30);
+}
 
 /**
  * Stock and the movement that caused it are written together. A number that
