@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { Sprout } from "lucide-react";
+import { PackageMinus, Sprout } from "lucide-react";
 
 import { PageHeader } from "@/components/common/page-header";
 import { StatusBadge } from "@/components/common/status-badge";
@@ -13,6 +13,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { calculateHst, formatDate } from "@/lib/hst";
 import { readSeasonParam } from "@/lib/season-param";
+import { listRecipes } from "@/server/queries/recipes";
 import { resolveSeason } from "@/server/queries/seasons";
 import {
   listCompletedTasksBySeason,
@@ -31,13 +32,23 @@ export default async function TasksPage(props: PageProps<"/tasks">) {
 
   if (!season) return <NoSeason />;
 
-  const [tasks, completed, members] = await Promise.all([
+  const [tasks, completed, members, recipes] = await Promise.all([
     listTasksBySeason(season.id),
     listCompletedTasksBySeason(season.id),
     listActiveMembers(),
+    listRecipes(),
   ]);
 
   const currentHst = calculateHst(season.startDate);
+
+  // Recording usage is deliberately manual, so it needs somewhere to be
+  // noticed — a card that only gets a footnote is a card nobody clicks.
+  const unrecorded = tasks.filter(
+    (task) =>
+      task.status === "DONE" &&
+      task.materials.length > 0 &&
+      !task.usageRecordedAt
+  ).length;
 
   return (
     <>
@@ -50,6 +61,7 @@ export default async function TasksPage(props: PageProps<"/tasks">) {
           seasonId={season.id}
           members={members}
           currentHst={currentHst}
+          recipes={recipes}
         />
       </div>
 
@@ -66,6 +78,17 @@ export default async function TasksPage(props: PageProps<"/tasks">) {
         </span>
       </div>
 
+      {unrecorded > 0 ? (
+        <div className="mb-6 flex items-start gap-2 rounded-lg border border-amber-300 bg-amber-50 px-3 py-2 text-sm text-amber-900 dark:border-amber-900/60 dark:bg-amber-950/40 dark:text-amber-200">
+          <PackageMinus className="mt-0.5 size-4 shrink-0" aria-hidden />
+          <p>
+            {unrecorded} tugas selesai memakai bahan racikan tapi stoknya belum
+            dikurangi. Buka tugasnya lalu tekan{" "}
+            <span className="font-medium">Catat pemakaian</span>.
+          </p>
+        </div>
+      ) : null}
+
       <TaskViews
         logbookCount={completed.length}
         board={
@@ -74,6 +97,7 @@ export default async function TasksPage(props: PageProps<"/tasks">) {
             seasonId={season.id}
             currentHst={currentHst}
             members={members}
+            recipes={recipes}
           />
         }
         table={
@@ -82,6 +106,7 @@ export default async function TasksPage(props: PageProps<"/tasks">) {
             seasonId={season.id}
             currentHst={currentHst}
             members={members}
+            recipes={recipes}
           />
         }
         logbook={

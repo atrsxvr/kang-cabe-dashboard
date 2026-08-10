@@ -5,6 +5,7 @@ import { PageHeader } from "@/components/common/page-header";
 import { InventoryViews } from "@/components/inventory/inventory-views";
 import { MaterialDialog } from "@/components/inventory/material-dialog";
 import { ShoppingList } from "@/components/inventory/shopping-list";
+import { StockOpnameDialog } from "@/components/inventory/stock-opname-dialog";
 import { StockTable } from "@/components/inventory/stock-table";
 import { ToolDialog } from "@/components/inventory/tool-dialog";
 import { ToolList } from "@/components/inventory/tool-list";
@@ -48,6 +49,7 @@ export default async function InventoryPage() {
           description="Stok saprodi dan kondisi alat kerja. Berlaku untuk semua musim."
         />
         <div className="flex flex-wrap gap-2">
+          <StockOpnameDialog rows={rows} members={members} />
           <ToolDialog />
           <MaterialDialog />
         </div>

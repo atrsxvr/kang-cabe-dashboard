@@ -4,11 +4,13 @@ import { ConfirmDelete } from "@/components/common/confirm-delete";
 import { StatusBadge } from "@/components/common/status-badge";
 import { TaskDialog } from "@/components/tasks/task-dialog";
 import { TaskStatusButtons } from "@/components/tasks/task-status-buttons";
+import { TaskUsageAction } from "@/components/tasks/task-usage-action";
 import { Card, CardContent } from "@/components/ui/card";
 import { daysUntil, formatDate } from "@/lib/hst";
 import { cn } from "@/lib/utils";
 import { deleteTask } from "@/server/actions/tasks";
 import type { TaskRow } from "@/server/queries/tasks";
+import type { RecipeRow } from "@/server/queries/recipes";
 import type { MemberOption } from "@/server/queries/users";
 
 export function TaskCard({
@@ -16,6 +18,7 @@ export function TaskCard({
   seasonId,
   currentHst,
   members,
+  recipes,
   showStatus = false,
 }: {
   task: TaskRow;
@@ -23,6 +26,7 @@ export function TaskCard({
   /** Season age today, used to judge whether a planned HST has passed. */
   currentHst: number;
   members: MemberOption[];
+  recipes: RecipeRow[];
   showStatus?: boolean;
 }) {
   const remaining = daysUntil(task.dueDate);
@@ -75,10 +79,21 @@ export function TaskCard({
           </p>
         ) : null}
 
+        {task.materials.length > 0 ? (
+          <div className="flex flex-wrap items-center gap-2 border-t pt-2">
+            <TaskUsageAction
+              task={task}
+              seasonId={seasonId}
+              members={members}
+            />
+          </div>
+        ) : null}
+
         <div className="flex items-center gap-1 border-t pt-2">
           <TaskDialog
             seasonId={seasonId}
             members={members}
+            recipes={recipes}
             currentHst={currentHst}
             task={task}
           />

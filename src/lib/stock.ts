@@ -47,3 +47,6 @@ export function describeShortfall(
   if (stock <= 0) return "HABIS";
   return `sisa ${formatStock(stock, unit)} (min ${formatStock(minStock, unit)})`;
 }
+
+/** Field-name prefix for one material's counted amount in an opname form. */
+export const OPNAME_PREFIX = "count:";

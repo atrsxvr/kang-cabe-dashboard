@@ -4,6 +4,8 @@ import {
   createSeasonSchema,
   createTaskSchema,
   nextSeasonStatus,
+  recordTaskUsageSchema,
+  stockOpnameSchema,
   updateTaskStatusSchema,
 } from "@/server/actions/schemas";
 
@@ -88,6 +90,71 @@ describe("createTaskSchema", () => {
 
   it("treats HST as optional", () => {
     expect(createTaskSchema.parse(validTask).hst).toBeUndefined();
+  });
+
+  it("defaults to no materials, so a plain task carries no stock claim", () => {
+    expect(createTaskSchema.parse(validTask).materials).toEqual([]);
+  });
+
+  it("coerces the copied amounts the recipe picker sends", () => {
+    const parsed = createTaskSchema.parse({
+      ...validTask,
+      recipeId: "r1",
+      recipeVolumeL: "45",
+      materials: [{ materialId: "m1", amount: "135" }],
+    });
+
+    expect(parsed.recipeVolumeL).toBe(45);
+    expect(parsed.materials).toEqual([{ materialId: "m1", amount: 135 }]);
+  });
+
+  /** A zero-amount line would deduct nothing while looking like it did. */
+  it("rejects a material with a zero amount", () => {
+    expect(
+      createTaskSchema.safeParse({
+        ...validTask,
+        materials: [{ materialId: "m1", amount: "0" }],
+      }).success
+    ).toBe(false);
+  });
+});
+
+describe("recordTaskUsageSchema", () => {
+  it("requires a seasonId so the deduction cannot reach another season", () => {
+    expect(recordTaskUsageSchema.safeParse({ taskId: "t1" }).success).toBe(
+      false
+    );
+  });
+
+  it("treats the actor as optional", () => {
+    const parsed = recordTaskUsageSchema.parse({
+      taskId: "t1",
+      seasonId: "s1",
+    });
+    expect(parsed.actorId).toBeUndefined();
+  });
+});
+
+describe("stockOpnameSchema", () => {
+  it("coerces counted amounts and allows a genuine zero", () => {
+    const parsed = stockOpnameSchema.parse({
+      actorId: "",
+      note: "",
+      counts: [{ materialId: "m1", counted: "0" }],
+    });
+    expect(parsed.counts[0].counted).toBe(0);
+  });
+
+  it("rejects a negative count — a shelf cannot hold less than nothing", () => {
+    expect(
+      stockOpnameSchema.safeParse({
+        counts: [{ materialId: "m1", counted: "-1" }],
+      }).success
+    ).toBe(false);
+  });
+
+  it("rejects an opname with nothing counted", () => {
+    expect(stockOpnameSchema.safeParse({ counts: [] }).success).toBe(false);
   });
 });
 

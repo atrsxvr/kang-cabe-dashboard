@@ -7,7 +7,7 @@ import { toast } from "sonner";
 
 import { NativeSelect } from "@/components/common/native-select";
 import { PhotoViewer } from "@/components/health/photo-viewer";
-import { TreatmentPicker } from "@/components/health/treatment-picker";
+import { RecipePicker } from "@/components/health/recipe-picker";
 import { SubmitButton } from "@/components/common/submit-button";
 import { Button } from "@/components/ui/button";
 import {
@@ -146,9 +146,10 @@ export function DiagnoseDialog({
             <Label htmlFor={`treatment-${finding.id}`}>
               Perlakuan yang disarankan
             </Label>
-            <TreatmentPicker
+            <RecipePicker
               recipes={treatmentRecipes}
-              onApply={(text) =>
+              label="Ambil dari Pustaka Racikan"
+              onApply={({ text }) =>
                 setTreatment((current) =>
                   current.trim() ? `${current.trim()}\n\n${text}` : text
                 )

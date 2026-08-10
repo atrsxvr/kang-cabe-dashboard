@@ -14,6 +14,13 @@ export type TaskAssigneeView = {
   name: string;
 };
 
+export type TaskMaterialView = {
+  materialId: string;
+  name: string;
+  unit: string;
+  amount: number;
+};
+
 export type TaskRow = {
   id: string;
   title: string;
@@ -23,6 +30,12 @@ export type TaskRow = {
   status: TaskStatus;
   completedAt: Date | null;
   assignees: TaskAssigneeView[];
+  recipeId: string | null;
+  recipeVolumeL: number | null;
+  /** Set once the materials below have been taken out of stock. */
+  usageRecordedAt: Date | null;
+  /** Amounts as copied when the task was written, not as the recipe reads now. */
+  materials: TaskMaterialView[];
 };
 
 const taskSelect = {
@@ -36,6 +49,15 @@ const taskSelect = {
   assignees: {
     select: { user: { select: { id: true, name: true } } },
   },
+  recipeId: true,
+  recipeVolumeL: true,
+  usageRecordedAt: true,
+  materials: {
+    select: {
+      amount: true,
+      material: { select: { id: true, name: true, unit: true } },
+    },
+  },
 } as const;
 
 type RawTask = {
@@ -47,6 +69,13 @@ type RawTask = {
   status: TaskStatus;
   completedAt: Date | null;
   assignees: { user: { id: string; name: string } }[];
+  recipeId: string | null;
+  recipeVolumeL: number | null;
+  usageRecordedAt: Date | null;
+  materials: {
+    amount: number;
+    material: { id: string; name: string; unit: string };
+  }[];
 };
 
 function toRow(task: RawTask): TaskRow {
@@ -55,6 +84,12 @@ function toRow(task: RawTask): TaskRow {
     assignees: task.assignees.map(({ user }) => ({
       userId: user.id,
       name: user.name,
+    })),
+    materials: task.materials.map(({ amount, material }) => ({
+      materialId: material.id,
+      name: material.name,
+      unit: material.unit,
+      amount,
     })),
   };
 }

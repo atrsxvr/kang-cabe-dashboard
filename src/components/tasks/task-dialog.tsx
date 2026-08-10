@@ -2,12 +2,13 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Pencil, Plus } from "lucide-react";
+import { Pencil, Plus, X } from "lucide-react";
 import { toast } from "sonner";
 
 import { dateInputValue, Field } from "@/components/common/form-field";
 import { NativeSelect } from "@/components/common/native-select";
 import { SubmitButton } from "@/components/common/submit-button";
+import { RecipePicker } from "@/components/health/recipe-picker";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
@@ -21,8 +22,10 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import { formatAmount } from "@/lib/dose";
 import { createTask, updateTask } from "@/server/actions/tasks";
-import type { TaskRow } from "@/server/queries/tasks";
+import type { RecipeRow } from "@/server/queries/recipes";
+import type { TaskMaterialView, TaskRow } from "@/server/queries/tasks";
 import type { MemberOption } from "@/server/queries/users";
 
 const roleLabels: Record<string, string> = {
@@ -36,11 +39,13 @@ export function TaskDialog({
   seasonId,
   members,
   currentHst,
+  recipes,
   task,
 }: {
   seasonId: string;
   members: MemberOption[];
   currentHst: number;
+  recipes: RecipeRow[];
   task?: TaskRow;
 }) {
   const editing = Boolean(task);
@@ -48,7 +53,47 @@ export function TaskDialog({
   const [errors, setErrors] = useState<Record<string, string>>({});
   const router = useRouter();
 
+  // Controlled so the recipe picker can write into them.
+  const [title, setTitle] = useState(task?.title ?? "");
+  const [description, setDescription] = useState(task?.description ?? "");
+
+  // The amounts a recipe was written at, carried as a snapshot rather than a
+  // live lookup: the shed is deducted against exactly what the form said.
+  const [mix, setMix] = useState<{
+    recipeId: string;
+    volumeL: number;
+    materials: TaskMaterialView[];
+  } | null>(
+    task?.recipeId
+      ? {
+          recipeId: task.recipeId,
+          volumeL: task.recipeVolumeL ?? 0,
+          materials: task.materials,
+        }
+      : null
+  );
+
+  // Once the shed has been debited, the amounts are history, not a plan.
+  const locked = Boolean(task?.usageRecordedAt);
   const assigned = new Set(task?.assignees.map((a) => a.userId) ?? []);
+
+  // These fields are controlled, so React's post-action form reset does not
+  // reach them. Closing has to clear them by hand, or the next "Tambah Tugas"
+  // opens onto the task that was just saved.
+  const reset = () => {
+    setErrors({});
+    setTitle(task?.title ?? "");
+    setDescription(task?.description ?? "");
+    setMix(
+      task?.recipeId
+        ? {
+            recipeId: task.recipeId,
+            volumeL: task.recipeVolumeL ?? 0,
+            materials: task.materials,
+          }
+        : null
+    );
+  };
 
   async function onSubmit(formData: FormData) {
     const result = editing
@@ -61,8 +106,8 @@ export function TaskDialog({
       return;
     }
 
-    setErrors({});
     setOpen(false);
+    reset();
     toast.success(editing ? "Tugas diperbarui." : "Tugas ditambahkan.");
     router.refresh();
   }
@@ -72,7 +117,7 @@ export function TaskDialog({
       open={open}
       onOpenChange={(next) => {
         setOpen(next);
-        if (!next) setErrors({});
+        if (!next) reset();
       }}
     >
       <DialogTrigger asChild>
@@ -111,7 +156,8 @@ export function TaskDialog({
               id="title"
               name="title"
               required
-              defaultValue={task?.title}
+              value={title}
+              onChange={(event) => setTitle(event.target.value)}
               placeholder="Semprot fungisida"
               aria-invalid={Boolean(errors.title)}
             />
@@ -125,10 +171,92 @@ export function TaskDialog({
             <Textarea
               id="description"
               name="description"
-              rows={2}
-              defaultValue={task?.description ?? ""}
+              rows={mix ? 6 : 2}
+              value={description}
+              onChange={(event) => setDescription(event.target.value)}
             />
           </Field>
+
+          {mix ? (
+            <>
+              <input type="hidden" name="recipeId" value={mix.recipeId} />
+              <input
+                type="hidden"
+                name="recipeVolumeL"
+                value={mix.volumeL}
+              />
+              <input
+                type="hidden"
+                name="materials"
+                value={JSON.stringify(
+                  mix.materials.map(({ materialId, amount }) => ({
+                    materialId,
+                    amount,
+                  }))
+                )}
+              />
+            </>
+          ) : null}
+
+          {mix ? (
+            <div className="bg-muted/40 grid gap-2 rounded-md border p-3">
+              <div className="flex items-start justify-between gap-2">
+                <p className="text-sm font-medium">
+                  Bahan yang dipakai · {formatAmount(mix.volumeL)} liter
+                </p>
+                {locked ? null : (
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setMix(null)}
+                  >
+                    <X className="size-4" aria-hidden />
+                    Lepas
+                  </Button>
+                )}
+              </div>
+              <ul className="text-muted-foreground grid gap-0.5 text-xs">
+                {mix.materials.map((item) => (
+                  <li key={item.materialId} className="tabular-nums">
+                    {item.name}{" "}
+                    <strong className="text-foreground">
+                      {formatAmount(item.amount)} {item.unit}
+                    </strong>
+                  </li>
+                ))}
+              </ul>
+              <p className="text-muted-foreground text-xs">
+                {locked
+                  ? "Pemakaian sudah tercatat, jadi takarannya dikunci."
+                  : "Stok baru berkurang setelah tugas ini ditandai selesai."}
+              </p>
+            </div>
+          ) : (
+            <RecipePicker
+              recipes={recipes}
+              label="Pakai racikan dari Pustaka (opsional)"
+              onApply={(picked) => {
+                setMix({
+                  recipeId: picked.recipeId,
+                  volumeL: picked.volumeL,
+                  materials: picked.materials.map((item) => ({
+                    ...item,
+                    ...(lookup(recipes, picked.recipeId, item.materialId) ?? {
+                      name: item.materialId,
+                      unit: "",
+                    }),
+                  })),
+                });
+                // The title is the person's own wording if they already typed
+                // one; the takaran belongs in the description either way.
+                setTitle((current) => (current.trim() ? current : picked.name));
+                setDescription((current) =>
+                  current.trim() ? `${current.trim()}\n\n${picked.text}` : picked.text
+                );
+              }}
+            />
+          )}
 
           <div className="grid gap-4 sm:grid-cols-2">
             <Field
@@ -208,7 +336,10 @@ export function TaskDialog({
             <Button
               type="button"
               variant="secondary"
-              onClick={() => setOpen(false)}
+              onClick={() => {
+                setOpen(false);
+                reset();
+              }}
             >
               Batal
             </Button>
@@ -220,4 +351,13 @@ export function TaskDialog({
       </DialogContent>
     </Dialog>
   );
+}
+
+/** The picker hands back ids; the summary list needs names and units. */
+function lookup(recipes: RecipeRow[], recipeId: string, materialId: string) {
+  const item = recipes
+    .find((recipe) => recipe.id === recipeId)
+    ?.items.find((i) => i.material.id === materialId);
+
+  return item ? { name: item.material.name, unit: item.material.unit } : null;
 }

@@ -61,9 +61,26 @@ export const createTaskSchema = z.object({
   dueDate: z.coerce.date("Tanggal jatuh tempo tidak valid"),
   status: z.enum(taskStatuses),
   assigneeIds: z.array(z.string().min(1)).default([]),
+  recipeId: z.string().optional().or(z.literal("")),
+  recipeVolumeL: z.coerce.number().positive().max(10_000).optional(),
+  /// Snapshot of the recipe's amounts, serialised by the form.
+  materials: z
+    .array(
+      z.object({
+        materialId: z.string().min(1),
+        amount: z.coerce.number().positive(),
+      })
+    )
+    .default([]),
 });
 
 export type CreateTaskInput = z.input<typeof createTaskSchema>;
+
+export const recordTaskUsageSchema = z.object({
+  taskId: z.string().min(1),
+  seasonId: z.string().min(1),
+  actorId: z.string().optional().or(z.literal("")),
+});
 
 export const findingStatuses = [
   "REPORTED",
@@ -289,4 +306,22 @@ export const updateTaskStatusSchema = z.object({
   // is actually looking at.
   seasonId: z.string().min(1),
   status: z.enum(taskStatuses),
+});
+
+/**
+ * A physical count of the shed. This is the job that belongs to logistics: the
+ * board deducts what a task *planned* to use, and only someone standing in
+ * front of the sacks can say what is actually there.
+ */
+export const stockOpnameSchema = z.object({
+  actorId: z.string().optional().or(z.literal("")),
+  note: z.string().trim().max(300).optional().or(z.literal("")),
+  counts: z
+    .array(
+      z.object({
+        materialId: z.string().min(1),
+        counted: z.coerce.number("Hitungan tidak valid").min(0).max(1_000_000),
+      })
+    )
+    .min(1, "Tidak ada bahan untuk dihitung"),
 });

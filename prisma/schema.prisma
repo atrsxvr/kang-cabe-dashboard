@@ -163,12 +163,46 @@ model Task {
   createdAt   DateTime   @default(now())
   updatedAt   DateTime   @updatedAt
 
+  /// Racikan asal, kalau tugas ini dibuat dari Pustaka Racikan. Hanya untuk
+  /// label; takarannya disalin ke TaskMaterial, tidak dibaca ulang dari sini.
+  recipeId        String?
+  /// Volume yang benar-benar diracik, bisa berbeda dari volume acuan racikan.
+  recipeVolumeL   Float?
+  /// Diisi saat pemakaian bahannya sudah dipotong dari stok. Membuat
+  /// pencatatan idempoten: tugas selesai yang belum tercatat masih bisa
+  /// ditagih lewat tombol, dan yang sudah tidak bisa dipotong dua kali.
+  usageRecordedAt DateTime?
+
   season    Season         @relation(fields: [seasonId], references: [id], onDelete: Cascade)
   assignees TaskAssignee[]
+  // SetNull: menghapus racikan tidak boleh merusak tugas yang terlanjur
+  // memakainya — salinan takarannya tetap utuh.
+  recipe    Recipe?        @relation("RecipeTasks", fields: [recipeId], references: [id], onDelete: SetNull)
+  materials TaskMaterial[]
 
   @@index([seasonId])
   @@index([status, dueDate]) // Papan tugas: filter status, urut jatuh tempo
   @@index([seasonId, completedAt]) // Logbook: riwayat selesai per musim
+  @@index([recipeId])
+}
+
+/// Takaran yang disalin ke tugas saat dibuat dari racikan.
+///
+/// Menghitung ulang dari racikan saat tugas diselesaikan akan memotong stok
+/// dengan angka berbeda dari yang tertulis di tugas, kalau dosisnya sempat
+/// direvisi di antara kedua momen itu.
+model TaskMaterial {
+  id         String @id @default(uuid())
+  taskId     String
+  materialId String
+  /// Jumlah pada satuan bahannya, sudah dikalikan volume.
+  amount     Float
+
+  task     Task     @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  material Material @relation(fields: [materialId], references: [id], onDelete: Restrict)
+
+  @@unique([taskId, materialId])
+  @@index([materialId])
 }
 
 // Penghubung Task <-> User. Satu tugas bisa dikerjakan beberapa orang.
@@ -241,6 +275,7 @@ model Material {
 
   recipeItems RecipeItem[]
   movements   StockMovement[]
+  taskUsages  TaskMaterial[]
 
   @@index([category])
 }
@@ -353,6 +388,7 @@ model Recipe {
 
   author User?        @relation("AuthoredRecipes", fields: [authorId], references: [id], onDelete: Restrict)
   items  RecipeItem[]
+  tasks  Task[]       @relation("RecipeTasks")
 
   @@index([kind, phase])
   @@index([authorId])

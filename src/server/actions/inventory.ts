@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 
 import { prisma } from "@/lib/prisma";
+import { OPNAME_PREFIX } from "@/lib/stock";
 import { invalidForm, type ActionResult } from "@/server/actions/result";
 import {
   adjustStockSchema,
@@ -10,6 +11,7 @@ import {
   createShoppingNoteSchema,
   createToolSchema,
   recordToolEventSchema,
+  stockOpnameSchema,
   toggleShoppingNoteSchema,
   updateToolSchema,
 } from "@/server/actions/schemas";
@@ -67,6 +69,74 @@ export async function adjustStock(formData: FormData): Promise<ActionResult> {
   revalidatePath("/inventory");
   revalidatePath("/health/racikan");
   return { ok: true };
+}
+
+/**
+ * Reconciles recorded stock against a physical count.
+ *
+ * Only rows that actually differ are written. An opname where everything
+ * matches should leave no trace in the movement log — otherwise the history
+ * fills with noise and the real corrections stop standing out.
+ */
+export async function recordStockOpname(
+  formData: FormData
+): Promise<ActionResult> {
+  const counts: { materialId: string; counted: FormDataEntryValue }[] = [];
+
+  for (const [key, value] of formData.entries()) {
+    // Blank means "not counted this round", which is not the same as zero.
+    if (!key.startsWith(OPNAME_PREFIX) || value === "") continue;
+    counts.push({ materialId: key.slice(OPNAME_PREFIX.length), counted: value });
+  }
+
+  const parsed = stockOpnameSchema.safeParse({
+    actorId: formData.get("actorId") ?? "",
+    note: formData.get("note") ?? "",
+    counts,
+  });
+
+  if (!parsed.success) return invalidForm(parsed.error);
+
+  const { actorId, note, counts: rows } = parsed.data;
+
+  const materials = await prisma.material.findMany({
+    where: { id: { in: rows.map((row) => row.materialId) } },
+    select: { id: true, stock: true },
+  });
+
+  const recorded = new Map(materials.map((m) => [m.id, m.stock]));
+
+  const corrections = rows.flatMap((row) => {
+    const before = recorded.get(row.materialId);
+    if (before === undefined || before === row.counted) return [];
+    return [{ ...row, delta: row.counted - before }];
+  });
+
+  if (corrections.length === 0) {
+    return { ok: true, message: "Semua cocok, tidak ada yang dikoreksi." };
+  }
+
+  await prisma.$transaction(
+    corrections.flatMap((row) => [
+      prisma.material.update({
+        where: { id: row.materialId },
+        data: { stock: row.counted },
+      }),
+      prisma.stockMovement.create({
+        data: {
+          materialId: row.materialId,
+          delta: row.delta,
+          reason: "CORRECTION",
+          note: note ? `Opname: ${note}` : "Opname stok",
+          actorId: actorId ? actorId : null,
+        },
+      }),
+    ])
+  );
+
+  revalidatePath("/inventory");
+  revalidatePath("/health/racikan");
+  return { ok: true, message: `${corrections.length} bahan dikoreksi.` };
 }
 
 export async function createTool(formData: FormData): Promise<ActionResult> {

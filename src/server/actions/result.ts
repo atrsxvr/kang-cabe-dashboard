@@ -7,7 +7,7 @@
  * function, and a "use server" module may only export async functions.
  */
 export type ActionResult =
-  | { ok: true; seasonId?: string }
+  | { ok: true; seasonId?: string; message?: string }
   | { ok: false; message: string; fieldErrors?: Record<string, string> };
 
 export function fieldErrorsOf(error: {

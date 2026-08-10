@@ -57,6 +57,16 @@ src/
 - **Copy a recipe's amounts into whatever records using it**, rather than only
   linking. A revised recipe must not silently rewrite what was actually applied
   last season, or the post-mortem lies.
+- **Stock is never deducted as a side effect.** A task reaching "Selesai" is
+  not proof its mix was applied, and the board, the table and the edit dialog
+  are three separate paths to that status. `recordTaskUsage` is explicit,
+  idempotent (guarded by `Task.usageRecordedAt`), and reachable from anywhere.
+- **A task's copied amounts are frozen once its usage is recorded.** Rewriting
+  `TaskMaterial` afterwards would leave the shed short or over by the
+  difference, with nothing in the movement log saying why.
+- **Stock opname is the only place a recorded number may be overruled** by a
+  physical count, and it writes a `CORRECTION` movement for every row that
+  differs — and nothing at all for rows that match.
 - Reads that must be fresh need **both** `await connection()` and a `<Suspense>`
   boundary. Suspense alone still prerenders at build time and freezes the data.
 - Anything rendered from a **layout** must handle its own failure. A layout's

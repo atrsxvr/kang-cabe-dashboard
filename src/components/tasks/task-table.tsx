@@ -3,6 +3,7 @@ import { StatusBadge } from "@/components/common/status-badge";
 import { TaskCard } from "@/components/tasks/task-card";
 import { TaskDialog } from "@/components/tasks/task-dialog";
 import { TaskStatusButtons } from "@/components/tasks/task-status-buttons";
+import { TaskUsageAction } from "@/components/tasks/task-usage-action";
 import { Card } from "@/components/ui/card";
 import {
   Table,
@@ -16,6 +17,7 @@ import { daysUntil, formatDate } from "@/lib/hst";
 import { cn } from "@/lib/utils";
 import { deleteTask } from "@/server/actions/tasks";
 import type { TaskRow } from "@/server/queries/tasks";
+import type { RecipeRow } from "@/server/queries/recipes";
 import type { MemberOption } from "@/server/queries/users";
 
 export function TaskTable({
@@ -23,11 +25,13 @@ export function TaskTable({
   seasonId,
   currentHst,
   members,
+  recipes,
 }: {
   tasks: TaskRow[];
   seasonId: string;
   currentHst: number;
   members: MemberOption[];
+  recipes: RecipeRow[];
 }) {
   if (tasks.length === 0) {
     return (
@@ -49,6 +53,7 @@ export function TaskTable({
             seasonId={seasonId}
             currentHst={currentHst}
             members={members}
+            recipes={recipes}
             showStatus
           />
         ))}
@@ -82,6 +87,18 @@ export function TaskTable({
                         <span className="text-muted-foreground line-clamp-1 block text-xs font-normal">
                           {task.description}
                         </span>
+                      ) : null}
+                      {/* Sits with the task rather than in Aksi: that column
+                          is pinned to a fixed width so the row never
+                          re-measures on a status change. */}
+                      {task.materials.length > 0 ? (
+                        <div className="mt-1 font-normal">
+                          <TaskUsageAction
+                            task={task}
+                            seasonId={seasonId}
+                            members={members}
+                          />
+                        </div>
                       ) : null}
                     </TableCell>
                     <TableCell className="text-right tabular-nums">
@@ -118,6 +135,7 @@ export function TaskTable({
                         <TaskDialog
                           seasonId={seasonId}
                           members={members}
+                          recipes={recipes}
                           currentHst={currentHst}
                           task={task}
                         />
