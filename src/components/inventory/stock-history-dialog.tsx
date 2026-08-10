@@ -2,6 +2,7 @@
 
 import { useState, useTransition } from "react";
 import { History } from "lucide-react";
+import { toast } from "sonner";
 
 import { stockReasonLabels } from "@/components/inventory/inventory-labels";
 import { Badge } from "@/components/ui/badge";
@@ -14,10 +15,15 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
 import { formatDate } from "@/lib/hst";
+import { formatRupiah } from "@/lib/money";
 import { formatStock } from "@/lib/stock";
 import { cn } from "@/lib/utils";
-import { getMaterialMovements } from "@/server/actions/inventory";
+import {
+  getMaterialMovements,
+  setMovementCost,
+} from "@/server/actions/inventory";
 import type { MovementRow, StockRow } from "@/server/queries/inventory";
 
 /**
@@ -107,6 +113,16 @@ export function StockHistoryDialog({
                   {row.actor ? ` · ${row.actor.name}` : null}
                 </p>
                 {row.note ? <p className="text-xs">{row.note}</p> : null}
+
+                {row.reason === "PURCHASE" ? (
+                  row.totalCost === null ? (
+                    <PriceForm movementId={row.id} onSaved={load} />
+                  ) : (
+                    <p className="text-xs font-medium tabular-nums">
+                      Bayar {formatRupiah(row.totalCost)}
+                    </p>
+                  )
+                ) : null}
               </li>
             ))}
           </ol>
@@ -126,6 +142,67 @@ function Skeleton() {
       {[0, 1, 2].map((i) => (
         <div key={i} className="bg-muted h-16 animate-pulse rounded-md" />
       ))}
+    </div>
+  );
+}
+
+/**
+ * Fills in a price that was skipped at the shed. Inline rather than another
+ * dialog: it is one number, and the row it belongs to is the context.
+ */
+function PriceForm({
+  movementId,
+  onSaved,
+}: {
+  movementId: string;
+  onSaved: () => void;
+}) {
+  const [value, setValue] = useState("");
+  const [pending, startTransition] = useTransition();
+
+  const save = () => {
+    startTransition(async () => {
+      const formData = new FormData();
+      formData.set("movementId", movementId);
+      formData.set("totalCost", value);
+
+      const result = await setMovementCost(formData);
+
+      if (!result.ok) {
+        toast.error(result.message);
+        return;
+      }
+
+      toast.success("Harga tersimpan, rata-ratanya ikut dihitung ulang.");
+      setValue("");
+      onSaved();
+    });
+  };
+
+  return (
+    <div className="grid gap-1">
+      <p className="text-muted-foreground text-xs">Harganya belum diisi</p>
+      <div className="flex items-center gap-2">
+        <Input
+          value={value}
+          onChange={(event) =>
+            setValue(event.target.value.replace(/[^0-9]/g, ""))
+          }
+          inputMode="numeric"
+          placeholder="Rp berapa?"
+          className="h-8 w-32"
+          aria-label="Total bayar"
+        />
+        <Button
+          type="button"
+          size="sm"
+          variant="secondary"
+          disabled={pending || value === ""}
+          onClick={save}
+        >
+          Simpan
+        </Button>
+      </div>
     </div>
   );
 }

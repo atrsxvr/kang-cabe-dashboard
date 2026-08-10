@@ -197,6 +197,10 @@ model TaskMaterial {
   materialId String
   /// Jumlah pada satuan bahannya, sudah dikalikan volume.
   amount     Float
+  /// Nilai rupiah pemakaian ini, dibekukan saat stok dipotong — sama seperti
+  /// takarannya. Harga pupuk naik bulan depan tidak boleh menulis ulang biaya
+  /// musim lalu. Kosong berarti pemakaiannya belum dicatat.
+  totalCost  Int?
 
   task     Task     @relation(fields: [taskId], references: [id], onDelete: Cascade)
   material Material @relation(fields: [materialId], references: [id], onDelete: Restrict)
@@ -269,6 +273,15 @@ model Material {
   /// disimpan — kolom status hanya bisa melenceng dari angka yang diwakilinya.
   minStock Float @default(0)
 
+  /// Harga rata-rata bergerak per satuan, rupiah. Bukan sumber kebenaran:
+  /// selalu bisa dibangun ulang dari StockMovement, dan memang harus, karena
+  /// harga sebuah pembelian boleh diisi belakangan. Disimpan hanya supaya
+  /// nilai gudang tidak perlu memindai seluruh riwayat tiap halaman dibuka.
+  ///
+  /// Float, bukan Int: ini tarif per satuan, bukan jumlah uang. Rp 32,5 per
+  /// gram itu wajar; yang dibulatkan ke rupiah utuh adalah hasil kalinya.
+  avgCost Float @default(0)
+
   notes     String?
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -287,6 +300,13 @@ model StockMovement {
   /// Positif menambah, negatif mengurangi.
   delta      Float
   reason     StockReason
+  /// Total rupiah yang dibayar, hanya untuk PURCHASE. Boleh kosong: belanja
+  /// tanpa nota di tangan tetap harus bisa dicatat, dan harganya dilengkapi
+  /// belakangan. Selama kosong, rata-rata harga bahan tidak digeser.
+  ///
+  /// Int: rupiah tidak punya sen, dan Float menghasilkan selisih receh yang
+  /// tidak akan pernah bisa dijelaskan ke siapa pun.
+  totalCost  Int?
   note       String?
   actorId    String?
   createdAt  DateTime    @default(now())
@@ -329,6 +349,10 @@ model ToolEvent {
   /// Berapa unit yang terdampak. Hanya berarti untuk kejadian yang mengubah
   /// jumlah.
   quantity  Int           @default(1)
+  /// Uang keluar untuk kejadian ini — harga beli atau ongkos servis. Alat
+  /// tidak disusutkan: cangkul tidak habis terpakai seperti pupuk, dan
+  /// penyusutan hanya menghasilkan angka yang tidak dimengerti siapa pun.
+  totalCost Int?
   note      String?
   actorId   String?
   createdAt DateTime      @default(now())

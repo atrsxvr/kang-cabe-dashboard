@@ -20,6 +20,7 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
+import { formatRupiah, formatUnitPrice } from "@/lib/money";
 import { formatStock } from "@/lib/stock";
 import { adjustStock } from "@/server/actions/inventory";
 import type { StockRow } from "@/server/queries/inventory";
@@ -46,13 +47,33 @@ export function AdjustStockDialog({
 }) {
   const [open, setOpen] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
+  // Watched so the unit price can be shown back while it is being typed —
+  // "Rp 32/gram" is how you notice you typed an extra zero.
+  const [amount, setAmount] = useState(defaultAmount ? String(defaultAmount) : "");
+  const [cost, setCost] = useState("");
+  const [reason, setReason] = useState(direction === "in" ? "PURCHASE" : "USAGE");
   const router = useRouter();
 
   const adding = direction === "in";
+  const buying = adding && reason === "PURCHASE";
+
+  const qty = Number(amount.replace(",", "."));
+  const paid = Number(cost.replace(/[^0-9]/g, ""));
+  const unitPrice = qty > 0 && paid > 0 ? paid / qty : null;
+
+  const reset = () => {
+    setErrors({});
+    setAmount(defaultAmount ? String(defaultAmount) : "");
+    setCost("");
+    setReason(direction === "in" ? "PURCHASE" : "USAGE");
+  };
 
   async function onSubmit(formData: FormData) {
-    const amount = Math.abs(Number(formData.get("amount")));
-    formData.set("delta", String(adding ? amount : -amount));
+    const moved = Math.abs(Number(formData.get("amount")));
+    formData.set("delta", String(adding ? moved : -moved));
+    // Only a purchase carries money; the server rejects a price on anything
+    // else, so it must not be sent when the reason changed after typing.
+    if (!buying) formData.delete("totalCost");
 
     const result = await adjustStock(formData);
 
@@ -62,10 +83,10 @@ export function AdjustStockDialog({
       return;
     }
 
-    setErrors({});
     setOpen(false);
+    reset();
     toast.success(
-      `${material.name}: ${adding ? "+" : "−"}${formatStock(amount, material.unit)}`
+      `${material.name}: ${adding ? "+" : "−"}${formatStock(moved, material.unit)}`
     );
     router.refresh();
   }
@@ -75,7 +96,7 @@ export function AdjustStockDialog({
       open={open}
       onOpenChange={(next) => {
         setOpen(next);
-        if (!next) setErrors({});
+        if (!next) reset();
       }}
     >
       <DialogTrigger asChild>
@@ -122,7 +143,8 @@ export function AdjustStockDialog({
               step="any"
               required
               autoFocus
-              defaultValue={defaultAmount ?? ""}
+              value={amount}
+              onChange={(event) => setAmount(event.target.value)}
               placeholder="0"
               aria-invalid={Boolean(errors.delta)}
             />
@@ -136,7 +158,8 @@ export function AdjustStockDialog({
             <NativeSelect
               id={`reason-${material.id}-${direction}`}
               name="reason"
-              defaultValue={adding ? "PURCHASE" : "USAGE"}
+              value={reason}
+              onChange={(event) => setReason(event.target.value)}
             >
               {Object.entries(stockReasonLabels)
                 // Buying never reduces stock, and using never adds to it.
@@ -152,6 +175,31 @@ export function AdjustStockDialog({
                 ))}
             </NativeSelect>
           </Field>
+
+          {buying ? (
+            <Field
+              id={`cost-${material.id}`}
+              label="Total bayar (Rp)"
+              error={errors.totalCost}
+            >
+              <Input
+                id={`cost-${material.id}`}
+                name="totalCost"
+                inputMode="numeric"
+                value={cost}
+                onChange={(event) =>
+                  setCost(event.target.value.replace(/[^0-9]/g, ""))
+                }
+                placeholder="320000"
+                aria-invalid={Boolean(errors.totalCost)}
+              />
+              <p className="text-muted-foreground text-xs">
+                {unitPrice
+                  ? `${formatRupiah(paid)} · kira-kira ${formatUnitPrice(unitPrice, material.unit)}`
+                  : "Kosongin aja dulu kalau notanya belum ada. Uangnya masuk ke nilai gudang, baru jadi biaya musim pas bahannya kepakai."}
+              </p>
+            </Field>
+          ) : null}
 
           <Field
             id={`actor-${material.id}-${direction}`}
@@ -188,7 +236,10 @@ export function AdjustStockDialog({
             <Button
               type="button"
               variant="secondary"
-              onClick={() => setOpen(false)}
+              onClick={() => {
+                setOpen(false);
+                reset();
+              }}
             >
               Batal
             </Button>

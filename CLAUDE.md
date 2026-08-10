@@ -64,6 +64,17 @@ src/
 - **A task's copied amounts are frozen once its usage is recorded.** Rewriting
   `TaskMaterial` afterwards would leave the shed short or over by the
   difference, with nothing in the movement log saying why.
+- **Buying is not a cost; using is.** A purchase raises the value of the shed.
+  The expense lands on a season when `recordTaskUsage` freezes the price onto
+  `TaskMaterial` — a sack spanning two plantings would otherwise make both
+  seasons' numbers wrong. Tools are the exception and are never depreciated.
+- **Money is whole rupiah in `Int`.** `Material.avgCost` is the one `Float`,
+  because it is a rate per unit rather than an amount. A float total drifts,
+  and a drifting total cannot be explained to anyone.
+- **`Material.avgCost` is a cache of `rebuildAvgCost`, not a second truth.**
+  It is stored only so the shed's value need not replay the whole log on every
+  render. Anything that edits history rather than appending to it — a price
+  filled in weeks late — must recompute it from `StockMovement`.
 - **Stock opname is the only place a recorded number may be overruled** by a
   physical count, and it writes a `CORRECTION` movement for every row that
   differs — and nothing at all for rows that match.

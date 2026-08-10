@@ -166,7 +166,7 @@ export function MaterialDialog({
                 id="material-stock"
                 label="Stok Awal"
                 error={errors.stock}
-                hint="Dicatat sebagai saldo awal di riwayat bahan ini"
+                hint="Yang sudah ada di gudang sekarang"
               >
                 <Input
                   id="material-stock"
@@ -199,6 +199,26 @@ export function MaterialDialog({
               />
             </Field>
           </div>
+
+          {/* Without this the opening pile counts as free, and the first
+              priced purchase drags the average down to something nobody can
+              account for. */}
+          {editing ? null : (
+            <Field
+              id="material-openingCost"
+              label="Nilai stok awal (Rp)"
+              error={errors.openingCost}
+              hint="Kira-kira segitu senilai berapa. Boleh dikosongkan."
+            >
+              <Input
+                id="material-openingCost"
+                name="openingCost"
+                inputMode="numeric"
+                placeholder="160000"
+                aria-invalid={Boolean(errors.openingCost)}
+              />
+            </Field>
+          )}
 
           <DialogFooter>
             <Button

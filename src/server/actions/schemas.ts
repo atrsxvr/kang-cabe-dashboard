@@ -152,6 +152,13 @@ export const materialCategories = [
   "OTHER",
 ] as const;
 
+/** Whole rupiah, never a fraction. Blank means "nota belum ada". */
+export const rupiah = z.coerce
+  .number("Jumlah rupiah tidak valid")
+  .int("Tulis rupiah bulat, tanpa koma")
+  .min(0, "Tidak boleh minus")
+  .max(1_000_000_000);
+
 export const createMaterialSchema = z.object({
   name: z.string().trim().min(2, "Nama bahan minimal 2 karakter").max(120),
   unit: z.string().trim().min(1, "Satuan wajib diisi").max(16),
@@ -162,6 +169,10 @@ export const createMaterialSchema = z.object({
     .min(0, "Batas minimum tidak boleh negatif")
     .max(10_000_000),
   notes: z.string().trim().max(500).optional().or(z.literal("")),
+  /// Nilai rupiah dari stok awal, kalau diketahui. Tanpa ini stok pembuka
+  /// dihitung senilai nol dan menarik turun harga rata-rata begitu belanja
+  /// pertama masuk.
+  openingCost: rupiah.optional(),
 });
 
 export const stockReasons = ["PURCHASE", "USAGE", "CORRECTION", "LOSS"] as const;
@@ -171,6 +182,7 @@ export const adjustStockSchema = z
     materialId: z.string().min(1),
     delta: z.coerce.number("Jumlah tidak valid"),
     reason: z.enum(stockReasons),
+    totalCost: rupiah.optional(),
     note: z.string().trim().max(300).optional().or(z.literal("")),
     actorId: z.string().optional().or(z.literal("")),
   })
@@ -178,7 +190,19 @@ export const adjustStockSchema = z
   .refine((value) => value.delta !== 0, {
     message: "Jumlah tidak boleh nol",
     path: ["delta"],
-  });
+  })
+  // Only buying costs money. A price attached to usage or a correction would
+  // silently skew the average, since neither of those is a purchase.
+  .refine(
+    (value) => value.totalCost === undefined || value.reason === "PURCHASE",
+    { message: "Harga hanya untuk belanja", path: ["totalCost"] }
+  );
+
+/** Filling in the price of a purchase after the receipt turns up. */
+export const setMovementCostSchema = z.object({
+  movementId: z.string().min(1),
+  totalCost: rupiah,
+});
 
 export const toolConditions = ["GOOD", "NEEDS_SERVICE", "BROKEN"] as const;
 
@@ -223,6 +247,7 @@ export const recordToolEventSchema = z.object({
     .int("Jumlah harus bilangan bulat")
     .min(1, "Jumlah minimal 1")
     .max(1000),
+  totalCost: rupiah.optional(),
   note: z.string().trim().max(300).optional().or(z.literal("")),
   actorId: z.string().optional().or(z.literal("")),
 });
@@ -303,7 +328,7 @@ export const updateRecipeSchema = createRecipeSchema.safeExtend({
  * change the shed with nothing in the log saying who or why.
  */
 export const updateMaterialSchema = createMaterialSchema
-  .omit({ stock: true })
+  .omit({ stock: true, openingCost: true })
   .extend({ materialId: z.string().min(1) });
 
 export const updateTaskStatusSchema = z.object({

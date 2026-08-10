@@ -21,6 +21,7 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { formatDate } from "@/lib/hst";
+import { formatRupiah } from "@/lib/money";
 import { recordToolEvent } from "@/server/actions/inventory";
 import { changesQuantity, toolEventTypes } from "@/server/actions/schemas";
 import type { ToolRow } from "@/server/queries/inventory";
@@ -46,6 +47,10 @@ export function ToolEventDialog({
   const affectsCount = changesQuantity(
     type as (typeof toolEventTypes)[number]
   );
+
+  // Buying one and paying to fix one are the two that cost money. Losing a
+  // hoe is a loss, but nobody handed over rupiah for it.
+  const costsMoney = type === "ACQUIRED" || type === "SERVICED";
 
   async function onSubmit(formData: FormData) {
     const result = await recordToolEvent(formData);
@@ -131,6 +136,25 @@ export function ToolEventDialog({
             <input type="hidden" name="quantity" value={1} />
           )}
 
+          {costsMoney ? (
+            <Field
+              id={`event-cost-${tool.id}`}
+              label={
+                type === "SERVICED" ? "Ongkos servis (Rp)" : "Total bayar (Rp)"
+              }
+              error={errors.totalCost}
+              hint="Kosongin aja kalau gratis atau notanya belum ada"
+            >
+              <Input
+                id={`event-cost-${tool.id}`}
+                name="totalCost"
+                inputMode="numeric"
+                placeholder="150000"
+                aria-invalid={Boolean(errors.totalCost)}
+              />
+            </Field>
+          ) : null}
+
           <Field
             id={`event-actor-${tool.id}`}
             label="Dicatat oleh"
@@ -174,6 +198,12 @@ export function ToolEventDialog({
                   </span>{" "}
                   {toolEventLabels[event.type]}
                   {changesQuantity(event.type) ? ` ×${event.quantity}` : null}
+                  {event.totalCost !== null ? (
+                    <span className="font-medium tabular-nums">
+                      {" "}
+                      · {formatRupiah(event.totalCost)}
+                    </span>
+                  ) : null}
                   {event.actor ? (
                     <span className="text-muted-foreground">
                       {" "}

@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 
 import { prisma } from "@/lib/prisma";
+import { nextAvgCost, rebuildAvgCost } from "@/lib/money";
 import { OPNAME_PREFIX } from "@/lib/stock";
 import { listMovements, type MovementRow } from "@/server/queries/inventory";
 import { invalidForm, type ActionResult } from "@/server/actions/result";
@@ -12,6 +13,7 @@ import {
   createShoppingNoteSchema,
   createToolSchema,
   recordToolEventSchema,
+  setMovementCostSchema,
   stockOpnameSchema,
   toggleShoppingNoteSchema,
   updateToolSchema,
@@ -40,17 +42,18 @@ export async function adjustStock(formData: FormData): Promise<ActionResult> {
     materialId: formData.get("materialId"),
     delta: formData.get("delta"),
     reason: formData.get("reason"),
+    totalCost: formData.get("totalCost") || undefined,
     note: formData.get("note") ?? "",
     actorId: formData.get("actorId") ?? "",
   });
 
   if (!parsed.success) return invalidForm(parsed.error);
 
-  const { materialId, delta, reason, note, actorId } = parsed.data;
+  const { materialId, delta, reason, totalCost, note, actorId } = parsed.data;
 
   const material = await prisma.material.findUnique({
     where: { id: materialId },
-    select: { stock: true, name: true },
+    select: { stock: true, name: true, avgCost: true },
   });
 
   if (!material) return { ok: false, message: "Bahan tidak ditemukan." };
@@ -68,13 +71,24 @@ export async function adjustStock(formData: FormData): Promise<ActionResult> {
   await prisma.$transaction([
     prisma.material.update({
       where: { id: materialId },
-      data: { stock: { increment: delta } },
+      data: {
+        stock: { increment: delta },
+        // Buying is the only thing that moves the price. Taking stock out
+        // changes what is left, not what it cost.
+        avgCost: nextAvgCost({
+          stock: material.stock,
+          avgCost: material.avgCost,
+          addedQty: delta,
+          addedCost: reason === "PURCHASE" ? (totalCost ?? null) : null,
+        }),
+      },
     }),
     prisma.stockMovement.create({
       data: {
         materialId,
         delta,
         reason,
+        totalCost: totalCost ?? null,
         note: note ? note : null,
         actorId: actorId ? actorId : null,
       },
@@ -84,6 +98,72 @@ export async function adjustStock(formData: FormData): Promise<ActionResult> {
   revalidatePath("/inventory");
   revalidatePath("/health/racikan");
   return { ok: true };
+}
+
+/**
+ * Fills in the price of a purchase that was recorded without one.
+ *
+ * The average it feeds is rebuilt from the whole movement log rather than
+ * nudged, because this price belongs somewhere in the middle of that history —
+ * every purchase after it was averaged against a figure that is now wrong.
+ */
+export async function setMovementCost(
+  formData: FormData
+): Promise<ActionResult> {
+  const parsed = setMovementCostSchema.safeParse({
+    movementId: formData.get("movementId"),
+    totalCost: formData.get("totalCost"),
+  });
+
+  if (!parsed.success) return invalidForm(parsed.error);
+
+  const { movementId, totalCost } = parsed.data;
+
+  const movement = await prisma.stockMovement.findUnique({
+    where: { id: movementId },
+    select: { materialId: true, reason: true, totalCost: true },
+  });
+
+  if (!movement) return { ok: false, message: "Catatan tidak ditemukan." };
+
+  if (movement.reason !== "PURCHASE") {
+    return { ok: false, message: "Cuma catatan belanja yang punya harga." };
+  }
+
+  if (movement.totalCost !== null) {
+    return { ok: false, message: "Harganya sudah diisi." };
+  }
+
+  await prisma.stockMovement.update({
+    where: { id: movementId },
+    data: { totalCost },
+  });
+
+  await refreshAvgCost(movement.materialId);
+
+  revalidatePath("/inventory");
+  revalidatePath("/finance");
+  return { ok: true };
+}
+
+/**
+ * Recomputes a material's average price from its movement log.
+ *
+ * `Material.avgCost` is a cache of exactly this. Anything that changes history
+ * rather than appending to it has to call this, or the stored figure quietly
+ * stops matching the rows it claims to summarise.
+ */
+async function refreshAvgCost(materialId: string) {
+  const movements = await prisma.stockMovement.findMany({
+    where: { materialId },
+    orderBy: { createdAt: "asc" },
+    select: { delta: true, reason: true, totalCost: true },
+  });
+
+  await prisma.material.update({
+    where: { id: materialId },
+    data: { avgCost: rebuildAvgCost(movements) },
+  });
 }
 
 /**
@@ -228,13 +308,14 @@ export async function recordToolEvent(
     toolId: formData.get("toolId"),
     type: formData.get("type"),
     quantity: formData.get("quantity") ?? 1,
+    totalCost: formData.get("totalCost") || undefined,
     note: formData.get("note") ?? "",
     actorId: formData.get("actorId") ?? "",
   });
 
   if (!parsed.success) return invalidForm(parsed.error);
 
-  const { toolId, type, quantity, note, actorId } = parsed.data;
+  const { toolId, type, quantity, totalCost, note, actorId } = parsed.data;
 
   const tool = await prisma.tool.findUnique({
     where: { id: toolId },
@@ -286,6 +367,10 @@ export async function recordToolEvent(
         toolId,
         type,
         quantity: changesQuantity(type) ? quantity : 1,
+        // Only buying one and paying to fix one cost anything; losing a hoe
+        // is a loss but not a payment.
+        totalCost:
+          type === "ACQUIRED" || type === "SERVICED" ? (totalCost ?? null) : null,
         note: note ? note : null,
         actorId: actorId ? actorId : null,
       },
@@ -293,6 +378,7 @@ export async function recordToolEvent(
   ]);
 
   revalidatePath("/inventory");
+  revalidatePath("/finance");
   return { ok: true };
 }
 

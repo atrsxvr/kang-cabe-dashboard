@@ -1,6 +1,7 @@
 import "server-only";
 
 import { prisma } from "@/lib/prisma";
+import { stockValue } from "@/lib/money";
 import { needsRestock } from "@/lib/stock";
 import type {
   MaterialCategory,
@@ -25,6 +26,8 @@ export type StockRow = {
   category: MaterialCategory;
   stock: number;
   minStock: number;
+  /** Harga rata-rata per satuan. Nol berarti belum ada belanja berharga. */
+  avgCost: number;
   notes: string | null;
   /** Which recipes call for it — what makes the shopping list actionable. */
   usedBy: { id: string; name: string; amountPerLiter: number }[];
@@ -67,6 +70,7 @@ export type MovementRow = {
   id: string;
   delta: number;
   reason: StockReason;
+  totalCost: number | null;
   note: string | null;
   createdAt: Date;
   actor: { id: string; name: string } | null;
@@ -84,10 +88,23 @@ export async function listMovements(
       id: true,
       delta: true,
       reason: true,
+      totalCost: true,
       note: true,
       createdAt: true,
       actor: { select: { id: true, name: true } },
     },
+  });
+}
+
+/** Nilai seluruh isi gudang pada harga rata-rata yang dibayar. */
+export function totalStockValue(rows: StockRow[]): number {
+  return rows.reduce((sum, row) => sum + stockValue(row.stock, row.avgCost), 0);
+}
+
+/** Belanja yang tercatat tanpa harga — masih bisa dilengkapi. */
+export async function countUnpricedPurchases(): Promise<number> {
+  return prisma.stockMovement.count({
+    where: { reason: "PURCHASE", totalCost: null },
   });
 }
 
@@ -102,6 +119,7 @@ export type ToolRow = {
     id: string;
     type: ToolEventType;
     quantity: number;
+    totalCost: number | null;
     note: string | null;
     createdAt: Date;
     actor: { name: string } | null;
@@ -126,6 +144,7 @@ export async function listTools(): Promise<ToolRow[]> {
           id: true,
           type: true,
           quantity: true,
+          totalCost: true,
           note: true,
           createdAt: true,
           actor: { select: { name: true } },

@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { connection } from "next/server";
+import { Receipt } from "lucide-react";
 
 import { PageHeader } from "@/components/common/page-header";
 import { InventoryViews } from "@/components/inventory/inventory-views";
@@ -9,13 +10,16 @@ import { StockOpnameDialog } from "@/components/inventory/stock-opname-dialog";
 import { StockTable } from "@/components/inventory/stock-table";
 import { ToolDialog } from "@/components/inventory/tool-dialog";
 import { ToolList } from "@/components/inventory/tool-list";
+import { formatRupiah } from "@/lib/money";
 import { stockStatus } from "@/lib/stock";
 import {
+  countUnpricedPurchases,
   listShoppingNotes,
   listStock,
   listTools,
   selectRestock,
   selectToolNeeds,
+  totalStockValue,
 } from "@/server/queries/inventory";
 import { listActiveMembers } from "@/server/queries/users";
 
@@ -26,11 +30,12 @@ export default async function InventoryPage() {
   // but the read is still live, hence connection().
   await connection();
 
-  const [rows, tools, notes, members] = await Promise.all([
+  const [rows, tools, notes, members, unpriced] = await Promise.all([
     listStock(),
     listTools(),
     listShoppingNotes(),
     listActiveMembers(),
+    countUnpricedPurchases(),
   ]);
 
   const restock = selectRestock(rows);
@@ -55,11 +60,26 @@ export default async function InventoryPage() {
         </div>
       </div>
 
-      <div className="mb-6 grid grid-cols-3 gap-2 sm:gap-3">
+      <div className="mb-6 grid grid-cols-2 gap-2 sm:gap-3 lg:grid-cols-4">
         <Tile value={rows.length} label="Bahan terdaftar" />
         <Tile value={restock.length} label="Perlu dibeli" warn={restock.length > 0} />
         <Tile value={outOfStock} label="Stok habis" warn={outOfStock > 0} />
+        <Tile
+          value={formatRupiah(totalStockValue(rows))}
+          label="Nilai barang di gudang"
+        />
       </div>
+
+      {unpriced > 0 ? (
+        <div className="mb-6 flex items-start gap-2 rounded-lg border border-amber-300 bg-amber-50 px-3 py-2 text-sm text-amber-900 dark:border-amber-900/60 dark:bg-amber-950/40 dark:text-amber-200">
+          <Receipt className="mt-0.5 size-4 shrink-0" aria-hidden />
+          <p>
+            {unpriced} catatan belanja belum ada harganya, jadi nilai gudang di
+            atas masih kurang. Buka <span className="font-medium">Riwayat</span>{" "}
+            di bahannya buat ngisi.
+          </p>
+        </div>
+      ) : null}
 
       <InventoryViews
         restockCount={
@@ -87,7 +107,7 @@ function Tile({
   label,
   warn = false,
 }: {
-  value: number;
+  value: number | string;
   label: string;
   warn?: boolean;
 }) {

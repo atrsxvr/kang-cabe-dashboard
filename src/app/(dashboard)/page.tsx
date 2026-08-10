@@ -9,7 +9,9 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { calculateHst, formatDate, formatDateRange } from "@/lib/hst";
 import { readSeasonParam, withSeason } from "@/lib/season-param";
+import { formatRupiah } from "@/lib/money";
 import { countWeekendTasks } from "@/server/queries/dashboard";
+import { seasonMaterialCost } from "@/server/queries/finance";
 import { resolveSeason } from "@/server/queries/seasons";
 
 export const metadata: Metadata = { title: "Dashboard" };
@@ -23,7 +25,10 @@ export default async function DashboardPage(props: PageProps<"/">) {
 
   if (!season) return <NoSeason />;
 
-  const weekend = await countWeekendTasks(season.id);
+  const [weekend, cost] = await Promise.all([
+    countWeekendTasks(season.id),
+    seasonMaterialCost(season.id),
+  ]);
   const currentHst = calculateHst(season.startDate);
   const notPlanted = season.status === "PLANNING";
 
@@ -64,9 +69,9 @@ export default async function DashboardPage(props: PageProps<"/">) {
         />
 
         <SummaryCard
-          title="Estimasi Kas"
-          value="Rp 4.250.000"
-          hint="Contoh — modul Keuangan belum dibangun"
+          title="Habis Buat Bahan"
+          value={formatRupiah(cost.total)}
+          hint="Dari bahan yang kepakai di musim ini"
           icon={Wallet}
         />
 

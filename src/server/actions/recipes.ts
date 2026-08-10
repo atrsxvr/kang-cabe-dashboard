@@ -21,13 +21,14 @@ export async function createMaterial(
     stock: formData.get("stock") ?? 0,
     minStock: formData.get("minStock") ?? 0,
     notes: formData.get("notes") ?? "",
+    openingCost: formData.get("openingCost") || undefined,
   });
 
   if (!parsed.success) {
     return invalidForm(parsed.error);
   }
 
-  const { notes, ...rest } = parsed.data;
+  const { notes, openingCost, ...rest } = parsed.data;
 
   const existing = await prisma.material.findUnique({
     where: { name: rest.name },
@@ -43,7 +44,16 @@ export async function createMaterial(
   }
 
   const material = await prisma.material.create({
-    data: { ...rest, notes: notes ? notes : null },
+    data: {
+      ...rest,
+      notes: notes ? notes : null,
+      // First arrival, so there is nothing to average against — the opening
+      // value simply is the price.
+      avgCost:
+        openingCost !== undefined && rest.stock > 0
+          ? openingCost / rest.stock
+          : 0,
+    },
   });
 
   // The number typed on registration is a physical count like any other, so it
@@ -55,6 +65,7 @@ export async function createMaterial(
         materialId: material.id,
         delta: material.stock,
         reason: "CORRECTION",
+        totalCost: openingCost ?? null,
         note: "Saldo awal saat bahan didaftarkan",
       },
     });

@@ -1,0 +1,150 @@
+import "server-only";
+
+import { prisma } from "@/lib/prisma";
+import type { MaterialCategory } from "@/generated/prisma/client";
+
+/**
+ * What a season actually spent on materials.
+ *
+ * Taken from recorded usage, not from purchases. A sack bought today may be
+ * half gone by the next planting, so charging the whole thing to whichever
+ * season happened to be running when the money left would make both seasons'
+ * numbers wrong. The figures here are the ones frozen onto `TaskMaterial` the
+ * moment the shed actually gave something up.
+ *
+ * Season-scoped by rule: an unscoped total would fold one planting's spending
+ * into another's report.
+ */
+
+export type CostLine = {
+  key: string;
+  label: string;
+  amount: number;
+  /** Rows behind the figure, so a total nobody expected can be opened up. */
+  detail: string;
+};
+
+export type SeasonMaterialCost = {
+  total: number;
+  byCategory: CostLine[];
+  byMaterial: CostLine[];
+  /** Pemakaian tercatat yang bahannya belum punya harga sama sekali. */
+  unpricedUsages: number;
+};
+
+export async function seasonMaterialCost(
+  seasonId: string
+): Promise<SeasonMaterialCost> {
+  const rows = await prisma.taskMaterial.findMany({
+    where: { task: { seasonId }, totalCost: { not: null } },
+    select: {
+      amount: true,
+      totalCost: true,
+      material: { select: { id: true, name: true, unit: true, category: true } },
+    },
+  });
+
+  const byMaterial = new Map<
+    string,
+    { name: string; unit: string; category: MaterialCategory; amount: number; qty: number }
+  >();
+
+  let total = 0;
+  let unpricedUsages = 0;
+
+  for (const row of rows) {
+    const cost = row.totalCost ?? 0;
+    // Recorded, but the material had no price at the time. Counting it as
+    // Rp 0 would understate the season without saying so — it is reported
+    // separately instead.
+    if (cost === 0) unpricedUsages += 1;
+
+    total += cost;
+
+    const existing = byMaterial.get(row.material.id);
+    if (existing) {
+      existing.amount += cost;
+      existing.qty += row.amount;
+    } else {
+      byMaterial.set(row.material.id, {
+        name: row.material.name,
+        unit: row.material.unit,
+        category: row.material.category,
+        amount: cost,
+        qty: row.amount,
+      });
+    }
+  }
+
+  const materials = [...byMaterial.entries()]
+    .map(([id, row]) => ({
+      key: id,
+      label: row.name,
+      amount: row.amount,
+      detail: `${formatQty(row.qty)} ${row.unit}`,
+      category: row.category,
+    }))
+    .sort((a, b) => b.amount - a.amount);
+
+  const categories = new Map<MaterialCategory, { amount: number; count: number }>();
+  for (const row of materials) {
+    const existing = categories.get(row.category);
+    if (existing) {
+      existing.amount += row.amount;
+      existing.count += 1;
+    } else {
+      categories.set(row.category, { amount: row.amount, count: 1 });
+    }
+  }
+
+  return {
+    total,
+    byCategory: [...categories.entries()]
+      .map(([category, row]) => ({
+        key: category,
+        label: category,
+        amount: row.amount,
+        detail: `${row.count} bahan`,
+      }))
+      .sort((a, b) => b.amount - a.amount),
+    byMaterial: materials.map((row) => ({
+      key: row.key,
+      label: row.label,
+      amount: row.amount,
+      detail: row.detail,
+    })),
+    unpricedUsages,
+  };
+}
+
+function formatQty(value: number): string {
+  return value.toLocaleString("id-ID", { maximumFractionDigits: 2 });
+}
+
+export type ToolSpend = {
+  total: number;
+  bought: number;
+  serviced: number;
+};
+
+/**
+ * Money that went out on tools. Not season-scoped — a hoe outlives a planting,
+ * the same exception the shed already carries — and deliberately not
+ * depreciated: a cangkul is not used up by the gram, and spreading its cost
+ * over time would produce a figure nobody in this team would recognise.
+ */
+export async function toolSpend(): Promise<ToolSpend> {
+  const rows = await prisma.toolEvent.groupBy({
+    by: ["type"],
+    where: { totalCost: { not: null } },
+    _sum: { totalCost: true },
+  });
+
+  const of = (type: string) =>
+    rows.find((row) => row.type === type)?._sum.totalCost ?? 0;
+
+  const bought = of("ACQUIRED");
+  const serviced = of("SERVICED");
+
+  return { total: bought + serviced, bought, serviced };
+}

@@ -243,8 +243,11 @@ export async function recordTaskUsage(
       usageRecordedAt: true,
       materials: {
         select: {
+          id: true,
           amount: true,
-          material: { select: { id: true, name: true, stock: true } },
+          material: {
+            select: { id: true, name: true, stock: true, avgCost: true },
+          },
         },
       },
     },
@@ -290,6 +293,14 @@ export async function recordTaskUsage(
           actorId: actorId ? actorId : null,
         },
       }),
+      // Frozen here, exactly like the amounts. This is the moment the shed
+      // actually gave something up, so this is the price that applies — a
+      // sack bought at a higher price next month must not rewrite what this
+      // season spent.
+      prisma.taskMaterial.update({
+        where: { id: item.id },
+        data: { totalCost: Math.round(item.amount * item.material.avgCost) },
+      }),
     ]),
     prisma.task.update({
       where: { id: taskId },
@@ -299,5 +310,6 @@ export async function recordTaskUsage(
 
   revalidatePath("/tasks");
   revalidatePath("/inventory");
+  revalidatePath("/finance");
   return { ok: true };
 }
