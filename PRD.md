@@ -147,12 +147,28 @@ bukan dua catatan terpisah.
 - Satuan mengikuti satuan racikan supaya keduanya bisa dibandingkan; tampilan
   menaikkannya ke kg atau liter saat angkanya besar.
 
-**Belanja.** Rekap otomatis semua bahan yang menipis atau habis, menyebut
-**berapa yang perlu dibeli** dan **racikan mana yang terdampak** kalau tidak
-dibeli. Bisa disalin atau dibagikan langsung ke WhatsApp dari ponsel.
+**Belanja.** Daftar yang dibawa saat ke kota, empat bagian:
+
+- **Bahan** — otomatis dari yang menipis atau habis, menyebut berapa yang perlu
+  dibeli dan racikan mana yang terdampak kalau tidak dibeli.
+- **Alat perlu diganti** — otomatis dari alat yang rusak atau jumlahnya nol.
+- **Alat perlu diservis** — dipisah karena membawa alat ke bengkel bukan
+  membeli; menyertakan keterangan kerusakannya.
+- **Tambahan** — diketik bebas untuk apa pun yang belum terdaftar: tali rafia,
+  jasa servis, alat baru. Bisa dicentang dan dibersihkan setelah pulang.
+
+Seluruh daftar bisa disalin atau dibagikan langsung ke WhatsApp dari ponsel.
+Tombol **Sudah dibeli** pada bahan membuka form penambahan stok dengan jumlah
+sudah terisi, sehingga belanja langsung menutup lingkarannya ke stok.
 
 **Alat Kebun.** Daftar alat dengan jumlah, kondisi (Baik / Butuh servis /
 Rusak), tanggal servis terakhir, dan catatan perawatan.
+
+Setiap kejadian dicatat: beli baru, hilang, dipensiunkan, rusak, selesai
+diservis. Yang mengurangi jumlah dipisahkan dari yang hanya mengubah kondisi —
+kehilangan satu dari tiga cangkul menyisakan dua, bukan menandai seluruh
+barisnya hilang. Riwayatnya menjawab "cangkul kita dulu tiga, sekarang kenapa
+dua".
 
 ### 4.6 Panen & Penjualan — belum dibangun
 

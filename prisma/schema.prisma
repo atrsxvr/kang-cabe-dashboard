@@ -88,6 +88,17 @@ enum ToolCondition {
   BROKEN
 }
 
+/// Kejadian pada alat. Yang mengurangi jumlah dipisahkan dari yang hanya
+/// mengubah kondisi: alat hilang barangnya tidak ada lagi, alat rusak masih
+/// ada dan mungkin bisa diperbaiki.
+enum ToolEventType {
+  ACQUIRED // beli/dapat baru, jumlah bertambah
+  LOST // hilang, jumlah berkurang
+  RETIRED // dipensiunkan, jumlah berkurang
+  DAMAGED // rusak atau butuh servis, jumlah tetap
+  SERVICED // selesai diservis, kondisi kembali baik
+}
+
 enum TransactionType {
   INCOME
   EXPENSE
@@ -114,6 +125,8 @@ model User {
   findingsDiagnosed HealthLog[]     @relation("DiagnosedFindings")
   recipesAuthored   Recipe[]        @relation("AuthoredRecipes")
   stockMovements    StockMovement[] @relation("StockMovements")
+  toolEvents        ToolEvent[]     @relation("ToolEvents")
+  shoppingNotes     ShoppingNote[]  @relation("ShoppingNotes")
 
   @@index([deletedAt])
 }
@@ -255,14 +268,58 @@ model StockMovement {
 model Tool {
   id             String        @id @default(uuid())
   name           String
+  /// Berapa yang benar-benar dimiliki. Berkurang saat hilang atau
+  /// dipensiunkan; nol berarti perlu diganti.
   quantity       Int           @default(1)
+  /// Kondisi baris ini secara keseluruhan. Kalau satu dari beberapa unit
+  /// rusak sendiri, pisahkan jadi baris tersendiri — satu baris hanya bisa
+  /// mewakili satu kondisi.
   condition      ToolCondition @default(GOOD)
   lastServicedAt DateTime?
   notes          String?
   createdAt      DateTime      @default(now())
   updatedAt      DateTime      @updatedAt
 
+  events ToolEvent[]
+
   @@index([condition])
+}
+
+/// Riwayat alat, cerminan StockMovement untuk bahan. Menjawab "cangkul kita
+/// dulu tiga, sekarang kenapa dua".
+model ToolEvent {
+  id        String        @id @default(uuid())
+  toolId    String
+  type      ToolEventType
+  /// Berapa unit yang terdampak. Hanya berarti untuk kejadian yang mengubah
+  /// jumlah.
+  quantity  Int           @default(1)
+  note      String?
+  actorId   String?
+  createdAt DateTime      @default(now())
+
+  tool  Tool  @relation(fields: [toolId], references: [id], onDelete: Cascade)
+  actor User? @relation("ToolEvents", fields: [actorId], references: [id], onDelete: Restrict)
+
+  @@index([toolId, createdAt])
+  @@index([actorId])
+}
+
+/// Baris belanja yang diketik sendiri: barang yang belum terdaftar, jasa
+/// servis, atau apa pun yang perlu diurus saat ke kota. Daftar belanja yang
+/// hanya bisa dihitung dari stok tidak punya tempat untuk hal-hal ini.
+model ShoppingNote {
+  id          String    @id @default(uuid())
+  text        String
+  done        Boolean   @default(false)
+  completedAt DateTime?
+  actorId     String?
+  createdAt   DateTime  @default(now())
+
+  actor User? @relation("ShoppingNotes", fields: [actorId], references: [id], onDelete: Restrict)
+
+  @@index([done, createdAt])
+  @@index([actorId])
 }
 
 /// Racikan — pengetahuan yang dipakai ulang lintas musim, jadi **tidak**

@@ -6,6 +6,7 @@ import {
   toolConditionTones,
 } from "@/components/inventory/inventory-labels";
 import { ToolDialog } from "@/components/inventory/tool-dialog";
+import { ToolEventDialog } from "@/components/inventory/tool-event-dialog";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import {
@@ -20,8 +21,15 @@ import { formatDate } from "@/lib/hst";
 import { cn } from "@/lib/utils";
 import { deleteTool } from "@/server/actions/inventory";
 import type { ToolRow } from "@/server/queries/inventory";
+import type { MemberOption } from "@/server/queries/users";
 
-export function ToolList({ tools }: { tools: ToolRow[] }) {
+export function ToolList({
+  tools,
+  members,
+}: {
+  tools: ToolRow[];
+  members: MemberOption[];
+}) {
   if (tools.length === 0) return <EmptyTools />;
 
   return (
@@ -63,6 +71,7 @@ export function ToolList({ tools }: { tools: ToolRow[] }) {
               ) : null}
 
               <div className="flex items-center gap-1 border-t pt-2">
+                <ToolEventDialog tool={tool} members={members} />
                 <ToolDialog tool={tool} />
                 <ConfirmDelete
                   title="Hapus alat ini?"
@@ -87,7 +96,7 @@ export function ToolList({ tools }: { tools: ToolRow[] }) {
                 <TableHead className="w-32">Kondisi</TableHead>
                 <TableHead>Servis Terakhir</TableHead>
                 <TableHead>Catatan</TableHead>
-                <TableHead className="w-24 text-right">Aksi</TableHead>
+                <TableHead className="w-32 text-right">Aksi</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -95,7 +104,11 @@ export function ToolList({ tools }: { tools: ToolRow[] }) {
                 <TableRow key={tool.id}>
                   <TableCell className="font-medium">{tool.name}</TableCell>
                   <TableCell className="text-right tabular-nums">
-                    {tool.quantity}
+                    {tool.quantity === 0 ? (
+                      <span className="text-rose-700 dark:text-rose-400">0</span>
+                    ) : (
+                      tool.quantity
+                    )}
                   </TableCell>
                   <TableCell className="w-32">
                     <Badge
@@ -116,8 +129,9 @@ export function ToolList({ tools }: { tools: ToolRow[] }) {
                   <TableCell className="text-muted-foreground max-w-64 truncate text-sm">
                     {tool.notes ?? "—"}
                   </TableCell>
-                  <TableCell className="w-24">
+                  <TableCell className="w-32">
                     <div className="flex items-center justify-end gap-0.5">
+                      <ToolEventDialog tool={tool} members={members} />
                       <ToolDialog tool={tool} />
                       <ConfirmDelete
                         title="Hapus alat ini?"

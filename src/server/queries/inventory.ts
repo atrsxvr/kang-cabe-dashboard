@@ -6,11 +6,12 @@ import type {
   MaterialCategory,
   StockReason,
   ToolCondition,
+  ToolEventType,
 } from "@/generated/prisma/client";
 
 // Re-exported so components can name these without reaching into the generated
 // client, which ESLint blocks outside src/server.
-export type { MaterialCategory, StockReason, ToolCondition };
+export type { MaterialCategory, StockReason, ToolCondition, ToolEventType };
 
 /**
  * Shed data is not season-scoped: a sack of fertiliser and a hoe outlive any
@@ -97,6 +98,14 @@ export type ToolRow = {
   condition: ToolCondition;
   lastServicedAt: Date | null;
   notes: string | null;
+  events: {
+    id: string;
+    type: ToolEventType;
+    quantity: number;
+    note: string | null;
+    createdAt: Date;
+    actor: { name: string } | null;
+  }[];
 };
 
 export async function listTools(): Promise<ToolRow[]> {
@@ -110,6 +119,56 @@ export async function listTools(): Promise<ToolRow[]> {
       condition: true,
       lastServicedAt: true,
       notes: true,
+      events: {
+        orderBy: { createdAt: "desc" },
+        take: 8,
+        select: {
+          id: true,
+          type: true,
+          quantity: true,
+          note: true,
+          createdAt: true,
+          actor: { select: { name: true } },
+        },
+      },
+    },
+  });
+}
+
+/**
+ * Tools that belong on the trip to town, split by what is actually needed
+ * there. A tool needing service is an errand, not a purchase — putting both
+ * under one heading would fill the shopping list with things nobody is buying.
+ */
+export function selectToolNeeds(tools: ToolRow[]) {
+  return {
+    replace: tools.filter(
+      (tool) => tool.quantity === 0 || tool.condition === "BROKEN"
+    ),
+    service: tools.filter(
+      (tool) => tool.quantity > 0 && tool.condition === "NEEDS_SERVICE"
+    ),
+  };
+}
+
+export type ShoppingNoteRow = {
+  id: string;
+  text: string;
+  done: boolean;
+  createdAt: Date;
+  actor: { name: string } | null;
+};
+
+export async function listShoppingNotes(): Promise<ShoppingNoteRow[]> {
+  return prisma.shoppingNote.findMany({
+    // Outstanding first, then oldest — the order you would read a list in.
+    orderBy: [{ done: "asc" }, { createdAt: "asc" }],
+    select: {
+      id: true,
+      text: true,
+      done: true,
+      createdAt: true,
+      actor: { select: { name: true } },
     },
   });
 }

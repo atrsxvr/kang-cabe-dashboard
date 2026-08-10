@@ -181,6 +181,45 @@ export const updateToolSchema = createToolSchema.extend({
   toolId: z.string().min(1),
 });
 
+export const toolEventTypes = [
+  "ACQUIRED",
+  "LOST",
+  "RETIRED",
+  "DAMAGED",
+  "SERVICED",
+] as const;
+
+/** Only these change how many we own; the rest just change condition. */
+export const QUANTITY_EVENTS = ["ACQUIRED", "LOST", "RETIRED"] as const;
+
+export function changesQuantity(
+  type: (typeof toolEventTypes)[number]
+): boolean {
+  return (QUANTITY_EVENTS as readonly string[]).includes(type);
+}
+
+export const recordToolEventSchema = z.object({
+  toolId: z.string().min(1),
+  type: z.enum(toolEventTypes),
+  quantity: z.coerce
+    .number()
+    .int("Jumlah harus bilangan bulat")
+    .min(1, "Jumlah minimal 1")
+    .max(1000),
+  note: z.string().trim().max(300).optional().or(z.literal("")),
+  actorId: z.string().optional().or(z.literal("")),
+});
+
+export const createShoppingNoteSchema = z.object({
+  text: z.string().trim().min(2, "Tulis dulu apa yang perlu dibeli").max(200),
+  actorId: z.string().optional().or(z.literal("")),
+});
+
+export const toggleShoppingNoteSchema = z.object({
+  noteId: z.string().min(1),
+  done: z.enum(["true", "false"]),
+});
+
 const recipeItemSchema = z.object({
   materialId: z.string().min(1),
   amountPerLiter: z.coerce

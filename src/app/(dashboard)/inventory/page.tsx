@@ -9,7 +9,13 @@ import { StockTable } from "@/components/inventory/stock-table";
 import { ToolDialog } from "@/components/inventory/tool-dialog";
 import { ToolList } from "@/components/inventory/tool-list";
 import { stockStatus } from "@/lib/stock";
-import { listStock, listTools, selectRestock } from "@/server/queries/inventory";
+import {
+  listShoppingNotes,
+  listStock,
+  listTools,
+  selectRestock,
+  selectToolNeeds,
+} from "@/server/queries/inventory";
 import { listActiveMembers } from "@/server/queries/users";
 
 export const metadata: Metadata = { title: "Inventaris & Alat" };
@@ -19,14 +25,17 @@ export default async function InventoryPage() {
   // but the read is still live, hence connection().
   await connection();
 
-  const [rows, tools, members] = await Promise.all([
+  const [rows, tools, notes, members] = await Promise.all([
     listStock(),
     listTools(),
+    listShoppingNotes(),
     listActiveMembers(),
   ]);
 
   const restock = selectRestock(rows);
-  const attention = tools.filter((tool) => tool.condition !== "GOOD").length;
+  const { replace, service } = selectToolNeeds(tools);
+  const outstandingNotes = notes.filter((note) => !note.done).length;
+  const attention = replace.length + service.length;
   const outOfStock = rows.filter(
     (row) => stockStatus(row.stock, row.minStock) === "OUT_OF_STOCK"
   ).length;
@@ -51,11 +60,21 @@ export default async function InventoryPage() {
       </div>
 
       <InventoryViews
-        restockCount={restock.length}
+        restockCount={
+          restock.length + replace.length + service.length + outstandingNotes
+        }
         attentionCount={attention}
         stock={<StockTable rows={rows} members={members} />}
-        shopping={<ShoppingList rows={restock} />}
-        tools={<ToolList tools={tools} />}
+        shopping={
+          <ShoppingList
+            rows={restock}
+            replace={replace}
+            service={service}
+            notes={notes}
+            members={members}
+          />
+        }
+        tools={<ToolList tools={tools} members={members} />}
       />
     </>
   );

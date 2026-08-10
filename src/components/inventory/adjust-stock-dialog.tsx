@@ -34,10 +34,15 @@ export function AdjustStockDialog({
   material,
   members,
   direction,
+  defaultAmount,
+  trigger,
 }: {
   material: StockRow;
   members: MemberOption[];
   direction: "in" | "out";
+  /** Pre-filled from the shopping list, so buying closes the loop in one step. */
+  defaultAmount?: number;
+  trigger?: React.ReactNode;
 }) {
   const [open, setOpen] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -74,19 +79,21 @@ export function AdjustStockDialog({
       }}
     >
       <DialogTrigger asChild>
-        <Button
-          variant="ghost"
-          size="icon"
-          className="size-8"
-          aria-label={`${adding ? "Tambah" : "Kurangi"} stok ${material.name}`}
-          disabled={!adding && material.stock <= 0}
-        >
-          {adding ? (
-            <Plus className="size-4" aria-hidden />
-          ) : (
-            <Minus className="size-4" aria-hidden />
-          )}
-        </Button>
+        {trigger ?? (
+          <Button
+            variant="ghost"
+            size="icon"
+            className="size-8"
+            aria-label={`${adding ? "Tambah" : "Kurangi"} stok ${material.name}`}
+            disabled={!adding && material.stock <= 0}
+          >
+            {adding ? (
+              <Plus className="size-4" aria-hidden />
+            ) : (
+              <Minus className="size-4" aria-hidden />
+            )}
+          </Button>
+        )}
       </DialogTrigger>
 
       <DialogContent className="sm:max-w-md">
@@ -115,6 +122,7 @@ export function AdjustStockDialog({
               step="any"
               required
               autoFocus
+              defaultValue={defaultAmount ?? ""}
               placeholder="0"
               aria-invalid={Boolean(errors.delta)}
             />

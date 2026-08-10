@@ -51,3 +51,11 @@ export const UNIT_OPTIONS = [
   "sak",
   "meter",
 ];
+
+export const toolEventLabels: Record<string, string> = {
+  ACQUIRED: "Beli / dapat baru",
+  LOST: "Hilang",
+  RETIRED: "Dipensiunkan",
+  DAMAGED: "Rusak / butuh servis",
+  SERVICED: "Selesai diservis",
+};
