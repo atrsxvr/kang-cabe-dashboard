@@ -57,7 +57,7 @@ export function ToolDialog({ tool }: { tool?: ToolRow }) {
     >
       <DialogTrigger asChild>
         {editing ? (
-          <Button variant="ghost" size="sm" aria-label={`Sunting ${tool!.name}`}>
+          <Button variant="ghost" size="sm" aria-label={`Edit ${tool!.name}`}>
             <Pencil className="size-4" aria-hidden />
           </Button>
         ) : (
@@ -70,7 +70,7 @@ export function ToolDialog({ tool }: { tool?: ToolRow }) {
 
       <DialogContent className="max-h-[90dvh] overflow-y-auto sm:max-w-lg">
         <DialogHeader>
-          <DialogTitle>{editing ? "Sunting Alat" : "Tambah Alat"}</DialogTitle>
+          <DialogTitle>{editing ? "Edit Alat" : "Tambah Alat"}</DialogTitle>
           <DialogDescription>
             Alat dipakai lintas musim, jadi tidak terikat musim tanam mana pun.
           </DialogDescription>

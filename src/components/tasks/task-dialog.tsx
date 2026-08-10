@@ -80,7 +80,7 @@ export function TaskDialog({
           <Button
             variant="ghost"
             size="sm"
-            aria-label={`Sunting ${task!.title}`}
+            aria-label={`Edit ${task!.title}`}
           >
             <Pencil className="size-4" aria-hidden />
           </Button>
@@ -94,7 +94,7 @@ export function TaskDialog({
 
       <DialogContent className="max-h-[90dvh] overflow-y-auto sm:max-w-lg">
         <DialogHeader>
-          <DialogTitle>{editing ? "Sunting Tugas" : "Tambah Tugas Baru"}</DialogTitle>
+          <DialogTitle>{editing ? "Edit Tugas" : "Tambah Tugas Baru"}</DialogTitle>
           <DialogDescription>
             Tugas melekat pada musim yang sedang dipilih di navbar.
           </DialogDescription>

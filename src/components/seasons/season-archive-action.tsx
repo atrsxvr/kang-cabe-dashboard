@@ -78,7 +78,7 @@ export function SeasonArchiveAction({
             {taskCount > 0
               ? `${taskCount} tugas dan seluruh catatan di dalamnya tetap tersimpan`
               : "Seluruh catatan di dalamnya tetap tersimpan"}{" "}
-            dan bisa dikembalikan lewat tombol Sunting.
+            dan bisa dikembalikan lewat tombol Edit.
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>

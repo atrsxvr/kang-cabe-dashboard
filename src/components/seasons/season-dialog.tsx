@@ -76,9 +76,9 @@ export function SeasonDialog({ season }: { season?: SeasonRow }) {
     >
       <DialogTrigger asChild>
         {editing ? (
-          <Button variant="ghost" size="sm" aria-label={`Sunting ${season!.name}`}>
+          <Button variant="ghost" size="sm" aria-label={`Edit ${season!.name}`}>
             <Pencil className="size-4" aria-hidden />
-            Sunting
+            Edit
           </Button>
         ) : (
           <Button size="sm">
@@ -91,7 +91,7 @@ export function SeasonDialog({ season }: { season?: SeasonRow }) {
       <DialogContent className="max-h-[90dvh] overflow-y-auto sm:max-w-lg">
         <DialogHeader>
           <DialogTitle>
-            {editing ? "Sunting Musim Tanam" : "Tambah Musim Tanam Baru"}
+            {editing ? "Edit Musim Tanam" : "Tambah Musim Tanam Baru"}
           </DialogTitle>
           <DialogDescription>
             {editing

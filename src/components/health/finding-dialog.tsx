@@ -109,9 +109,9 @@ export function FindingDialog({
     >
       <DialogTrigger asChild>
         {editing ? (
-          <Button variant="ghost" size="sm" aria-label="Sunting temuan">
+          <Button variant="ghost" size="sm" aria-label="Edit temuan">
             <Pencil className="size-4" aria-hidden />
-            Sunting
+            Edit
           </Button>
         ) : (
           <Button size="sm">
@@ -124,11 +124,11 @@ export function FindingDialog({
       <DialogContent className="max-h-[90dvh] overflow-y-auto sm:max-w-lg">
         <DialogHeader>
           <DialogTitle>
-            {editing ? "Sunting Temuan" : "Catat Temuan di Kebun"}
+            {editing ? "Edit Temuan" : "Catat Temuan di Kebun"}
           </DialogTitle>
           <DialogDescription>
             {editing
-              ? "Diagnosa dan perlakuan disunting lewat tombol Diagnosa."
+              ? "Diagnosa dan perlakuan diubah lewat tombol Diagnosa."
               : "Cukup jelaskan yang kamu lihat. Diagnosa dan perlakuan diisi Agronomis setelah ini."}
           </DialogDescription>
         </DialogHeader>

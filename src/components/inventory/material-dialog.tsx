@@ -76,10 +76,10 @@ export function MaterialDialog({
             variant="ghost"
             size={compact ? "icon" : "sm"}
             className={compact ? "size-6" : undefined}
-            aria-label={`Sunting ${material!.name}`}
+            aria-label={`Edit ${material!.name}`}
           >
             <Pencil className={compact ? "size-3" : "size-4"} aria-hidden />
-            {compact ? null : "Sunting"}
+            {compact ? null : "Edit"}
           </Button>
         ) : (
           <Button size="sm">
@@ -91,7 +91,7 @@ export function MaterialDialog({
 
       <DialogContent className="max-h-[90dvh] overflow-y-auto sm:max-w-lg">
         <DialogHeader>
-          <DialogTitle>{editing ? "Sunting Bahan" : "Tambah Bahan"}</DialogTitle>
+          <DialogTitle>{editing ? "Edit Bahan" : "Tambah Bahan"}</DialogTitle>
           <DialogDescription>
             Bahan dipakai bersama oleh Pustaka Racikan dan stok gudang, jadi
             satuannya berlaku untuk keduanya.

@@ -95,9 +95,9 @@ export function RecipeDialog({
     >
       <DialogTrigger asChild>
         {editing ? (
-          <Button variant="ghost" size="sm" aria-label={`Sunting ${recipe!.name}`}>
+          <Button variant="ghost" size="sm" aria-label={`Edit ${recipe!.name}`}>
             <Pencil className="size-4" aria-hidden />
-            Sunting
+            Edit
           </Button>
         ) : (
           <Button size="sm">
@@ -109,7 +109,7 @@ export function RecipeDialog({
 
       <DialogContent className="max-h-[90dvh] overflow-y-auto sm:max-w-2xl">
         <DialogHeader>
-          <DialogTitle>{editing ? "Sunting Racikan" : "Tambah Racikan"}</DialogTitle>
+          <DialogTitle>{editing ? "Edit Racikan" : "Tambah Racikan"}</DialogTitle>
           <DialogDescription>
             Takaran diisi per liter. Volume acuan hanya menentukan angka yang
             ditampilkan pertama kali.
