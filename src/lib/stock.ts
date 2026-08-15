@@ -1,3 +1,5 @@
+import { daysUntil } from "@/lib/hst";
+
 export const STOCK_STATUSES = ["OUT_OF_STOCK", "LOW", "SAFE"] as const;
 
 export type StockStatus = (typeof STOCK_STATUSES)[number];
@@ -72,4 +74,45 @@ const DOSABLE = new Set([
 
 export function isDosable(category: string): boolean {
   return DOSABLE.has(category);
+}
+
+/**
+ * How much to buy, said the way it is bought.
+ *
+ * Stock is kept in the unit a recipe doses in, which is right for the shed and
+ * wrong at the counter: "beli min. 5.000 gram" is not a thing anyone asks for.
+ * When a material knows its purchase unit, the shopping list leads with that
+ * and keeps the exact figure in brackets behind it.
+ */
+export function describePurchase(
+  needed: number,
+  unit: string,
+  purchaseUnit: string | null,
+  purchaseSize: number | null
+): string {
+  const exact = formatStock(needed, unit);
+
+  if (!purchaseUnit || !purchaseSize || purchaseSize <= 0) return exact;
+
+  // Rounded up: half a sack is not sold, and coming home short means the job
+  // waits for another trip to town.
+  const packs = Math.ceil(needed / purchaseSize);
+
+  return `${packs.toLocaleString("id-ID")} ${purchaseUnit} (${exact})`;
+}
+
+export type ExpiryStatus = "NONE" | "OK" | "SOON" | "EXPIRED";
+
+/** A month's warning: enough to use it up or plan around it, not so early it becomes noise. */
+export const EXPIRY_SOON_DAYS = 30;
+
+export function expiryStatus(
+  expiresAt: Date | null,
+  now: Date = new Date()
+): ExpiryStatus {
+  if (!expiresAt) return "NONE";
+
+  const days = daysUntil(expiresAt, now);
+  if (days < 0) return "EXPIRED";
+  return days <= EXPIRY_SOON_DAYS ? "SOON" : "OK";
 }

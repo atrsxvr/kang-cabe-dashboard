@@ -136,6 +136,23 @@ export function ToolDialog({ tool }: { tool?: ToolRow }) {
             />
           </Field>
 
+          <Field
+            id="tool-serviceIntervalDays"
+            label="Servis Tiap (hari, opsional)"
+            error={errors.serviceIntervalDays}
+            hint="Tangki semprot biasanya perlu; cangkul nggak"
+          >
+            <Input
+              id="tool-serviceIntervalDays"
+              name="serviceIntervalDays"
+              type="number"
+              min={1}
+              defaultValue={tool?.serviceIntervalDays ?? ""}
+              placeholder="90"
+              aria-invalid={Boolean(errors.serviceIntervalDays)}
+            />
+          </Field>
+
           <Field id="tool-notes" label="Catatan perawatan" error={errors.notes}>
             <Textarea
               id="tool-notes"

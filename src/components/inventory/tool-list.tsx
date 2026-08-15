@@ -2,6 +2,8 @@ import { Wrench } from "lucide-react";
 
 import { ConfirmDelete } from "@/components/common/confirm-delete";
 import {
+  serviceStatusLabels,
+  serviceStatusTones,
   toolConditionLabels,
   toolConditionTones,
 } from "@/components/inventory/inventory-labels";
@@ -18,6 +20,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { formatDate } from "@/lib/hst";
+import { nextServiceDate, serviceStatus } from "@/lib/tools";
 import { cn } from "@/lib/utils";
 import { deleteTool } from "@/server/actions/inventory";
 import type { ToolRow } from "@/server/queries/inventory";
@@ -54,6 +57,8 @@ export function ToolList({
                       ? `Servis terakhir ${formatDate(tool.lastServicedAt)}`
                       : "Belum pernah diservis"}
                   </p>
+                  <ServiceNote tool={tool} />
+                  <HolderNote tool={tool} />
                 </div>
                 <Badge
                   variant="secondary"
@@ -94,7 +99,8 @@ export function ToolList({
                 <TableHead className="min-w-48">Alat</TableHead>
                 <TableHead className="text-right">Jumlah</TableHead>
                 <TableHead className="w-32">Kondisi</TableHead>
-                <TableHead>Servis Terakhir</TableHead>
+                <TableHead>Dipegang</TableHead>
+                <TableHead>Servis</TableHead>
                 <TableHead>Catatan</TableHead>
                 <TableHead className="w-32 text-right">Aksi</TableHead>
               </TableRow>
@@ -122,9 +128,10 @@ export function ToolList({
                     </Badge>
                   </TableCell>
                   <TableCell className="text-muted-foreground whitespace-nowrap">
-                    {tool.lastServicedAt
-                      ? formatDate(tool.lastServicedAt)
-                      : "—"}
+                    {tool.heldBy?.name ?? "di gudang"}
+                  </TableCell>
+                  <TableCell className="whitespace-nowrap">
+                    <ServiceCell tool={tool} />
                   </TableCell>
                   <TableCell className="text-muted-foreground max-w-64 truncate text-sm">
                     {tool.notes ?? "—"}
@@ -149,6 +156,63 @@ export function ToolList({
         </div>
       </Card>
     </>
+  );
+}
+
+/** Only appears for a tool that has a schedule to be measured against. */
+function ServiceNote({ tool }: { tool: ToolRow }) {
+  const status = serviceStatus(tool.lastServicedAt, tool.serviceIntervalDays);
+  if (status === "NONE" || status === "OK") return null;
+
+  return (
+    <p
+      className={cn(
+        "text-xs",
+        status === "OVERDUE"
+          ? "text-rose-700 dark:text-rose-400"
+          : "text-amber-700 dark:text-amber-400"
+      )}
+    >
+      {serviceStatusLabels[status]}
+    </p>
+  );
+}
+
+function HolderNote({ tool }: { tool: ToolRow }) {
+  if (!tool.heldBy) return null;
+
+  return (
+    <p className="text-muted-foreground text-xs">
+      Dibawa {tool.heldBy.name}
+    </p>
+  );
+}
+
+function ServiceCell({ tool }: { tool: ToolRow }) {
+  const status = serviceStatus(tool.lastServicedAt, tool.serviceIntervalDays);
+
+  if (status === "NONE") {
+    return (
+      <span className="text-muted-foreground text-sm">
+        {tool.lastServicedAt ? formatDate(tool.lastServicedAt) : "—"}
+      </span>
+    );
+  }
+
+  const due = nextServiceDate(tool.lastServicedAt, tool.serviceIntervalDays);
+
+  return (
+    <div className="grid gap-0.5">
+      <Badge
+        variant="secondary"
+        className={cn("w-fit border-transparent", serviceStatusTones[status])}
+      >
+        {serviceStatusLabels[status]}
+      </Badge>
+      <span className="text-muted-foreground text-xs">
+        {due ? formatDate(due) : "belum pernah diservis"}
+      </span>
+    </div>
   );
 }
 

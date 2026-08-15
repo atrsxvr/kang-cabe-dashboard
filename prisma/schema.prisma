@@ -97,6 +97,8 @@ enum ToolEventType {
   RETIRED // dipensiunkan, jumlah berkurang
   DAMAGED // rusak atau butuh servis, jumlah tetap
   SERVICED // selesai diservis, kondisi kembali baik
+  CHECKED_OUT // dibawa seseorang, jumlah tetap
+  RETURNED // dikembalikan ke gudang, jumlah tetap
 }
 
 enum TransactionType {
@@ -125,7 +127,9 @@ model User {
   findingsDiagnosed HealthLog[]     @relation("DiagnosedFindings")
   recipesAuthored   Recipe[]        @relation("AuthoredRecipes")
   stockMovements    StockMovement[] @relation("StockMovements")
+  stockOpnames      StockOpname[]   @relation("StockOpnames")
   toolEvents        ToolEvent[]     @relation("ToolEvents")
+  toolsHeld         Tool[]          @relation("HeldTools")
   shoppingNotes     ShoppingNote[]  @relation("ShoppingNotes")
 
   @@index([deletedAt])
@@ -147,6 +151,7 @@ model Season {
   healthLogs          HealthLog[]
   harvestLogs         HarvestLog[]
   financeTransactions FinanceTransaction[]
+  stockMovements      StockMovement[]
 }
 
 model Task {
@@ -282,6 +287,23 @@ model Material {
   /// gram itu wajar; yang dibulatkan ke rupiah utuh adalah hasil kalinya.
   avgCost Float @default(0)
 
+  /// Satuan saat dibeli, kalau berbeda dari satuan pakai — "sak" untuk pupuk
+  /// yang ditakar dalam gram. Hanya untuk menulis daftar belanja; stok tetap
+  /// disimpan dalam satu satuan supaya racikan dan gudang tetap sebanding.
+  purchaseUnit String?
+  /// Berapa satuan pakai dalam satu satuan beli, mis. 5000 gram per sak.
+  purchaseSize Float?
+
+  /// Kedaluwarsa terdekat yang perlu diingat. Satu tanggal per bahan, bukan
+  /// per batch: gudang ini memakai harga rata-rata, bukan FIFO, jadi tidak ada
+  /// baris batch untuk ditempeli tanggal masing-masing.
+  expiresAt DateTime?
+
+  /// Diarsipkan, bukan dihapus. Menghapus bahan akan menghanyutkan seluruh
+  /// riwayat stoknya — termasuk pemakaian yang sudah dibebankan ke musim lalu,
+  /// yang membuat laporan musim itu ikut berubah setelah ditutup.
+  archivedAt DateTime?
+
   notes     String?
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -291,6 +313,7 @@ model Material {
   taskUsages  TaskMaterial[]
 
   @@index([category])
+  @@index([archivedAt])
 }
 
 /// Riwayat perubahan stok. Menjawab "kenapa NPK tinggal segini".
@@ -311,10 +334,45 @@ model StockMovement {
   actorId    String?
   createdAt  DateTime    @default(now())
 
-  material Material @relation(fields: [materialId], references: [id], onDelete: Cascade)
-  actor    User?    @relation("StockMovements", fields: [actorId], references: [id], onDelete: Restrict)
+  /// Musim yang menanggung pemakaian ini, untuk bahan yang keluar **di luar**
+  /// sebuah tugas — ambil dua puluh ajir mengganti yang patah, misalnya.
+  ///
+  /// Sengaja dibiarkan kosong oleh `recordTaskUsage`: biaya tugas sudah
+  /// dibekukan di `TaskMaterial.totalCost`, dan mengisi keduanya akan membuat
+  /// laporan musim menghitung pemakaian yang sama dua kali.
+  seasonId String?
+  /// Opname yang melahirkan koreksi ini.
+  opnameId String?
+
+  material Material     @relation(fields: [materialId], references: [id], onDelete: Cascade)
+  actor    User?        @relation("StockMovements", fields: [actorId], references: [id], onDelete: Restrict)
+  season   Season?      @relation(fields: [seasonId], references: [id], onDelete: SetNull)
+  opname   StockOpname? @relation(fields: [opnameId], references: [id], onDelete: SetNull)
 
   @@index([materialId, createdAt])
+  @@index([actorId])
+  @@index([seasonId])
+  @@index([opnameId])
+}
+
+/// Satu kali hitung fisik gudang.
+///
+/// Ditulis **selalu**, termasuk saat semua angka cocok dan tidak ada satu pun
+/// koreksi. Tanpa baris ini, opname yang rapi justru tidak meninggalkan bukti
+/// bahwa ia pernah dilakukan, dan "terakhir kita hitung kapan" tidak terjawab.
+model StockOpname {
+  id        String   @id @default(uuid())
+  countedAt DateTime @default(now())
+  /// Berapa baris yang diisi hitungan fisiknya, dan berapa yang ternyata beda.
+  checked   Int
+  corrected Int
+  note      String?
+  actorId   String?
+
+  actor     User?           @relation("StockOpnames", fields: [actorId], references: [id], onDelete: Restrict)
+  movements StockMovement[]
+
+  @@index([countedAt])
   @@index([actorId])
 }
 
@@ -331,13 +389,20 @@ model Tool {
   /// mewakili satu kondisi.
   condition      ToolCondition @default(GOOD)
   lastServicedAt DateTime?
+  /// Servis berkala tiap sekian hari. Kosong berarti tidak dijadwalkan —
+  /// cangkul tidak perlu, tangki semprot perlu.
+  serviceIntervalDays Int?
+  /// Siapa yang sedang membawanya. Kosong berarti ada di gudang.
+  heldById       String?
   notes          String?
   createdAt      DateTime      @default(now())
   updatedAt      DateTime      @updatedAt
 
   events ToolEvent[]
+  heldBy User?      @relation("HeldTools", fields: [heldById], references: [id], onDelete: Restrict)
 
   @@index([condition])
+  @@index([heldById])
 }
 
 /// Riwayat alat, cerminan StockMovement untuk bahan. Menjawab "cangkul kita
@@ -457,8 +522,11 @@ model SaleTransaction {
   id           String   @id @default(uuid())
   harvestLogId String
   buyerName    String // Nama pembeli/pengepul/restoran
-  pricePerKg   Float
-  totalAmount  Float
+  /// Rupiah bulat, seperti seluruh angka uang lain di aplikasi ini. Pecahan
+  /// menghasilkan total yang melenceng sepersekian rupiah dan tidak bisa
+  /// dijelaskan ke siapa pun.
+  pricePerKg   Int
+  totalAmount  Int
   isPaid       Boolean  @default(false)
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
@@ -474,7 +542,8 @@ model FinanceTransaction {
   seasonId    String
   type        TransactionType
   category    String // Benih, Pupuk, Peralatan, Penjualan, Operasional
-  amount      Float
+  /// Rupiah bulat. Lihat catatan di SaleTransaction.
+  amount      Int
   description String
   proofUrl    String? // Foto nota/bukti
   date        DateTime        @default(now())

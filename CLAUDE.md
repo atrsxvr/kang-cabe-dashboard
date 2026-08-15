@@ -9,7 +9,7 @@
 - Database: Prisma 7 + PostgreSQL on Supabase
 - Icons: Lucide React
 - Charts: Recharts (not installed yet — add when the first chart lands)
-- Tests: Vitest
+- Tests: Vitest (unit) + Playwright (e2e, halaman + Server Action + Postgres)
 - Package manager: **pnpm** (not npm — the repo pins `pnpm@11.20.0`)
 
 ## Project Structure
@@ -33,6 +33,7 @@ src/
     queries/                # every database read lives here
   lib/                      # env, prisma client, nav config, utils
   generated/prisma/         # Prisma client — gitignored, `prisma generate`
+e2e/                        # Playwright; cleans up after itself by "E2E" prefix
 ```
 
 ## Rules
@@ -76,8 +77,15 @@ src/
   render. Anything that edits history rather than appending to it — a price
   filled in weeks late — must recompute it from `StockMovement`.
 - **Stock opname is the only place a recorded number may be overruled** by a
-  physical count, and it writes a `CORRECTION` movement for every row that
-  differs — and nothing at all for rows that match.
+  physical count. It writes a `CORRECTION` movement for every row that differs
+  and nothing for rows that match — but always a `StockOpname` header, so a
+  count that found nothing still proves it happened.
+- **Materials are archived, never deleted.** Their movement log now carries
+  what each usage cost and which season it was charged to; deleting the row
+  would change a season's report months after that season closed.
+- **`StockMovement.seasonId` is only for stock leaving outside a task.**
+  `recordTaskUsage` leaves it null on purpose — a task's cost is already frozen
+  on `TaskMaterial`, and filling both would count the same usage twice.
 - Reads that must be fresh need **both** `await connection()` and a `<Suspense>`
   boundary. Suspense alone still prerenders at build time and freezes the data.
 - Anything rendered from a **layout** must handle its own failure. A layout's
@@ -95,6 +103,7 @@ pnpm build        # production build
 pnpm lint
 pnpm typecheck
 pnpm test         # vitest run
+pnpm test:e2e     # playwright, needs a database
 pnpm db:migrate   # prisma migrate dev
 pnpm db:studio
 ```

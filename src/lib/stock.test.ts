@@ -1,7 +1,9 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  describePurchase,
   describeShortfall,
+  expiryStatus,
   formatStock,
   needsRestock,
   stockStatus,
@@ -80,5 +82,52 @@ describe("describeShortfall", () => {
     expect(describeShortfall(500, 1000, "gram")).toBe(
       "sisa 500 gram (min 1 kg)"
     );
+  });
+});
+
+describe("describePurchase", () => {
+  it("leads with the pack when the material knows how it is bought", () => {
+    expect(describePurchase(10000, "gram", "sak", 5000)).toBe(
+      "2 sak (10 kg)"
+    );
+  });
+
+  /** Half a sack is not sold, and coming home short costs another trip. */
+  it("rounds up to a whole pack", () => {
+    expect(describePurchase(5001, "gram", "sak", 5000)).toContain("2 sak");
+  });
+
+  it("falls back to the exact figure when no purchase unit is set", () => {
+    expect(describePurchase(5000, "gram", null, null)).toBe("5 kg");
+  });
+
+  it("ignores a nonsense pack size rather than dividing by zero", () => {
+    expect(describePurchase(5000, "gram", "sak", 0)).toBe("5 kg");
+  });
+});
+
+describe("expiryStatus", () => {
+  const today = new Date("2026-08-15T03:00:00Z");
+
+  it("says nothing for a material with no date", () => {
+    expect(expiryStatus(null, today)).toBe("NONE");
+  });
+
+  it("warns a month ahead", () => {
+    expect(expiryStatus(new Date("2026-09-10T00:00:00Z"), today)).toBe("SOON");
+  });
+
+  it("stays quiet further out than that", () => {
+    expect(expiryStatus(new Date("2026-12-01T00:00:00Z"), today)).toBe("OK");
+  });
+
+  it("flags one that has already passed", () => {
+    expect(expiryStatus(new Date("2026-08-01T00:00:00Z"), today)).toBe(
+      "EXPIRED"
+    );
+  });
+
+  it("counts today itself as still usable", () => {
+    expect(expiryStatus(new Date("2026-08-15T00:00:00Z"), today)).toBe("SOON");
   });
 });

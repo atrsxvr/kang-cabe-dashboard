@@ -37,11 +37,16 @@ export function AdjustStockDialog({
   members,
   direction,
   defaultAmount,
+  seasons,
+  currentSeasonId,
   trigger,
 }: {
   material: StockRow;
   members: MemberOption[];
   direction: "in" | "out";
+  /** Musim yang bisa dibebani, untuk bahan yang keluar di luar tugas. */
+  seasons?: { id: string; name: string }[];
+  currentSeasonId?: string;
   /** Pre-filled from the shopping list, so buying closes the loop in one step. */
   defaultAmount?: number;
   trigger?: React.ReactNode;
@@ -203,6 +208,31 @@ export function AdjustStockDialog({
                   ? `${formatRupiah(paid)} · kira-kira ${formatUnitPrice(unitPrice, material.unit)}`
                   : "Kosongin aja dulu kalau notanya belum ada. Uangnya masuk ke nilai gudang, baru jadi biaya musim pas bahannya kepakai."}
               </p>
+            </Field>
+          ) : null}
+
+          {/* Stock leaving for a job that never became a task — twenty stakes
+              to replace broken ones. Naming a season is what carries it into
+              that season's cost; leaving it blank keeps it out. */}
+          {!adding && seasons && seasons.length > 0 ? (
+            <Field
+              id={`season-${material.id}`}
+              label="Buat musim (opsional)"
+              error={errors.seasonId}
+              hint="Kalau diisi, nilainya masuk ke biaya musim itu"
+            >
+              <NativeSelect
+                id={`season-${material.id}`}
+                name="seasonId"
+                defaultValue={currentSeasonId ?? ""}
+              >
+                <option value="">— nggak dibebankan ke musim —</option>
+                {seasons.map((season) => (
+                  <option key={season.id} value={season.id}>
+                    {season.name}
+                  </option>
+                ))}
+              </NativeSelect>
             </Field>
           ) : null}
 

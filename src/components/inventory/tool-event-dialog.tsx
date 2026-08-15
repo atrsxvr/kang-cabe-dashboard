@@ -41,7 +41,11 @@ export function ToolEventDialog({
 }) {
   const [open, setOpen] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
-  const [type, setType] = useState<string>("DAMAGED");
+  // A tool someone is holding is most likely coming back; one in the shed is
+  // most likely going out or being reported broken.
+  const [type, setType] = useState<string>(
+    tool.heldBy ? "RETURNED" : "CHECKED_OUT"
+  );
   const router = useRouter();
 
   const affectsCount = changesQuantity(
@@ -51,6 +55,8 @@ export function ToolEventDialog({
   // Buying one and paying to fix one are the two that cost money. Losing a
   // hoe is a loss, but nobody handed over rupiah for it.
   const costsMoney = type === "ACQUIRED" || type === "SERVICED";
+  // Borrowing changes who has it, not how many we own.
+  const takingOut = type === "CHECKED_OUT";
 
   async function onSubmit(formData: FormData) {
     const result = await recordToolEvent(formData);
@@ -152,6 +158,28 @@ export function ToolEventDialog({
                 placeholder="150000"
                 aria-invalid={Boolean(errors.totalCost)}
               />
+            </Field>
+          ) : null}
+
+          {takingOut ? (
+            <Field
+              id={`event-holder-${tool.id}`}
+              label="Dibawa siapa"
+              error={errors.holderId}
+              hint="Biar kalau nyari nggak keliling kebun"
+            >
+              <NativeSelect
+                id={`event-holder-${tool.id}`}
+                name="holderId"
+                defaultValue={tool.heldBy?.id ?? ""}
+              >
+                <option value="">— nggak disebutkan —</option>
+                {members.map((member) => (
+                  <option key={member.id} value={member.id}>
+                    {member.name}
+                  </option>
+                ))}
+              </NativeSelect>
             </Field>
           ) : null}
 

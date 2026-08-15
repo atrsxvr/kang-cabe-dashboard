@@ -35,14 +35,41 @@ export type SeasonMaterialCost = {
 export async function seasonMaterialCost(
   seasonId: string
 ): Promise<SeasonMaterialCost> {
-  const rows = await prisma.taskMaterial.findMany({
-    where: { task: { seasonId }, totalCost: { not: null } },
-    select: {
-      amount: true,
-      totalCost: true,
-      material: { select: { id: true, name: true, unit: true, category: true } },
-    },
-  });
+  // Two ways stock is charged to a season, and no overlap between them:
+  // materials frozen onto a task, and stock taken straight off the shelf with
+  // a season named. recordTaskUsage deliberately leaves StockMovement.seasonId
+  // empty so a task's usage cannot be counted from both sides.
+  const [fromTasks, fromShelf] = await Promise.all([
+    prisma.taskMaterial.findMany({
+      where: { task: { seasonId }, totalCost: { not: null } },
+      select: {
+        amount: true,
+        totalCost: true,
+        material: {
+          select: { id: true, name: true, unit: true, category: true },
+        },
+      },
+    }),
+    prisma.stockMovement.findMany({
+      where: { seasonId, reason: { in: ["USAGE", "LOSS"] } },
+      select: {
+        delta: true,
+        totalCost: true,
+        material: {
+          select: { id: true, name: true, unit: true, category: true },
+        },
+      },
+    }),
+  ]);
+
+  const rows = [
+    ...fromTasks,
+    ...fromShelf.map((row) => ({
+      amount: Math.abs(row.delta),
+      totalCost: row.totalCost,
+      material: row.material,
+    })),
+  ];
 
   const byMaterial = new Map<
     string,

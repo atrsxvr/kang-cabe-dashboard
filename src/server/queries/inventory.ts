@@ -2,7 +2,8 @@ import "server-only";
 
 import { prisma } from "@/lib/prisma";
 import { stockValue } from "@/lib/money";
-import { needsRestock } from "@/lib/stock";
+import { expiryStatus, needsRestock } from "@/lib/stock";
+import { serviceStatus } from "@/lib/tools";
 import type {
   MaterialCategory,
   StockReason,
@@ -28,14 +29,25 @@ export type StockRow = {
   minStock: number;
   /** Harga rata-rata per satuan. Nol berarti belum ada belanja berharga. */
   avgCost: number;
+  purchaseUnit: string | null;
+  purchaseSize: number | null;
+  expiresAt: Date | null;
+  archivedAt: Date | null;
   notes: string | null;
   /** Which recipes call for it — what makes the shopping list actionable. */
   usedBy: { id: string; name: string; amountPerLiter: number }[];
   _count: { recipeItems: number };
 };
 
-export async function listStock(): Promise<StockRow[]> {
+/**
+ * The shed as it stands. Archived materials are left out — they are hidden
+ * from every picker too, which is the point of archiving rather than deleting.
+ */
+export async function listStock(
+  { includeArchived = false } = {}
+): Promise<StockRow[]> {
   const materials = await prisma.material.findMany({
+    where: includeArchived ? undefined : { archivedAt: null },
     orderBy: [{ category: "asc" }, { name: "asc" }],
     include: {
       _count: { select: { recipeItems: true } },
@@ -56,6 +68,37 @@ export async function listStock(): Promise<StockRow[]> {
       amountPerLiter: item.amountPerLiter,
     })),
   }));
+}
+
+/** Bahan yang sudah diarsipkan, untuk dihitung dan ditawarkan kembali. */
+export async function listArchivedStock(): Promise<StockRow[]> {
+  const rows = await listStock({ includeArchived: true });
+  return rows.filter((row) => row.archivedAt !== null);
+}
+
+/** Kedaluwarsa yang sudah lewat atau tinggal sebentar lagi. */
+export function selectExpiring(rows: StockRow[]): StockRow[] {
+  return rows
+    .filter((row) => {
+      const status = expiryStatus(row.expiresAt);
+      return status === "EXPIRED" || status === "SOON";
+    })
+    .sort(
+      (a, b) => (a.expiresAt?.getTime() ?? 0) - (b.expiresAt?.getTime() ?? 0)
+    );
+}
+
+/** Kapan terakhir gudang dihitung fisik. */
+export async function lastOpname() {
+  return prisma.stockOpname.findFirst({
+    orderBy: { countedAt: "desc" },
+    select: {
+      countedAt: true,
+      checked: true,
+      corrected: true,
+      actor: { select: { name: true } },
+    },
+  });
 }
 
 /** Everything at or below its threshold — the shopping list. */
@@ -114,6 +157,8 @@ export type ToolRow = {
   quantity: number;
   condition: ToolCondition;
   lastServicedAt: Date | null;
+  serviceIntervalDays: number | null;
+  heldBy: { id: string; name: string } | null;
   notes: string | null;
   events: {
     id: string;
@@ -136,6 +181,8 @@ export async function listTools(): Promise<ToolRow[]> {
       quantity: true,
       condition: true,
       lastServicedAt: true,
+      serviceIntervalDays: true,
+      heldBy: { select: { id: true, name: true } },
       notes: true,
       events: {
         orderBy: { createdAt: "desc" },
@@ -165,7 +212,13 @@ export function selectToolNeeds(tools: ToolRow[]) {
       (tool) => tool.quantity === 0 || tool.condition === "BROKEN"
     ),
     service: tools.filter(
-      (tool) => tool.quantity > 0 && tool.condition === "NEEDS_SERVICE"
+      (tool) =>
+        tool.quantity > 0 &&
+        // Either someone reported it broken, or its own schedule says it is
+        // time — a tank nobody has complained about is still due at 90 days.
+        (tool.condition === "NEEDS_SERVICE" ||
+          serviceStatus(tool.lastServicedAt, tool.serviceIntervalDays) ===
+            "OVERDUE")
     ),
   };
 }

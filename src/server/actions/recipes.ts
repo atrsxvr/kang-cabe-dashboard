@@ -43,6 +43,9 @@ export async function createMaterial(
     stock: formData.get("stock") ?? 0,
     minStock: formData.get("minStock") ?? 0,
     notes: formData.get("notes") ?? "",
+    purchaseUnit: formData.get("purchaseUnit") ?? "",
+    purchaseSize: formData.get("purchaseSize") || undefined,
+    expiresAt: formData.get("expiresAt") || undefined,
     openingCost: formData.get("openingCost") || undefined,
   });
 
@@ -50,7 +53,8 @@ export async function createMaterial(
     return invalidForm(parsed.error);
   }
 
-  const { notes, openingCost, ...rest } = parsed.data;
+  const { notes, openingCost, purchaseUnit, purchaseSize, expiresAt, ...rest } =
+    parsed.data;
 
   const existing = await prisma.material.findUnique({
     where: { name: rest.name },
@@ -69,6 +73,9 @@ export async function createMaterial(
     data: {
       ...rest,
       notes: notes ? notes : null,
+      purchaseUnit: purchaseUnit ? purchaseUnit : null,
+      purchaseSize: purchaseSize ?? null,
+      expiresAt: expiresAt ?? null,
       // First arrival, so there is nothing to average against — the opening
       // value simply is the price.
       avgCost:
@@ -253,11 +260,15 @@ export async function updateMaterial(
     category: formData.get("category"),
     minStock: formData.get("minStock") ?? 0,
     notes: formData.get("notes") ?? "",
+    purchaseUnit: formData.get("purchaseUnit") ?? "",
+    purchaseSize: formData.get("purchaseSize") || undefined,
+    expiresAt: formData.get("expiresAt") || undefined,
   });
 
   if (!parsed.success) return invalidForm(parsed.error);
 
-  const { materialId, notes, ...rest } = parsed.data;
+  const { materialId, notes, purchaseUnit, purchaseSize, expiresAt, ...rest } =
+    parsed.data;
 
   const clash = await prisma.material.findFirst({
     where: { name: rest.name, id: { not: materialId } },
@@ -274,41 +285,14 @@ export async function updateMaterial(
 
   const result = await prisma.material.updateMany({
     where: { id: materialId },
-    data: { ...rest, notes: notes ? notes : null },
+    data: {
+      ...rest,
+      notes: notes ? notes : null,
+      purchaseUnit: purchaseUnit ? purchaseUnit : null,
+      purchaseSize: purchaseSize ?? null,
+      expiresAt: expiresAt ?? null,
+    },
   });
-
-  if (result.count === 0) {
-    return { ok: false, message: "Bahan tidak ditemukan." };
-  }
-
-  revalidatePath("/health/racikan");
-  revalidatePath("/inventory");
-  return { ok: true };
-}
-
-export async function deleteMaterial(
-  formData: FormData
-): Promise<ActionResult> {
-  const materialId = String(formData.get("materialId") ?? "");
-  if (!materialId) return { ok: false, message: "Bahan tidak dikenali." };
-
-  // The database would refuse this anyway through onDelete: Restrict, but a
-  // raw constraint error tells the user nothing about which recipes to fix.
-  const usedBy = await prisma.recipeItem.findMany({
-    where: { materialId },
-    select: { recipe: { select: { name: true } } },
-    take: 3,
-  });
-
-  if (usedBy.length > 0) {
-    const names = usedBy.map((item) => item.recipe.name).join(", ");
-    return {
-      ok: false,
-      message: `Bahan ini masih dipakai racikan: ${names}. Hapus dari racikan itu dulu.`,
-    };
-  }
-
-  const result = await prisma.material.deleteMany({ where: { id: materialId } });
 
   if (result.count === 0) {
     return { ok: false, message: "Bahan tidak ditemukan." };

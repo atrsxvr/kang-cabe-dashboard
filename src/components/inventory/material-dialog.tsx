@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { FlaskConical, Pencil } from "lucide-react";
 import { toast } from "sonner";
 
-import { Field } from "@/components/common/form-field";
+import { dateInputValue, Field } from "@/components/common/form-field";
 import { NativeSelect } from "@/components/common/native-select";
 import { SubmitButton } from "@/components/common/submit-button";
 import {
@@ -220,6 +220,58 @@ export function MaterialDialog({
               />
             </Field>
           )}
+
+          <div className="grid gap-4 sm:grid-cols-2">
+            <Field
+              id="material-purchaseUnit"
+              label="Satuan Beli (opsional)"
+              error={errors.purchaseUnit}
+              hint="Kalau belinya per sak, tulis: sak"
+            >
+              <Input
+                id="material-purchaseUnit"
+                name="purchaseUnit"
+                defaultValue={material?.purchaseUnit ?? ""}
+                placeholder="sak"
+                aria-invalid={Boolean(errors.purchaseUnit)}
+              />
+            </Field>
+
+            <Field
+              id="material-purchaseSize"
+              label="Isi Per Satuan Beli"
+              error={errors.purchaseSize}
+              hint={`Berapa ${material?.unit ?? "gram"} dalam satu satuan beli`}
+            >
+              <Input
+                id="material-purchaseSize"
+                name="purchaseSize"
+                type="number"
+                min={0}
+                step="any"
+                defaultValue={material?.purchaseSize ?? ""}
+                placeholder="5000"
+                aria-invalid={Boolean(errors.purchaseSize)}
+              />
+            </Field>
+          </div>
+
+          <Field
+            id="material-expiresAt"
+            label="Kedaluwarsa (opsional)"
+            error={errors.expiresAt}
+            hint="Satu tanggal per bahan, yang paling dekat. Diingatkan sebulan sebelumnya."
+          >
+            <Input
+              id="material-expiresAt"
+              name="expiresAt"
+              type="date"
+              defaultValue={
+                material?.expiresAt ? dateInputValue(material.expiresAt) : ""
+              }
+              aria-invalid={Boolean(errors.expiresAt)}
+            />
+          </Field>
 
           <Field
             id="material-notes"

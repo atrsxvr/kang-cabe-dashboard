@@ -180,12 +180,23 @@ bukan dua catatan terpisah.
   menulis alasannya. Stok awal saat bahan didaftarkan pun tercatat sebagai
   saldo awal.
 - Pencarian dan saringan kategori di atas tabel.
+- **Satuan beli** yang berbeda dari satuan pakai: daftar belanja menulis
+  "beli min. 2 sak (10 kg)", bukan "5.000 gram", karena yang kedua bukan cara
+  orang memesan di toko.
+- **Kedaluwarsa** diingatkan sebulan sebelumnya. Satu tanggal per bahan, bukan
+  per batch — gudang ini memakai harga rata-rata, bukan FIFO.
+- Bahan **diarsipkan, bukan dihapus.** Riwayat stoknya menyimpan biaya yang
+  sudah dibebankan ke musim lalu; menghapusnya akan mengubah laporan musim yang
+  sudah ditutup.
 
 **Opname Stok.** Hitungan fisik yang direkonsiliasi dengan angka tercatat. Ini
 satu-satunya tempat angka tercatat boleh dikalahkan oleh apa yang benar-benar
 ada di rak, dan karena itu pekerjaannya milik Logistik — bukan efek samping
 menyelesaikan tugas. Yang dikosongkan berarti belum dihitung dan tidak diubah;
-hanya baris yang benar-benar selisih yang menghasilkan catatan koreksi.
+hanya baris yang benar-benar selisih yang menghasilkan catatan koreksi. Tapi
+opname-nya sendiri selalu tercatat, termasuk yang semuanya cocok — kalau tidak,
+justru hitungan yang paling rapi yang tidak meninggalkan bukti, dan "terakhir
+kita hitung kapan" tidak terjawab.
 
 **Harga dan nilai gudang.** Belanja mencatat total rupiah yang dibayar, dan
 gudang menyimpan harga rata-rata bergerak per bahan.
@@ -229,9 +240,9 @@ cangkul tidak habis terpakai per gram seperti pupuk, dan menyebar biayanya ke
 beberapa bulan hanya menghasilkan angka yang tidak dikenali siapa pun di tim
 ini.
 
-**Belum ada:** catatan siapa sedang memegang alat, pengingat servis berkala,
-tanggal kedaluwarsa pestisida, dan satuan beli yang berbeda dari satuan pakai
-(daftar belanja masih berkata "beli min. 5.000 gram", bukan "2 sak").
+Alat bisa dicatat sedang dibawa siapa, dan punya jadwal servis berkala sendiri
+— tangki semprot yang lewat jadwalnya masuk daftar belanja walau tidak ada yang
+melaporkannya rusak.
 
 ### 4.6 Panen & Penjualan — belum dibangun
 
@@ -248,6 +259,10 @@ berjalan saat uangnya keluar akan membuat angka kedua musim salah. Uang belanja
 menempel di **nilai gudang** dulu, lalu menjadi biaya musim pada saat pemakaian
 bahannya dicatat — dengan harga yang dibekukan di momen itu, sama seperti
 takarannya. Harga naik bulan depan tidak menulis ulang biaya musim lalu.
+
+Bahan yang keluar di luar sebuah tugas — dua puluh ajir mengganti yang patah —
+bisa dibebankan ke musim lewat tombol − di Inventaris, dinilai pada harga
+rata-rata yang berlaku.
 
 Halaman ini menampilkan total biaya bahan musim terpilih, dipecah per kategori
 dan per bahan, ditambah uang keluar untuk alat (lintas musim, karena alat
@@ -323,6 +338,10 @@ publik dicabut. Kunci layanan hanya dipakai di sisi server. Setiap tabel baru
 wajib mengaktifkan RLS di migrasinya.
 
 **Kualitas:** lint, typecheck, unit test, dan build berjalan di CI setiap push.
+Ditambah rangkaian Playwright terhadap Postgres sungguhan di job terpisah —
+untuk sambungan yang tidak bisa disentuh unit test: form yang mengirim ke
+Server Action, filter musim yang bertahan saat pindah halaman, dan stok yang
+benar-benar keluar lalu muncul sebagai biaya.
 
 ---
 
@@ -346,9 +365,5 @@ sebelah: uang keluar ada, uang masuk belum.
 **4. Sisa modul Keuangan** — pemasukan, biaya di luar gudang, laba/rugi per
 musim, bagi hasil, foto nota. Rinciannya di bagian 4.7.
 
-**5. Pengujian alur di CI.** Tes yang ada mencakup logika murni; alur seperti
-unggah foto dan penyaringan per musim baru diperiksa manual lewat browser.
-
-**6. Sisa fitur per modul** — dirinci di bagian 4: grafik panen, status cuaca,
-analitik antar musim, tampilan kalender, program nutrisi per-HST, jejak opname
-yang semuanya cocok, kedaluwarsa bahan, dan peminjaman alat.
+**5. Sisa fitur per modul** — dirinci di bagian 4: grafik panen, status cuaca,
+analitik antar musim, tampilan kalender, dan program nutrisi per-HST.

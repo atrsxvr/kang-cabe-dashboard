@@ -169,6 +169,13 @@ export const createMaterialSchema = z.object({
     .min(0, "Batas minimum tidak boleh negatif")
     .max(10_000_000),
   notes: z.string().trim().max(500).optional().or(z.literal("")),
+  purchaseUnit: z.string().trim().max(16).optional().or(z.literal("")),
+  purchaseSize: z.coerce
+    .number("Isi angka")
+    .positive("Harus lebih dari 0")
+    .max(1_000_000)
+    .optional(),
+  expiresAt: z.coerce.date("Tanggal tidak valid").optional(),
   /// Nilai rupiah dari stok awal, kalau diketahui. Tanpa ini stok pembuka
   /// dihitung senilai nol dan menarik turun harga rata-rata begitu belanja
   /// pertama masuk.
@@ -183,6 +190,9 @@ export const adjustStockSchema = z
     delta: z.coerce.number("Jumlah tidak valid"),
     reason: z.enum(stockReasons),
     totalCost: rupiah.optional(),
+    /// Musim yang menanggung pemakaian ini, kalau bahannya keluar di luar
+    /// sebuah tugas. Nilainya dihitung server dari harga rata-rata.
+    seasonId: z.string().optional().or(z.literal("")),
     note: z.string().trim().max(300).optional().or(z.literal("")),
     actorId: z.string().optional().or(z.literal("")),
   })
@@ -196,7 +206,19 @@ export const adjustStockSchema = z
   .refine(
     (value) => value.totalCost === undefined || value.reason === "PURCHASE",
     { message: "Harga hanya untuk belanja", path: ["totalCost"] }
+  )
+  // Only what leaves the shed can be charged to a season. Buying is not a
+  // season's cost — that is the whole basis of how the money side works.
+  .refine(
+    (value) => !value.seasonId || value.delta < 0,
+    { message: "Musim hanya untuk bahan yang keluar", path: ["seasonId"] }
   );
+
+export const archiveMaterialSchema = z.object({
+  materialId: z.string().min(1),
+  /// Mengembalikan bahan yang sudah diarsipkan.
+  restore: z.coerce.boolean().optional(),
+});
 
 /** Filling in the price of a purchase after the receipt turns up. */
 export const setMovementCostSchema = z.object({
@@ -215,6 +237,13 @@ export const createToolSchema = z.object({
     .max(1000),
   condition: z.enum(toolConditions),
   lastServicedAt: z.coerce.date().optional(),
+  /// Servis berkala tiap sekian hari. Kosong berarti tidak dijadwalkan.
+  serviceIntervalDays: z.coerce
+    .number("Isi jumlah hari")
+    .int("Harus bilangan bulat")
+    .positive("Harus lebih dari 0")
+    .max(3650)
+    .optional(),
   notes: z.string().trim().max(500).optional().or(z.literal("")),
 });
 
@@ -228,6 +257,8 @@ export const toolEventTypes = [
   "RETIRED",
   "DAMAGED",
   "SERVICED",
+  "CHECKED_OUT",
+  "RETURNED",
 ] as const;
 
 /** Only these change how many we own; the rest just change condition. */
@@ -250,6 +281,8 @@ export const recordToolEventSchema = z.object({
   totalCost: rupiah.optional(),
   note: z.string().trim().max(300).optional().or(z.literal("")),
   actorId: z.string().optional().or(z.literal("")),
+  /// Siapa yang membawa alatnya, untuk CHECKED_OUT.
+  holderId: z.string().optional().or(z.literal("")),
 });
 
 export const createShoppingNoteSchema = z.object({

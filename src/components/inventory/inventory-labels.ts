@@ -58,4 +58,18 @@ export const toolEventLabels: Record<string, string> = {
   RETIRED: "Dipensiunkan",
   DAMAGED: "Rusak / butuh servis",
   SERVICED: "Selesai diservis",
+  CHECKED_OUT: "Dibawa keluar",
+  RETURNED: "Dikembalikan",
+};
+
+export const serviceStatusLabels: Record<string, string> = {
+  OK: "Terjadwal",
+  DUE_SOON: "Servis sebentar lagi",
+  OVERDUE: "Servis lewat jadwal",
+};
+
+export const serviceStatusTones: Record<string, string> = {
+  OK: "bg-emerald-500/12 text-emerald-700 dark:text-emerald-400",
+  DUE_SOON: "bg-amber-500/15 text-amber-700 dark:text-amber-400",
+  OVERDUE: "bg-rose-500/12 text-rose-700 dark:text-rose-400",
 };

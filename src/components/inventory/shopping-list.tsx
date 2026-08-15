@@ -15,7 +15,11 @@ import { ShoppingNotes } from "@/components/inventory/shopping-notes";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { describeShortfall, formatStock, stockStatus } from "@/lib/stock";
+import {
+  describePurchase,
+  describeShortfall,
+  stockStatus,
+} from "@/lib/stock";
 import { cn } from "@/lib/utils";
 import type {
   ShoppingNoteRow,
@@ -52,7 +56,9 @@ function asText(
     for (const row of rows) {
       const needed = shortfallOf(row);
       const suggestion =
-        needed > 0 ? ` → beli min. ${formatStock(needed, row.unit)}` : "";
+        needed > 0
+          ? ` → beli min. ${describePurchase(needed, row.unit, row.purchaseUnit, row.purchaseSize)}`
+          : "";
       parts.push(
         `• ${row.name} — ${describeShortfall(row.stock, row.minStock, row.unit)}${suggestion}`
       );
@@ -188,7 +194,13 @@ export function ShoppingList({
                       <>
                         {" · "}
                         <strong className="text-foreground">
-                          beli min. {formatStock(needed, row.unit)}
+                          beli min.{" "}
+                          {describePurchase(
+                            needed,
+                            row.unit,
+                            row.purchaseUnit,
+                            row.purchaseSize
+                          )}
                         </strong>
                       </>
                     ) : null}

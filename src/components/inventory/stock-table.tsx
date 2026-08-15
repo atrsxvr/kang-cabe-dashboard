@@ -1,15 +1,15 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { Package, Search, X } from "lucide-react";
+import { Archive, Package, Search, X } from "lucide-react";
 
-import { ConfirmDelete } from "@/components/common/confirm-delete";
 import { AdjustStockDialog } from "@/components/inventory/adjust-stock-dialog";
 import {
   materialCategoryLabels,
   stockStatusLabels,
   stockStatusTones,
 } from "@/components/inventory/inventory-labels";
+import { MaterialArchiveAction } from "@/components/inventory/material-archive-action";
 import { MaterialDialog } from "@/components/inventory/material-dialog";
 import { StockHistoryDialog } from "@/components/inventory/stock-history-dialog";
 import { NativeSelect } from "@/components/common/native-select";
@@ -25,9 +25,9 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { formatStock, stockStatus } from "@/lib/stock";
+import { formatDate } from "@/lib/hst";
+import { expiryStatus, formatStock, stockStatus } from "@/lib/stock";
 import { cn } from "@/lib/utils";
-import { deleteMaterial } from "@/server/actions/recipes";
 import type { StockRow } from "@/server/queries/inventory";
 import type { MemberOption } from "@/server/queries/users";
 
@@ -39,13 +39,20 @@ import type { MemberOption } from "@/server/queries/users";
  */
 export function StockTable({
   rows,
+  archived = [],
   members,
+  seasons,
+  currentSeasonId,
 }: {
   rows: StockRow[];
+  archived?: StockRow[];
   members: MemberOption[];
+  seasons?: { id: string; name: string }[];
+  currentSeasonId?: string;
 }) {
   const [category, setCategory] = useState("");
   const [query, setQuery] = useState("");
+  const [showArchived, setShowArchived] = useState(false);
 
   // Only categories that actually have something in them. A dropdown listing
   // six empty options is a dropdown that wastes a tap every time.
@@ -58,12 +65,13 @@ export function StockTable({
 
   const visible = useMemo(() => {
     const needle = query.trim().toLowerCase();
+    const source = showArchived ? archived : rows;
 
-    return rows.filter((row) => {
+    return source.filter((row) => {
       if (category && row.category !== category) return false;
       return !needle || row.name.toLowerCase().includes(needle);
     });
-  }, [rows, category, query]);
+  }, [rows, archived, showArchived, category, query]);
 
   if (rows.length === 0) return <EmptyStock />;
 
@@ -103,6 +111,17 @@ export function StockTable({
           ))}
         </NativeSelect>
 
+        {archived.length > 0 ? (
+          <Button
+            variant={showArchived ? "secondary" : "ghost"}
+            size="sm"
+            onClick={() => setShowArchived((current) => !current)}
+          >
+            <Archive className="size-4" aria-hidden />
+            {showArchived ? "Lihat yang aktif" : `Arsip (${archived.length})`}
+          </Button>
+        ) : null}
+
         {category || query ? (
           <Button
             variant="ghost"
@@ -133,7 +152,13 @@ export function StockTable({
           become cards — the shed is checked from a phone. */}
       <div className="grid gap-3 md:hidden">
         {visible.map((row) => (
-          <StockCard key={row.id} row={row} members={members} />
+          <StockCard
+            key={row.id}
+            row={row}
+            members={members}
+            seasons={seasons}
+            currentSeasonId={currentSeasonId}
+          />
         ))}
       </div>
 
@@ -173,6 +198,7 @@ export function StockTable({
                           {row.notes}
                         </span>
                       ) : null}
+                      <ExpiryNote row={row} />
                     </TableCell>
                     <TableCell className="text-muted-foreground text-sm">
                       {materialCategoryLabels[row.category]}
@@ -200,6 +226,8 @@ export function StockTable({
                           material={row}
                           members={members}
                           direction="out"
+                          seasons={seasons}
+                          currentSeasonId={currentSeasonId}
                         />
                         <AdjustStockDialog
                           material={row}
@@ -208,18 +236,7 @@ export function StockTable({
                         />
                         <StockHistoryDialog material={row} compact />
                         <MaterialDialog material={row} compact />
-                        <ConfirmDelete
-                          title="Hapus bahan ini?"
-                          itemName={row.name}
-                          consequence={
-                            row._count.recipeItems > 0
-                              ? `masih dipakai ${row._count.recipeItems} racikan.`
-                              : "Riwayat stoknya ikut terhapus."
-                          }
-                          action={deleteMaterial}
-                          fields={{ materialId: row.id }}
-                          iconOnly
-                        />
+                        <MaterialArchiveAction material={row} compact />
                       </div>
                     </TableCell>
                   </TableRow>
@@ -236,9 +253,13 @@ export function StockTable({
 function StockCard({
   row,
   members,
+  seasons,
+  currentSeasonId,
 }: {
   row: StockRow;
   members: MemberOption[];
+  seasons?: { id: string; name: string }[];
+  currentSeasonId?: string;
 }) {
   const status = stockStatus(row.stock, row.minStock);
 
@@ -259,6 +280,7 @@ function StockCard({
                 {row.notes}
               </p>
             ) : null}
+            <ExpiryNote row={row} />
           </div>
           <Badge
             variant="secondary"
@@ -286,6 +308,8 @@ function StockCard({
               material={row}
               members={members}
               direction="out"
+              seasons={seasons}
+              currentSeasonId={currentSeasonId}
             />
             <AdjustStockDialog
               material={row}
@@ -294,22 +318,31 @@ function StockCard({
             />
             <StockHistoryDialog material={row} compact />
             <MaterialDialog material={row} compact />
-            <ConfirmDelete
-              title="Hapus bahan ini?"
-              itemName={row.name}
-              consequence={
-                row._count.recipeItems > 0
-                  ? `masih dipakai ${row._count.recipeItems} racikan.`
-                  : "Riwayat stoknya ikut terhapus."
-              }
-              action={deleteMaterial}
-              fields={{ materialId: row.id }}
-              iconOnly
-            />
+            <MaterialArchiveAction material={row} compact />
           </div>
         </div>
       </CardContent>
     </Card>
+  );
+}
+
+/** Only speaks up when there is something to say. */
+function ExpiryNote({ row }: { row: StockRow }) {
+  const status = expiryStatus(row.expiresAt);
+  if (status === "NONE" || status === "OK" || !row.expiresAt) return null;
+
+  return (
+    <span
+      className={cn(
+        "block text-xs font-normal",
+        status === "EXPIRED"
+          ? "text-destructive"
+          : "text-amber-700 dark:text-amber-400"
+      )}
+    >
+      {status === "EXPIRED" ? "Kedaluwarsa" : "Kedaluwarsa"}{" "}
+      {formatDate(row.expiresAt)}
+    </span>
   );
 }
 

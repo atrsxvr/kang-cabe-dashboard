@@ -12,6 +12,7 @@ import {
   changesQuantity,
   createShoppingNoteSchema,
   createToolSchema,
+  archiveMaterialSchema,
   recordToolEventSchema,
   setMovementCostSchema,
   stockOpnameSchema,
@@ -43,13 +44,15 @@ export async function adjustStock(formData: FormData): Promise<ActionResult> {
     delta: formData.get("delta"),
     reason: formData.get("reason"),
     totalCost: formData.get("totalCost") || undefined,
+    seasonId: formData.get("seasonId") ?? "",
     note: formData.get("note") ?? "",
     actorId: formData.get("actorId") ?? "",
   });
 
   if (!parsed.success) return invalidForm(parsed.error);
 
-  const { materialId, delta, reason, totalCost, note, actorId } = parsed.data;
+  const { materialId, delta, reason, totalCost, seasonId, note, actorId } =
+    parsed.data;
 
   const material = await prisma.material.findUnique({
     where: { id: materialId },
@@ -88,12 +91,56 @@ export async function adjustStock(formData: FormData): Promise<ActionResult> {
         materialId,
         delta,
         reason,
-        totalCost: totalCost ?? null,
+        // For a purchase this is money paid. For stock charged to a season it
+        // is the value of what left, priced at the average — the same figure
+        // recordTaskUsage freezes onto a task.
+        totalCost:
+          reason === "PURCHASE"
+            ? (totalCost ?? null)
+            : seasonId
+              ? Math.round(Math.abs(delta) * material.avgCost)
+              : null,
+        seasonId: seasonId ? seasonId : null,
         note: note ? note : null,
         actorId: actorId ? actorId : null,
       },
     }),
   ]);
+
+  revalidatePath("/inventory");
+  revalidatePath("/health/racikan");
+  revalidatePath("/finance");
+  return { ok: true };
+}
+
+/**
+ * Archives a material instead of deleting it.
+ *
+ * Deleting cascades to the whole movement log, which now carries what each
+ * usage cost and which season it was charged to — so a closed season's report
+ * would quietly change months later. Archiving hides the row from the shed and
+ * from every picker without destroying anything, and is reversible.
+ */
+export async function archiveMaterial(
+  formData: FormData
+): Promise<ActionResult> {
+  const parsed = archiveMaterialSchema.safeParse({
+    materialId: formData.get("materialId"),
+    restore: formData.get("restore") ?? undefined,
+  });
+
+  if (!parsed.success) return invalidForm(parsed.error);
+
+  const { materialId, restore } = parsed.data;
+
+  const result = await prisma.material.updateMany({
+    where: { id: materialId },
+    data: { archivedAt: restore ? null : new Date() },
+  });
+
+  if (result.count === 0) {
+    return { ok: false, message: "Bahan tidak ditemukan." };
+  }
 
   revalidatePath("/inventory");
   revalidatePath("/health/racikan");
@@ -207,7 +254,21 @@ export async function recordStockOpname(
     return [{ ...row, delta: row.counted - before }];
   });
 
+  // Written even when every row matched. An opname that found nothing still
+  // happened, and without this the tidiest counts are the ones that leave no
+  // evidence — so "terakhir kita hitung kapan" would have no answer.
+  const opname = await prisma.stockOpname.create({
+    data: {
+      checked: rows.length,
+      corrected: corrections.length,
+      note: note ? note : null,
+      actorId: actorId ? actorId : null,
+    },
+    select: { id: true },
+  });
+
   if (corrections.length === 0) {
+    revalidatePath("/inventory");
     return { ok: true, message: "Semua cocok, tidak ada yang dikoreksi." };
   }
 
@@ -222,6 +283,7 @@ export async function recordStockOpname(
           materialId: row.materialId,
           delta: row.delta,
           reason: "CORRECTION",
+          opnameId: opname.id,
           note: note ? `Opname: ${note}` : "Opname stok",
           actorId: actorId ? actorId : null,
         },
@@ -240,6 +302,7 @@ export async function createTool(formData: FormData): Promise<ActionResult> {
     quantity: formData.get("quantity"),
     condition: formData.get("condition"),
     lastServicedAt: formData.get("lastServicedAt") || undefined,
+    serviceIntervalDays: formData.get("serviceIntervalDays") || undefined,
     notes: formData.get("notes") ?? "",
   });
 
@@ -262,6 +325,7 @@ export async function updateTool(formData: FormData): Promise<ActionResult> {
     quantity: formData.get("quantity"),
     condition: formData.get("condition"),
     lastServicedAt: formData.get("lastServicedAt") || undefined,
+    serviceIntervalDays: formData.get("serviceIntervalDays") || undefined,
     notes: formData.get("notes") ?? "",
   });
 
@@ -311,11 +375,13 @@ export async function recordToolEvent(
     totalCost: formData.get("totalCost") || undefined,
     note: formData.get("note") ?? "",
     actorId: formData.get("actorId") ?? "",
+    holderId: formData.get("holderId") ?? "",
   });
 
   if (!parsed.success) return invalidForm(parsed.error);
 
-  const { toolId, type, quantity, totalCost, note, actorId } = parsed.data;
+  const { toolId, type, quantity, totalCost, note, actorId, holderId } =
+    parsed.data;
 
   const tool = await prisma.tool.findUnique({
     where: { id: toolId },
@@ -339,6 +405,7 @@ export async function recordToolEvent(
     condition?: "GOOD" | "NEEDS_SERVICE" | "BROKEN";
     lastServicedAt?: Date;
     notes?: string | null;
+    heldById?: string | null;
   } = {};
 
   if (type === "ACQUIRED") data.quantity = { increment: quantity };
@@ -351,6 +418,10 @@ export async function recordToolEvent(
     // the event log the shopping list never reads.
     if (note) data.notes = note;
   }
+
+  // Who is carrying it, not how many we own — a borrowed hoe is still ours.
+  if (type === "CHECKED_OUT") data.heldById = holderId ? holderId : null;
+  if (type === "RETURNED") data.heldById = null;
 
   if (type === "SERVICED") {
     data.condition = "GOOD";

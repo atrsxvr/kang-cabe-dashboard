@@ -3,13 +3,12 @@ import { connection } from "next/server";
 import { ScrollText } from "lucide-react";
 
 import { PageHeader } from "@/components/common/page-header";
-import { ConfirmDelete } from "@/components/common/confirm-delete";
+import { MaterialArchiveAction } from "@/components/inventory/material-archive-action";
 import { MaterialDialog } from "@/components/inventory/material-dialog";
 import { RecipeDialog } from "@/components/health/recipe-dialog";
 import { RecipeBrowser } from "@/components/health/recipe-browser";
 import { materialCategoryLabels } from "@/components/inventory/inventory-labels";
 import { Card, CardContent } from "@/components/ui/card";
-import { deleteMaterial } from "@/server/actions/recipes";
 import { listStock } from "@/server/queries/inventory";
 import { listRecipes } from "@/server/queries/recipes";
 
@@ -60,18 +59,7 @@ export default async function RecipeLibraryPage() {
                   {material.unit} · {materialCategoryLabels[material.category]}
                 </span>
                 <MaterialDialog material={material} compact />
-                <ConfirmDelete
-                  title="Hapus bahan ini?"
-                  itemName={material.name}
-                  consequence={
-                    material._count.recipeItems > 0
-                      ? `masih dipakai ${material._count.recipeItems} racikan.`
-                      : undefined
-                  }
-                  action={deleteMaterial}
-                  fields={{ materialId: material.id }}
-                  iconOnly
-                />
+                <MaterialArchiveAction material={material} compact />
               </span>
             ))}
           </div>
