@@ -133,4 +133,32 @@ test.describe("layar 360px", () => {
       expect(tiny, `tombol ikon kekecilan di ${path}`).toEqual([]);
     }
   });
+
+  /**
+   * The other half of the same mistake, and the one that got made: a labelled
+   * button squeezed into a square. Enlarging tap targets by reaching for the
+   * `icon` size works only where there is no text — forced onto a button that
+   * says "Edit", it crushes the word instead.
+   */
+  test("tidak ada tombol yang tulisannya terjepit", async ({ page }) => {
+    for (const path of ["/seasons", "/health", "/health/racikan", "/tasks", "/inventory", "/harvest", "/finance", "/settings"]) {
+      await page.goto(path);
+
+      const squeezed = await page.evaluate(() => {
+        const out: string[] = [];
+        document.querySelectorAll<HTMLElement>("button, a").forEach((el) => {
+          const rect = el.getBoundingClientRect();
+          if (rect.width === 0) return;
+          if (el.scrollWidth <= el.clientWidth + 1) return;
+
+          out.push(
+            `${(el.textContent ?? "").trim().slice(0, 24)} ${el.scrollWidth}>${el.clientWidth}`
+          );
+        });
+        return [...new Set(out)];
+      });
+
+      expect(squeezed, `tulisan terjepit di ${path}`).toEqual([]);
+    }
+  });
 });

@@ -106,8 +106,8 @@ export function RecipeDialog({
         {editing ? (
           <Button
             variant="ghost"
-            size="icon"
-            className="size-8"
+            size="sm"
+            className="h-8"
             aria-label={`Edit ${recipe!.name}`}
           >
             <Pencil className="size-4" aria-hidden />

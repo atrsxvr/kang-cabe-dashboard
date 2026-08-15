@@ -113,8 +113,8 @@ export function FindingDialog({
         {editing ? (
           <Button
             variant="ghost"
-            size="icon"
-            className="size-8"
+            size="sm"
+            className="h-8"
             aria-label="Edit temuan"
           >
             <Pencil className="size-4" aria-hidden />

@@ -78,8 +78,8 @@ export function SeasonDialog({ season }: { season?: SeasonRow }) {
         {editing ? (
           <Button
             variant="ghost"
-            size="icon"
-            className="size-8"
+            size="sm"
+            className="h-8"
             aria-label={`Edit ${season!.name}`}
           >
             <Pencil className="size-4" aria-hidden />
