@@ -8,7 +8,11 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { formatRupiah } from "@/lib/money";
 import { readSeasonParam } from "@/lib/season-param";
-import { seasonMaterialCost, toolSpend } from "@/server/queries/finance";
+import {
+  seasonMaterialCost,
+  seasonResult,
+  toolSpend,
+} from "@/server/queries/finance";
 import type { CostLine } from "@/server/queries/finance";
 import { resolveSeason } from "@/server/queries/seasons";
 
@@ -23,31 +27,65 @@ export default async function FinancePage(props: PageProps<"/finance">) {
 
   if (!season) return <NoSeason />;
 
-  const [cost, tools] = await Promise.all([
+  const [cost, tools, result] = await Promise.all([
     seasonMaterialCost(season.id),
     toolSpend(),
+    seasonResult(season.id),
   ]);
 
   return (
     <>
       <PageHeader
         title="Keuangan & Kas"
-        description={`Biaya bahan ${season.name}, dihitung dari bahan yang benar-benar kepakai`}
+        description={`${season.name} · uang masuk dari penjualan, uang keluar dari bahan yang kepakai`}
       />
 
       <Card className="mt-6">
-        <CardContent className="grid gap-1 py-6 text-center">
-          <p className="text-muted-foreground text-sm">
-            Habis buat bahan musim ini
-          </p>
-          <p className="text-3xl font-semibold tabular-nums">
-            {formatRupiah(cost.total)}
-          </p>
-          <p className="text-muted-foreground mx-auto max-w-md text-xs">
-            Belanja belum langsung jadi biaya. Uangnya nempel di nilai gudang
-            dulu, baru masuk ke sini pas bahannya dipakai dan pemakaiannya
-            dicatat.
-          </p>
+        <CardContent className="grid gap-4 py-6">
+          <div className="grid gap-1 text-center">
+            <p className="text-muted-foreground text-sm">
+              Sisa setelah dikurangi bahan
+            </p>
+            <p
+              className={
+                result.margin < 0
+                  ? "text-destructive text-3xl font-semibold tabular-nums"
+                  : "text-3xl font-semibold tabular-nums"
+              }
+            >
+              {formatRupiah(result.margin)}
+            </p>
+            {/* Named for what it is. Calling it profit would overstate it by
+                every cost this app does not yet record. */}
+            <p className="text-muted-foreground mx-auto max-w-md text-xs">
+              Ini <strong>bukan</strong> untung bersih. Upah, sewa, dan
+              transport belum tercatat di mana pun, jadi angka aslinya lebih
+              kecil dari ini.
+            </p>
+          </div>
+
+          <div className="grid grid-cols-2 gap-3 border-t pt-4 text-center">
+            <div>
+              <p className="text-lg font-semibold tabular-nums text-emerald-700 dark:text-emerald-400">
+                {formatRupiah(result.income)}
+              </p>
+              <p className="text-muted-foreground text-xs">Masuk dari jualan</p>
+              {result.outstanding > 0 ? (
+                <p className="text-muted-foreground mt-0.5 text-[11px]">
+                  {formatRupiah(result.outstanding)} masih ditagih
+                </p>
+              ) : null}
+            </div>
+            <div>
+              <p className="text-lg font-semibold tabular-nums">
+                {formatRupiah(result.materialCost)}
+              </p>
+              <p className="text-muted-foreground text-xs">Habis buat bahan</p>
+              <p className="text-muted-foreground mt-0.5 text-[11px]">
+                dihitung saat bahannya kepakai
+              </p>
+            </div>
+          </div>
         </CardContent>
       </Card>
 
@@ -104,9 +142,8 @@ export default async function FinancePage(props: PageProps<"/finance">) {
             <h2 className="text-sm font-medium">Yang belum ada di sini</h2>
           </div>
           <ul className="text-muted-foreground grid gap-1 text-sm">
-            <li>Pemasukan dari penjualan panen</li>
             <li>Upah, sewa, transport, dan pengeluaran di luar gudang</li>
-            <li>Laba/rugi per musim dan bagi hasil berempat</li>
+            <li>Kalkulator bagi hasil berempat</li>
             <li>Foto nota</li>
           </ul>
         </CardContent>

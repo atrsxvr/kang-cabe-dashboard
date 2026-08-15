@@ -63,11 +63,11 @@ Empat kartu ringkasan untuk musim yang dipilih:
 | Umur Tanaman (HST) | data asli |
 | Tugas Weekend Ini | data asli |
 | Habis Buat Bahan | data asli, dari pemakaian yang tercatat |
-| Total Panen Sementara | angka contoh, menunggu modul Panen |
+| Total Panen Sementara | data asli, dari petikan yang tercatat |
 
 "Weekend" berarti Sabtu–Minggu pada pekan berjalan menurut WIB, dan yang
-dihitung adalah tugas yang **belum** selesai. Kartu berlabel jelas mana yang
-masih contoh.
+dihitung adalah tugas yang **belum** selesai. Tidak ada lagi angka contoh di
+halaman ini.
 
 **Belum ada:** grafik akumulasi panen, status cuaca.
 
@@ -244,14 +244,53 @@ Alat bisa dicatat sedang dibawa siapa, dan punya jadwal servis berkala sendiri
 — tangki semprot yang lewat jadwalnya masuk daftar belanja walau tidak ada yang
 melaporkannya rusak.
 
-### 4.6 Panen & Penjualan — belum dibangun
+### 4.6 Panen & Penjualan — jalan
 
-Input hasil panen per tanggal dengan bobot dan grading A/B/C, pencatatan
-transaksi penjualan, dan tren harga pasar lokal.
+Tiga tab: Panen, Penjualan, dan Piutang.
+
+**Dua mutu, bukan tiga.** Yang benar-benar dilakukan di meja sortir cuma
+memisahkan yang layak dari yang tidak: **Bagus** dan **Afkir**. Afkir tetap
+dijual, hanya lebih murah — jadi ia mutu, bukan kerugian, dan tidak
+diperlakukan sebagai barang buangan.
+
+**Panen** dicatat per petikan, bobotnya dipisah per mutu. Totalnya dihitung,
+tidak disimpan. HST tiap petikan muncul sendiri dari tanggal tanam, jadi
+terlihat di umur berapa hasilnya naik atau turun.
+
+**Penjualan tidak menempel pada satu hari panen.** Cabai menumpuk dulu sebelum
+ada yang mengangkut, jadi yang dijual berasal dari tumpukan — bisa gabungan
+beberapa hari, bisa sebagian saja dari satu hari. Penjualan melekat ke musim,
+dan **sisa yang belum terjual dihitung**: total panen dikurangi total terjual,
+per mutu.
+
+Sisa boleh negatif, dan ditampilkan apa adanya kalau terjadi. Kedua sisi
+dicatat berhari-hari terpisah dan dalam urutan bebas; penjualan yang mendahului
+panennya adalah pengingat bahwa ada petikan yang belum ditulis, bukan data
+rusak yang perlu ditolak.
+
+**Satu penjualan punya baris per mutu, masing-masing dengan harganya sendiri.**
+Bagus ke restoran dan afkir ke pengepul hampir selalu beda harga dan sering
+terangkut bersamaan; satu harga per transaksi tidak bisa menuliskannya.
+
+**Pembeli diketik bebas**, dengan saran dari nama yang pernah dipakai. Pengepul
+yang itu-itu saja jadi cepat, tapi restoran yang sekali beli tidak perlu
+didaftarkan dulu.
+
+**Piutang** punya tabnya sendiri dengan jumlah tagihan yang menggantung. Tidak
+semua pembeli bayar di tempat. Menandai lunas adalah tombol tersendiri, bukan
+lewat form edit — menagih itu pekerjaan lain dari membetulkan apa yang dijual,
+dan terjadi berminggu-minggu setelahnya.
+
+**Belum ada:** tren harga pasar lokal dari luar, dan grafik hasil panen.
 
 ### 4.7 Keuangan & Kas — sebagian jalan
 
-Baru sisi pengeluaran bahan, karena sisi pemasukan menunggu modul Panen.
+Dua sisi sekarang: uang masuk dari penjualan, uang keluar dari bahan yang
+terpakai. Angka besar di atas halaman disebut **sisa setelah dikurangi bahan**,
+bukan untung — upah, sewa, dan transport belum tercatat di mana pun, dan
+menyebutnya laba akan melebihkan sebanyak biaya-biaya itu. Empat orang yang
+membagi angka yang menyanjung diri sendiri persis kegagalan yang perlu
+dihindari.
 
 **Belanja bukan biaya; pemakaian yang biaya.** Sekarung pupuk yang dibeli
 sekarang bisa habis di dua musim, jadi membebankannya ke musim yang kebetulan
@@ -269,8 +308,8 @@ dan per bahan, ditambah uang keluar untuk alat (lintas musim, karena alat
 memang lintas musim). Pemakaian yang tercatat saat bahannya belum berharga
 dilaporkan terpisah, bukan diam-diam dihitung Rp 0.
 
-**Belum ada:** pemasukan dari penjualan, upah, sewa, transport, laba/rugi per
-musim, kalkulator bagi hasil empat anggota, dan foto nota.
+**Belum ada:** upah, sewa, transport, kalkulator bagi hasil empat anggota, dan
+foto nota.
 
 ### 4.8 Settings & Users — belum dibangun
 
@@ -358,12 +397,9 @@ autentikasi terpasang.**
 **2. Deployment.** Belum pernah dijalankan di luar localhost, sehingga belum
 pernah dipakai di kebun. Branch `main` dan `production` masih di commit awal.
 
-**3. Modul Panen & Penjualan** — sekaligus melengkapi kartu Dashboard yang
-masih berisi angka contoh, dan melengkapi Keuangan yang sekarang baru punya
-sebelah: uang keluar ada, uang masuk belum.
+**3. Sisa modul Keuangan** — biaya di luar gudang (upah, sewa, transport),
+bagi hasil berempat, dan foto nota. Selama itu belum ada, angka di halaman
+Keuangan sengaja tidak disebut untung. Rinciannya di bagian 4.7.
 
-**4. Sisa modul Keuangan** — pemasukan, biaya di luar gudang, laba/rugi per
-musim, bagi hasil, foto nota. Rinciannya di bagian 4.7.
-
-**5. Sisa fitur per modul** — dirinci di bagian 4: grafik panen, status cuaca,
+**4. Sisa fitur per modul** — dirinci di bagian 4: grafik panen, status cuaca,
 analitik antar musim, tampilan kalender, dan program nutrisi per-HST.

@@ -76,6 +76,13 @@ e2e/                        # Playwright; cleans up after itself by "E2E" prefix
   It is stored only so the shed's value need not replay the whole log on every
   render. Anything that edits history rather than appending to it — a price
   filled in weeks late — must recompute it from `StockMovement`.
+- **A sale belongs to a season, not to a picking.** Chillies pile up waiting
+  for a buyer, so what goes out is drawn from the heap. Unsold stock is derived
+  — harvested less sold, per grade — and is allowed to go negative, because the
+  two sides are recorded days apart and in either order.
+- **Totals are never stored beside their parts.** A harvest keeps its grades
+  and a sale keeps its lines; both totals are computed. The stored total is
+  always the one that stops being updated.
 - **Stock opname is the only place a recorded number may be overruled** by a
   physical count. It writes a `CORRECTION` movement for every row that differs
   and nothing for rows that match — but always a `StockOpname` header, so a

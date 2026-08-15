@@ -106,10 +106,14 @@ enum TransactionType {
   EXPENSE
 }
 
-enum Grade {
-  GRADE_A
-  GRADE_B
-  GRADE_C
+/// Mutu hasil sortir. Dua saja, karena itu yang benar-benar dilakukan di
+/// kebun: dipisah jadi yang layak dan yang tidak.
+///
+/// Afkir tetap dijual, hanya lebih murah — jadi ia mutu, bukan kerugian, dan
+/// tidak boleh diperlakukan seperti barang buangan.
+enum ChiliGrade {
+  GOOD // "Bagus"
+  REJECT // "Afkir"
 }
 
 model User {
@@ -131,6 +135,8 @@ model User {
   toolEvents        ToolEvent[]     @relation("ToolEvents")
   toolsHeld         Tool[]          @relation("HeldTools")
   shoppingNotes     ShoppingNote[]  @relation("ShoppingNotes")
+  harvestsRecorded  HarvestLog[]    @relation("RecordedHarvests")
+  salesRecorded     SaleTransaction[] @relation("RecordedSales")
 
   @@index([deletedAt])
 }
@@ -150,6 +156,7 @@ model Season {
   tasks               Task[]
   healthLogs          HealthLog[]
   harvestLogs         HarvestLog[]
+  sales               SaleTransaction[]
   financeTransactions FinanceTransaction[]
   stockMovements      StockMovement[]
 }
@@ -499,42 +506,83 @@ model RecipeItem {
   @@index([materialId])
 }
 
+/// Sekali petik. Kebun ini panen terus-menerus, jadi barisnya banyak dan
+/// pendek-pendek, bukan satu peristiwa besar di akhir musim.
 model HarvestLog {
   id          String   @id @default(uuid())
   seasonId    String
   harvestDate DateTime
-  weightKg    Float // Total bobot panen
-  gradeA      Float    @default(0) // bobot (kg)
-  gradeB      Float    @default(0)
-  gradeC      Float    @default(0)
-  notes       String?
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
 
-  season Season            @relation(fields: [seasonId], references: [id], onDelete: Cascade)
-  sales  SaleTransaction[]
+  /// Bobot per mutu, kg. Totalnya **dihitung**, tidak disimpan — kolom total
+  /// di samping angka-angka penyusunnya adalah dua sumber untuk satu fakta,
+  /// dan yang satu pasti akan lupa diperbarui.
+  goodKg   Float @default(0)
+  rejectKg Float @default(0)
 
-  @@index([seasonId])
-  @@index([seasonId, harvestDate]) // Grafik hasil panen per musim
-}
-
-model SaleTransaction {
-  id           String   @id @default(uuid())
-  harvestLogId String
-  buyerName    String // Nama pembeli/pengepul/restoran
-  /// Rupiah bulat, seperti seluruh angka uang lain di aplikasi ini. Pecahan
-  /// menghasilkan total yang melenceng sepersekian rupiah dan tidak bisa
-  /// dijelaskan ke siapa pun.
-  pricePerKg   Int
-  totalAmount  Int
-  isPaid       Boolean  @default(false)
+  notes        String?
+  recordedById String?
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 
-  harvestLog HarvestLog @relation(fields: [harvestLogId], references: [id], onDelete: Cascade)
+  season     Season @relation(fields: [seasonId], references: [id], onDelete: Cascade)
+  recordedBy User?  @relation("RecordedHarvests", fields: [recordedById], references: [id], onDelete: Restrict)
 
-  @@index([harvestLogId])
+  @@index([seasonId])
+  @@index([seasonId, harvestDate]) // Grafik hasil panen per musim
+  @@index([recordedById])
+}
+
+/// Sekali jual, ke satu pembeli.
+///
+/// Tidak menempel ke satu HarvestLog. Cabai menumpuk dulu sebelum ada yang
+/// mengangkut, jadi yang dijual berasal dari tumpukan — bisa gabungan panen
+/// beberapa hari, bisa juga sebagian saja dari satu hari. Sisa yang belum
+/// terjual dihitung per musim: total panen dikurangi total terjual.
+model SaleTransaction {
+  id        String   @id @default(uuid())
+  seasonId  String
+  /// Kapan transaksinya terjadi, terpisah dari kapan ia diketik — sama
+  /// alasannya dengan completedAt pada Task.
+  soldAt    DateTime
+  buyerName String
+
+  /// Piutang. Tidak semua pengepul bayar di tempat.
+  isPaid Boolean   @default(false)
+  paidAt DateTime?
+
+  notes        String?
+  recordedById String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  season     Season     @relation(fields: [seasonId], references: [id], onDelete: Cascade)
+  recordedBy User?      @relation("RecordedSales", fields: [recordedById], references: [id], onDelete: Restrict)
+  items      SaleItem[]
+
+  @@index([seasonId])
+  @@index([seasonId, soldAt])
   @@index([isPaid]) // Tagihan yang belum lunas
+  @@index([buyerName]) // Saran nama pembeli, dan rekap per pembeli
+  @@index([recordedById])
+}
+
+/// Satu baris per mutu dalam sebuah penjualan.
+///
+/// Bagus dan afkir hampir selalu berbeda harga, dan sering terangkut dalam
+/// transaksi yang sama — satu harga per transaksi tidak bisa menuliskannya.
+/// Nilai barisnya dihitung dari bobot kali harga, tidak disimpan.
+model SaleItem {
+  id         String     @id @default(uuid())
+  saleId     String
+  grade      ChiliGrade
+  weightKg   Float
+  /// Rupiah bulat, seperti seluruh angka uang lain di aplikasi ini.
+  pricePerKg Int
+
+  sale SaleTransaction @relation(fields: [saleId], references: [id], onDelete: Cascade)
+
+  @@unique([saleId, grade])
+  @@index([saleId])
 }
 
 model FinanceTransaction {

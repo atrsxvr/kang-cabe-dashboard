@@ -48,7 +48,11 @@ async function cleanup() {
     await prisma.material.deleteMany({ where: { id: { in: materialIds } } });
     await prisma.recipe.deleteMany({ where: { name: { startsWith: "E2E " } } });
 
-    // Cascades to the tasks, findings and transactions under it.
+    await prisma.saleTransaction.deleteMany({
+      where: { buyerName: { startsWith: "E2E " } },
+    });
+
+    // Cascades to the tasks, findings, harvests and sales under it.
     const seasons = await prisma.season.deleteMany({
       where: { name: { startsWith: "E2E " } },
     });

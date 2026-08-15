@@ -1,0 +1,63 @@
+/**
+ * Two grades, because two is what actually happens at the sorting table: what
+ * is fit to sell whole, and what is not.
+ *
+ * Afkir still sells, only cheaper — it is a grade, not a loss, and treating it
+ * as waste would misstate both the harvest and the income.
+ */
+export const CHILI_GRADES = ["GOOD", "REJECT"] as const;
+
+export type ChiliGradeValue = (typeof CHILI_GRADES)[number];
+
+export const gradeLabels: Record<ChiliGradeValue, string> = {
+  GOOD: "Bagus",
+  REJECT: "Afkir",
+};
+
+export const gradeTones: Record<ChiliGradeValue, string> = {
+  GOOD: "bg-emerald-500/12 text-emerald-700 dark:text-emerald-400",
+  REJECT: "bg-amber-500/15 text-amber-700 dark:text-amber-400",
+};
+
+/** "12,5 kg" — weights are read off a hanging scale, so one decimal is plenty. */
+export function formatKg(value: number): string {
+  return `${value.toLocaleString("id-ID", { maximumFractionDigits: 1 })} kg`;
+}
+
+export type GradeWeights = Record<ChiliGradeValue, number>;
+
+export const emptyWeights = (): GradeWeights => ({ GOOD: 0, REJECT: 0 });
+
+export function totalOf(weights: GradeWeights): number {
+  return weights.GOOD + weights.REJECT;
+}
+
+/**
+ * What is picked but not yet sold, per grade.
+ *
+ * Allowed to go negative, and shown when it does. Chillies pile up waiting for
+ * a buyer, so the two sides are recorded days apart and in either order — a
+ * sale entered before its harvest is a reminder that a picking has not been
+ * written down, not corruption to be refused. The shed refuses a negative
+ * because stock is the thing being protected; here the balance is derived, and
+ * its sign is the message.
+ */
+export function unsoldBalance(
+  harvested: GradeWeights,
+  sold: GradeWeights
+): GradeWeights {
+  return {
+    GOOD: harvested.GOOD - sold.GOOD,
+    REJECT: harvested.REJECT - sold.REJECT,
+  };
+}
+
+/** Nilai sebuah baris penjualan: bobot dikali harga, dibulatkan ke rupiah. */
+export function lineTotal(weightKg: number, pricePerKg: number): number {
+  return Math.round(weightKg * pricePerKg);
+}
+
+/** Harga rata-rata yang benar-benar didapat per kg, lintas mutu. */
+export function averagePrice(totalAmount: number, totalKg: number): number {
+  return totalKg > 0 ? Math.round(totalAmount / totalKg) : 0;
+}

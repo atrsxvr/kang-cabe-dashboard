@@ -389,3 +389,90 @@ export const stockOpnameSchema = z.object({
     )
     .min(1, "Tidak ada bahan untuk dihitung"),
 });
+
+export const chiliGrades = ["GOOD", "REJECT"] as const;
+
+/**
+ * Bobot timbangan gantung: satu desimal sudah lebih dari cukup.
+ *
+ * Komanya dinormalkan lebih dulu — `z.coerce.number()` mengubah "4,5" menjadi
+ * NaN, dan orang di kebun menulis koma, bukan titik.
+ */
+const kilos = z.preprocess(
+  (value) => (typeof value === "string" ? value.trim().replace(",", ".") : value),
+  z.coerce
+    .number("Isi bobot dalam angka")
+    .min(0, "Bobot tidak boleh minus")
+    .max(100_000)
+);
+
+export const createHarvestSchema = z
+  .object({
+    seasonId: z.string().min(1),
+    harvestDate: z.coerce.date("Tanggal panen tidak valid"),
+    goodKg: kilos,
+    rejectKg: kilos,
+    notes: z.string().trim().max(500).optional().or(z.literal("")),
+    recordedById: z.string().optional().or(z.literal("")),
+  })
+  // A picking of nothing is not a picking; it would only pad the log and drag
+  // the averages around.
+  .refine((value) => value.goodKg + value.rejectKg > 0, {
+    message: "Isi bobotnya, minimal salah satu",
+    path: ["goodKg"],
+  });
+
+export const updateHarvestSchema = z
+  .object({
+    harvestId: z.string().min(1),
+    seasonId: z.string().min(1),
+    harvestDate: z.coerce.date("Tanggal panen tidak valid"),
+    goodKg: kilos,
+    rejectKg: kilos,
+    notes: z.string().trim().max(500).optional().or(z.literal("")),
+    recordedById: z.string().optional().or(z.literal("")),
+  })
+  .refine((value) => value.goodKg + value.rejectKg > 0, {
+    message: "Isi bobotnya, minimal salah satu",
+    path: ["goodKg"],
+  });
+
+const saleItem = z.object({
+  grade: z.enum(chiliGrades),
+  weightKg: z.preprocess(
+    (value) =>
+      typeof value === "string" ? value.trim().replace(",", ".") : value,
+    z.coerce
+      .number("Isi bobot dalam angka")
+      .positive("Harus lebih dari 0")
+      .max(100_000)
+  ),
+  pricePerKg: rupiah.refine((value) => value > 0, "Isi harganya"),
+});
+
+const saleBase = {
+  seasonId: z.string().min(1),
+  soldAt: z.coerce.date("Tanggal penjualan tidak valid"),
+  buyerName: z.string().trim().min(2, "Nama pembeli minimal 2 karakter").max(120),
+  isPaid: z.coerce.boolean().optional(),
+  notes: z.string().trim().max(500).optional().or(z.literal("")),
+  recordedById: z.string().optional().or(z.literal("")),
+};
+
+export const createSaleSchema = z.object({
+  ...saleBase,
+  items: z.array(saleItem).min(1, "Isi minimal satu baris mutu"),
+});
+
+export const updateSaleSchema = z.object({
+  ...saleBase,
+  saleId: z.string().min(1),
+  items: z.array(saleItem).min(1, "Isi minimal satu baris mutu"),
+});
+
+export const markSalePaidSchema = z.object({
+  saleId: z.string().min(1),
+  seasonId: z.string().min(1),
+  /// Membatalkan penandaan kalau ternyata keliru.
+  unpaid: z.coerce.boolean().optional(),
+});

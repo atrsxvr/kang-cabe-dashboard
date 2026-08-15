@@ -12,6 +12,7 @@ import { readSeasonParam, withSeason } from "@/lib/season-param";
 import { formatRupiah } from "@/lib/money";
 import { countWeekendTasks } from "@/server/queries/dashboard";
 import { seasonMaterialCost } from "@/server/queries/finance";
+import { harvestSummary } from "@/server/queries/harvest";
 import { resolveSeason } from "@/server/queries/seasons";
 
 export const metadata: Metadata = { title: "Dashboard" };
@@ -25,9 +26,10 @@ export default async function DashboardPage(props: PageProps<"/">) {
 
   if (!season) return <NoSeason />;
 
-  const [weekend, cost] = await Promise.all([
+  const [weekend, cost, harvest] = await Promise.all([
     countWeekendTasks(season.id),
     seasonMaterialCost(season.id),
+    harvestSummary(season.id),
   ]);
   const currentHst = calculateHst(season.startDate);
   const notPlanted = season.status === "PLANNING";
@@ -77,9 +79,15 @@ export default async function DashboardPage(props: PageProps<"/">) {
 
         <SummaryCard
           title="Total Panen Sementara"
-          value="128,5"
+          value={harvest.totalHarvestedKg.toLocaleString("id-ID", {
+            maximumFractionDigits: 1,
+          })}
           unit="kg"
-          hint="Contoh — modul Panen belum dibangun"
+          hint={
+            harvest.lastHarvestAt
+              ? `Terakhir petik ${formatDate(harvest.lastHarvestAt)}`
+              : "Belum ada panen tercatat"
+          }
           icon={Wheat}
         />
       </div>

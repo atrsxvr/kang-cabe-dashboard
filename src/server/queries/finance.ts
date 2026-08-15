@@ -1,6 +1,7 @@
 import "server-only";
 
 import { prisma } from "@/lib/prisma";
+import { harvestSummary } from "@/server/queries/harvest";
 import type { MaterialCategory } from "@/generated/prisma/client";
 
 /**
@@ -174,4 +175,41 @@ export async function toolSpend(): Promise<ToolSpend> {
   const serviced = of("SERVICED");
 
   return { total: bought + serviced, bought, serviced };
+}
+
+export type SeasonResult = {
+  income: number;
+  received: number;
+  outstanding: number;
+  materialCost: number;
+  /** Pemasukan dikurangi biaya bahan. Belum termasuk upah, sewa, transport. */
+  margin: number;
+};
+
+/**
+ * The two sides, side by side at last.
+ *
+ * Deliberately called a margin and not a profit: it is income less the cost of
+ * materials consumed, and nothing else. Labour, rent and transport are not
+ * recorded anywhere yet, so calling this profit would overstate it by whatever
+ * those come to — and four people splitting a number that flatters them is
+ * exactly the failure worth avoiding.
+ *
+ * Tool spending is left out for the same reason it is not depreciated: a
+ * cangkul serves several plantings, and charging it to whichever one happened
+ * to buy it would misreport them all.
+ */
+export async function seasonResult(seasonId: string): Promise<SeasonResult> {
+  const [cost, summary] = await Promise.all([
+    seasonMaterialCost(seasonId),
+    harvestSummary(seasonId),
+  ]);
+
+  return {
+    income: summary.income,
+    received: summary.received,
+    outstanding: summary.outstanding,
+    materialCost: cost.total,
+    margin: summary.income - cost.total,
+  };
 }
