@@ -11,6 +11,18 @@ import { expect, test, type Page } from "@playwright/test";
 
 const MATERIAL = `E2E Ajir ${Date.now()}`;
 const SEASON = `E2E Musim ${Date.now()}`;
+const SHED_SEASON = `E2E Musim Gudang ${Date.now()}`;
+
+/**
+ * The season this block charges its spending to, captured when it is created.
+ *
+ * Carried explicitly through every URL rather than leaning on whichever season
+ * the app happens to open on. Sharing a season with real data means the figure
+ * this test is looking for gets added to whatever else that season spent, and
+ * the assertion stops describing anything. The season-switch test below already
+ * learned this; the lesson applies to money just as much as to navigation.
+ */
+let shedSeasonId = "";
 
 async function openInventory(page: Page) {
   await page.goto("/inventory");
@@ -20,6 +32,21 @@ async function openInventory(page: Page) {
 }
 
 test.describe.serial("bahan masuk gudang lalu jadi biaya musim", () => {
+  test("menyiapkan musim sendiri buat menampung biayanya", async ({ page }) => {
+    await page.goto("/seasons");
+    await page.getByRole("button", { name: "Tambah Musim" }).click();
+
+    await page.getByLabel("Nama Musim", { exact: true }).fill(SHED_SEASON);
+    await page.getByLabel("Varietas Benih", { exact: true }).fill("E2E Rawit");
+    await page.getByLabel("Jumlah Populasi", { exact: true }).fill("100");
+    await page.getByLabel("Tanggal Tanam", { exact: true }).fill("2026-01-01");
+    await page.getByRole("button", { name: "Simpan Musim" }).click();
+
+    await expect(page).toHaveURL(/season=/);
+    shedSeasonId = new URL(page.url()).searchParams.get("season") ?? "";
+    expect(shedSeasonId).toBeTruthy();
+  });
+
   test("mendaftarkan bahan lengkap dengan nilai stok awalnya", async ({
     page,
   }) => {
@@ -54,7 +81,7 @@ test.describe.serial("bahan masuk gudang lalu jadi biaya musim", () => {
   });
 
   test("tugas bisa mengambil bahan langsung dari gudang", async ({ page }) => {
-    await page.goto("/tasks");
+    await page.goto(`/tasks?season=${shedSeasonId}`);
     await page.getByRole("button", { name: "Tambah Tugas" }).click();
 
     await page.getByLabel("Judul Tugas", { exact: true }).fill("E2E Pasang ajir");
@@ -75,7 +102,7 @@ test.describe.serial("bahan masuk gudang lalu jadi biaya musim", () => {
   });
 
   test("stok baru berkurang setelah pemakaian dicatat", async ({ page }) => {
-    await page.goto("/tasks");
+    await page.goto(`/tasks?season=${shedSeasonId}`);
 
     // Deliberately not automatic: finishing a task is not proof its materials
     // were used, so the deduction waits to be asked for.
@@ -85,16 +112,28 @@ test.describe.serial("bahan masuk gudang lalu jadi biaya musim", () => {
       .click();
     await page.getByRole("button", { name: "Kurangi stok" }).click();
 
-    await expect(page.getByText(/Stok dikurangi/).first()).toBeVisible();
+    // Scoped to this task's own card, and that is the whole point. Unscoped,
+    // this was the step that waited for the server action to land — and the
+    // moment the season held a second task whose usage had already been
+    // recorded, its "Stok dikurangi" satisfied the wait instantly. The test
+    // then read the shed before the deduction arrived and failed on a number
+    // that was about to be right.
+    const card = page
+      .locator('[data-slot="card"]')
+      .filter({ hasText: "E2E Pasang ajir" });
+    await expect(card.getByText(/Stok dikurangi/)).toBeVisible();
 
     await openInventory(page);
     await expect(page.getByText("200 pcs").first()).toBeVisible();
   });
 
   test("biayanya muncul di Keuangan musim itu", async ({ page }) => {
-    await page.goto("/finance");
+    await page.goto(`/finance?season=${shedSeasonId}`);
 
-    // 800 pcs at Rp 500 each, under the season's outgoings.
+    // 800 pcs at Rp 500 each, and the season's only spending — which is why it
+    // gets a season of its own. Pointed at a season that had other outgoings,
+    // this figure would be folded into a category total and the assertion
+    // would be looking for a number nothing renders.
     await expect(page.getByText("Rp 400.000").first()).toBeVisible();
     await expect(page.getByText("Semua yang keluar")).toBeVisible();
   });

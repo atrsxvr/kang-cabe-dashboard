@@ -12,7 +12,12 @@ import { materialCategoryLabels } from "@/components/inventory/inventory-labels"
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { formatKg, formatPercent, formatPerPlant } from "@/lib/harvest";
+import {
+  formatKg,
+  formatKgPrecise,
+  formatPercent,
+  formatPerPlant,
+} from "@/lib/harvest";
 import { formatRupiah } from "@/lib/money";
 import { readSeasonParam } from "@/lib/season-param";
 import {
@@ -345,6 +350,19 @@ export default async function FinancePage(props: PageProps<"/finance">) {
                           </span>
                         </strong>
                       </div>
+
+                      {/* The sum spelled out. Without it the card shows only a
+                          quotient, and nothing else on screen carries the two
+                          numbers it came from — so an odd figure can only be
+                          taken on faith or ignored. */}
+                      {row.harvestedKg > 0 ? (
+                        <p className="text-muted-foreground text-xs tabular-nums">
+                          ({formatRupiah(row.income)} &minus;{" "}
+                          {formatRupiah(row.cost)}) &divide;{" "}
+                          {formatKg(row.harvestedKg)}
+                        </p>
+                      ) : null}
+
                       <p className="text-muted-foreground text-xs tabular-nums">
                         {formatPerPlant(row.harvestedKg, row.plantCount)} layak
                         {row.perPlantTotalGrams !== null
@@ -354,6 +372,11 @@ export default async function FinancePage(props: PageProps<"/finance">) {
                           ? ` · ${formatPercent(row.gradeOutRate)} lolos sortir`
                           : ""}
                       </p>
+
+                      <UnsoldCaveat
+                        harvestedKg={row.harvestedKg}
+                        soldKg={row.soldKg}
+                      />
                     </li>
                   ))}
                 </ul>
@@ -363,6 +386,50 @@ export default async function FinancePage(props: PageProps<"/finance">) {
         }
       />
     </>
+  );
+}
+
+/**
+ * Says how much of the crop the per-kilo figure above is actually built on.
+ *
+ * The figure divides realised margin by *every* kilo picked, so a heap still
+ * waiting for a buyer drags it down without anything on screen admitting it.
+ * That is not a flaw in the division — per kilo sold would swing wildly as
+ * stock goes out — but it does mean the number is provisional until the season
+ * has cleared, and a reader has no way to tell a genuinely thin season from
+ * one whose sales simply have not been typed in.
+ *
+ * Amber below half, because at that point the number describes the crates more
+ * than the farming.
+ */
+function UnsoldCaveat({
+  harvestedKg,
+  soldKg,
+}: {
+  harvestedKg: number;
+  soldKg: number;
+}) {
+  const unsoldKg = harvestedKg - soldKg;
+
+  // A tenth of a kilo is a rounding artefact, not a heap worth mentioning.
+  // Negative happens legitimately: a sale can be recorded before the picking
+  // it drew from.
+  if (harvestedKg <= 0 || unsoldKg <= 0.1) return null;
+
+  const soldShare = soldKg / harvestedKg;
+
+  return (
+    <p
+      className={
+        soldShare < 0.5
+          ? "text-amber-700 text-xs dark:text-amber-400"
+          : "text-muted-foreground text-xs"
+      }
+    >
+      Baru {formatPercent(soldShare)} panen yang laku —{" "}
+      {formatKgPrecise(unsoldKg)} masih nunggu pembeli, jadi angka per kilo di
+      atas belum final dan bakal naik kalau sisanya kejual.
+    </p>
   );
 }
 

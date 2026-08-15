@@ -1,7 +1,7 @@
 import "server-only";
 
 import { prisma } from "@/lib/prisma";
-import type { SeasonStatus } from "@/generated/prisma/client";
+import type { Prisma, SeasonStatus } from "@/generated/prisma/client";
 
 export type SeasonSummary = {
   id: string;
@@ -41,20 +41,38 @@ export async function getSeason(seasonId: string) {
   return prisma.season.findUnique({ where: { id: seasonId } });
 }
 
-/** The season the selector falls back to when the URL carries none. */
+/**
+ * The season the selector falls back to when the URL carries none.
+ *
+ * Tried in order of what someone opening the app is most likely to want to see.
+ * The newest start date alone is not it: archiving a season is how this team
+ * says "put that away", so a planting archived yesterday would outrank the one
+ * still being picked and every page would open blank. Working backwards from
+ * the season being worked right now is the whole point of a default.
+ *
+ * Archived stays in the list as a last resort rather than being excluded — a
+ * garden whose seasons are all archived should still show its history instead
+ * of the "belum ada musim tanam" screen it plainly contradicts.
+ */
+const DEFAULT_SEASON_ORDER: Prisma.SeasonWhereInput[] = [
+  { status: "ACTIVE" },
+  { status: "HARVESTING" },
+  { status: { not: "ARCHIVED" } },
+  {},
+];
+
 export async function getDefaultSeason(): Promise<SeasonSummary | null> {
-  const active = await prisma.season.findFirst({
-    where: { status: "ACTIVE" },
-    select: { id: true, name: true, status: true },
-    orderBy: { startDate: "desc" },
-  });
+  for (const where of DEFAULT_SEASON_ORDER) {
+    const season = await prisma.season.findFirst({
+      where,
+      select: { id: true, name: true, status: true },
+      orderBy: { startDate: "desc" },
+    });
 
-  if (active) return active;
+    if (season) return season;
+  }
 
-  return prisma.season.findFirst({
-    select: { id: true, name: true, status: true },
-    orderBy: { startDate: "desc" },
-  });
+  return null;
 }
 
 /**

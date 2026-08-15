@@ -395,6 +395,15 @@ export type SeasonComparison = {
   plantCount: number;
   /** Rupiah per kilo panen — satu-satunya angka yang adil membandingkan musim. */
   perKg: number;
+  /**
+   * Kilo Bagus yang sudah laku, di samping yang dipetik.
+   *
+   * `perKg` membagi sisa **yang sudah terwujud** dengan **seluruh** kilo yang
+   * dipetik, jadi selama masih ada tumpukan yang belum laku, angkanya menahan
+   * diri. Tanpa kedua bilangan ini terlihat, tidak ada cara membedakan musim
+   * yang memang tipis dari musim yang penjualannya belum diketik.
+   */
+  soldKg: number;
   /** Hasil layak jual per pohon, gram. Null kalau populasinya belum diisi. */
   perPlantGrams: number | null;
   /** Seluruh hasil per pohon, termasuk afkir. */
@@ -432,6 +441,7 @@ export async function seasonComparison(): Promise<SeasonComparison[]> {
         cost: result.totalCost,
         margin: result.margin,
         harvestedKg: summary.sellableHarvestedKg,
+        soldKg: summary.sellableSoldKg,
         plantCount: summary.actualPlantCount,
         perKg:
           summary.sellableHarvestedKg > 0
