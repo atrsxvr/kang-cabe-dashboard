@@ -11,8 +11,12 @@ import { calculateHst, formatDate, formatDateRange } from "@/lib/hst";
 import { readSeasonParam, withSeason } from "@/lib/season-param";
 import { formatRupiah } from "@/lib/money";
 import { HarvestChart } from "@/components/charts/harvest-chart";
+import { AttentionCard } from "@/components/dashboard/attention-card";
+import { HarvestBlockCard } from "@/components/dashboard/harvest-block-card";
+import { StockCapacityCard } from "@/components/dashboard/stock-capacity-card";
+import { TodayCard } from "@/components/dashboard/today-card";
 import { WeatherCard } from "@/components/dashboard/weather-card";
-import { countWeekendTasks } from "@/server/queries/dashboard";
+import { countWeekendTasks, overview } from "@/server/queries/dashboard";
 import { seasonMaterialCost } from "@/server/queries/finance";
 import { harvestCurve, harvestSummary } from "@/server/queries/harvest";
 import { getGardenProfile } from "@/server/queries/users";
@@ -30,12 +34,13 @@ export default async function DashboardPage(props: PageProps<"/">) {
 
   if (!season) return <NoSeason />;
 
-  const [weekend, cost, harvest, curve, profile] = await Promise.all([
+  const [weekend, cost, harvest, curve, profile, board] = await Promise.all([
     countWeekendTasks(season.id),
     seasonMaterialCost(season.id),
     harvestSummary(season.id),
     harvestCurve(season.id, season.startDate),
     getGardenProfile(),
+    overview(season.id),
   ]);
 
   // Fetched after the profile because it needs the coordinates, and skipped
@@ -107,7 +112,32 @@ export default async function DashboardPage(props: PageProps<"/">) {
         />
       </div>
 
+      {/* Above everything else: the only mistake here whose consequence
+          leaves the garden. */}
+      <div className="mt-6">
+        <HarvestBlockCard blocks={board.harvestBlocks} />
+      </div>
+
       <div className="mt-6 grid gap-6 lg:grid-cols-2">
+        <TodayCard
+          dueToday={board.dueToday}
+          overdue={board.overdue}
+          seasonId={season.id}
+        />
+
+        <AttentionCard
+          awaitingDiagnosis={board.awaitingDiagnosis}
+          unrecordedUsage={board.unrecordedUsage}
+          outstanding={harvest.outstanding}
+          outstandingCount={harvest.outstandingCount}
+          seasonId={season.id}
+        />
+
+        <StockCapacityCard
+          mixCapacity={board.mixCapacity}
+          trend={board.harvestTrend}
+        />
+
         <WeatherCard weather={weather} locationName={profile.locationName} />
 
         <Card>

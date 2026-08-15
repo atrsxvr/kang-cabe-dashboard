@@ -46,3 +46,24 @@ test("tidak melebar horizontal di layar ponsel", async ({ page }) => {
     expect(overflows, `${path} melebar horizontal`).toBe(false);
   }
 });
+
+test("overview memuat panel yang dipakai tiap hari", async ({ page }) => {
+  await page.goto("/");
+  const main = page.getByRole("main");
+
+  // Each of these is a queue or a decision that stalls quietly somewhere
+  // else in the app; the dashboard is where they are supposed to surface.
+  await expect(main.getByText("Dikerjakan hari ini")).toBeVisible();
+  await expect(main.getByText("Nunggu diurus")).toBeVisible();
+  await expect(main.getByText("Temuan nunggu didiagnosa")).toBeVisible();
+  await expect(main.getByText("Pemakaian belum dicatat")).toBeVisible();
+  await expect(main.getByText("Tagihan belum dibayar")).toBeVisible();
+  await expect(main.getByText("Panen 7 hari terakhir")).toBeVisible();
+  await expect(main.getByText("Stok cukup buat berapa kali")).toBeVisible();
+  await expect(main.getByText("Cuaca Kebun")).toBeVisible();
+
+  // The harvest-hold panel is always present, in one state or the other.
+  await expect(
+    main.getByText(/Aman dipanen|Jangan panen dulu/)
+  ).toBeVisible();
+});

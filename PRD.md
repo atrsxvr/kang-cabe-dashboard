@@ -69,6 +69,25 @@ Empat kartu ringkasan untuk musim yang dipilih:
 dihitung adalah tugas yang **belum** selesai. Tidak ada lagi angka contoh di
 halaman ini.
 
+Di bawah kartu ringkasan, halaman ini menampung hal-hal yang **mandek diam-diam
+di tempat lain**:
+
+- **Masa tunggu panen** ditaruh paling atas, di atas segalanya. Ini satu-satunya
+  kesalahan yang bisa dibantu aplikasi ini yang akibatnya keluar dari kebun:
+  residu pestisida pada cabai yang dimakan orang, dan tidak ada tanda apa pun
+  pada tanamannya. Tanggal itu satu-satunya yang menghalangi.
+- **Dikerjakan hari ini** — yang jatuh tempo hari ini dan yang sudah telat,
+  lengkap dengan tombol menyelesaikannya tanpa pindah halaman.
+- **Nunggu diurus** — tiga antrean yang masing-masing menunggu satu orang:
+  temuan yang belum didiagnosa, pemakaian bahan yang belum dipotong dari stok,
+  dan tagihan yang belum dibayar.
+- **Panen 7 hari terakhir** dibanding minggu sebelumnya.
+- **Stok cukup buat berapa kali** — tiap racikan rutin dihitung bisa diracik
+  berapa kali lagi dengan stok sekarang, dibatasi bahan yang paling dulu habis.
+  Ini panen dari keputusan satu baris `Material` dipakai bersama Pustaka
+  Racikan dan gudang; datanya sudah lengkap sejak lama, hanya belum pernah
+  dibagi.
+
 **Kartu cuaca** mengambil ramalan dari Open-Meteo untuk koordinat kebun —
 dipilih karena tidak perlu API key, jadi tidak ada rahasia tambahan yang harus
 dirotasi. Yang ditonjolkan bukan cuacanya melainkan keputusannya: hujan
