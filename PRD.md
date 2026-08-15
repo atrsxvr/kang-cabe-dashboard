@@ -69,7 +69,14 @@ Empat kartu ringkasan untuk musim yang dipilih:
 dihitung adalah tugas yang **belum** selesai. Tidak ada lagi angka contoh di
 halaman ini.
 
-**Belum ada:** grafik akumulasi panen, status cuaca.
+**Kartu cuaca** mengambil ramalan dari Open-Meteo untuk koordinat kebun —
+dipilih karena tidak perlu API key, jadi tidak ada rahasia tambahan yang harus
+dirotasi. Yang ditonjolkan bukan cuacanya melainkan keputusannya: hujan
+membilas racikan sebelum sempat diserap, jadi yang dibaca orang adalah "aman
+buat nyemprot" atau "tunda dulu". Kalau koordinatnya belum diisi, kartunya diam
+dan menyuruh mengisi, bukan menebak lokasi.
+
+Di bawahnya ada **grafik hasil panen** musim berjalan.
 
 ### 4.2 Manajemen Musim Tanam — jalan
 
@@ -120,7 +127,18 @@ Takaran sebuah tugas terkunci begitu pemakaiannya tercatat — mengubahnya
 setelah itu akan membuat gudang lebih atau kurang sebanyak selisihnya, tanpa
 ada yang menjelaskan kenapa.
 
-**Belum ada:** tampilan kalender.
+**Kalender** menampilkan sebulan penuh, buat pertanyaan yang tidak bisa dijawab
+papan Kanban: minggu depan kosong, atau semuanya menumpuk di satu Sabtu?
+Sengaja hanya baca — menyunting tetap lewat papan dan tabel, karena tempat
+ketiga untuk mengubah tugas berarti satu jalur lagi yang harus dijaga seragam.
+
+**Program nutrisi per-HST** membuat tugas berulang dari satu racikan rutin:
+pilih racikan, rentang HST, dan jaraknya. Takarannya disalin ke tiap tugas
+persis seperti dibuat manual, jadi semua yang di hilir tidak perlu tahu ia
+berasal dari program. HST yang sudah punya tugas dari racikan yang sama
+dilewati, jadi menjalankannya dua kali memperpanjang jadwal, bukan
+menggandakannya. Dibatasi 60 tugas sekali jalan — sekali klik yang membuat
+ratusan baris adalah sekali klik yang sulit dibatalkan.
 
 ### 4.4 Kesehatan & Monitoring — sebagian jalan
 
@@ -154,7 +172,8 @@ dilihat; Agronomis menindaklanjuti.
   mulsa juga stok, tetapi "berapa per liter" adalah pertanyaan tanpa jawaban
   untuk keduanya.
 
-**Belum ada:** program per-HST yang otomatis menjadwalkan tugas.
+Racikan rutin bisa dijadikan **program terjadwal** langsung dari Jadwal &
+Tugas — lihat bagian 4.3.
 
 ### 4.5 Inventaris & Alat — jalan
 
@@ -290,15 +309,20 @@ semua pembeli bayar di tempat. Menandai lunas adalah tombol tersendiri, bukan
 lewat form edit — menagih itu pekerjaan lain dari membetulkan apa yang dijual,
 dan terjadi berminggu-minggu setelahnya.
 
-**Belum ada:** tren harga pasar lokal dari luar, dan grafik hasil panen.
+**Grafik hasil panen** memakai sumbu HST, bukan tanggal: dua musim yang mulai
+berbulan-bulan terpisah tetap berjajar di "hari ke-90". Sumbu tanggal hanya
+bisa menceritakan musim yang sedang dilihat.
 
-### 4.7 Keuangan & Kas — sebagian jalan
+**Belum ada:** tren harga pasar lokal dari luar.
 
-Dua sisi sekarang: uang masuk dari penjualan, uang keluar dari bahan yang
-terpakai. Angka besar di atas halaman disebut **sisa setelah dikurangi bahan**,
-bukan untung — upah, sewa, dan transport belum tercatat di mana pun, dan
-menyebutnya laba akan melebihkan sebanyak biaya-biaya itu. Empat orang yang
-membagi angka yang menyanjung diri sendiri persis kegagalan yang perlu
+### 4.7 Keuangan & Kas — jalan
+
+Empat tab: Rincian, Catatan, Bagi Hasil, dan Antar Musim.
+
+Angka besar di atas halaman disebut **sisa musim ini**, dan keterangannya
+menyebut batasnya terang-terangan: seakurat apa yang benar-benar dicatat.
+Selama masih ada upah yang belum diketik, angka itu kebesaran — dan empat orang
+yang membagi angka yang menyanjung diri sendiri persis kegagalan yang perlu
 dihindari.
 
 **Belanja bukan biaya; pemakaian yang biaya.** Sekarung pupuk yang dibeli
@@ -317,12 +341,37 @@ dan per bahan, ditambah uang keluar untuk alat (lintas musim, karena alat
 memang lintas musim). Pemakaian yang tercatat saat bahannya belum berharga
 dilaporkan terpisah, bukan diam-diam dihitung Rp 0.
 
-**Belum ada:** upah, sewa, transport, kalkulator bagi hasil empat anggota, dan
-foto nota.
+**Pengeluaran di luar gudang** — upah, sewa, transport — dicatat manual dengan
+kategori, keterangan, dan foto nota. Penjualan tidak diketik ulang di sini:
+pemasukan dibaca langsung dari transaksinya, jadi tidak pernah ada dua baris
+untuk satu rupiah.
 
-### 4.8 Settings & Users — belum dibangun
+**Bagi hasil** membagi sisa musim menurut porsi tiap anggota. Kalau porsinya
+belum genap 100%, sisanya ditampilkan sebagai belum ada yang punya.
 
-Manajemen akun anggota dan hak akses menu. Bergantung pada autentikasi.
+**Antar musim** membandingkan uang masuk dan keluar tiap musim, lalu
+menambahkan **sisa per kilo panen** — karena musim yang berjalan lebih lama
+otomatis mengumpulkan angka lebih besar tanpa berarti lebih baik.
+
+**Belum ada:** apa-apa lagi selain yang menunggu autentikasi.
+
+### 4.8 Settings & Users — jalan
+
+**Anggota** bisa ditambah, disunting, dan **dinonaktifkan — bukan dihapus.**
+Nama seseorang menempel di tugas, temuan, panen, penjualan, dan tiap
+pergerakan stok yang ia catat; menghapus barisnya akan ikut membawa riwayat itu
+atau membuatnya tak bertuan, padahal justru itu gunanya dicatat.
+
+Tiap anggota punya **porsi bagi hasil** dalam persen. Totalnya tidak dipaksa
+100 — kalau berempat menyepakati porsi yang menyisakan celah, celah itu perlu
+dibicarakan, bukan ditutupi dengan diam-diam menggelembungkan bagian semua
+orang.
+
+**Profil kebun** menyimpan yang berlaku menyeluruh: nama, lokasi, koordinat
+untuk ramalan cuaca, dan volume tangki yang biasa dipakai.
+
+Halaman ini menyatakan terang-terangan bahwa perannya **belum ditegakkan
+sistem** — daftar peran di sini mudah disangka kontrol akses, dan ia bukan.
 
 ---
 
@@ -406,9 +455,10 @@ autentikasi terpasang.**
 **2. Deployment.** Belum pernah dijalankan di luar localhost, sehingga belum
 pernah dipakai di kebun. Branch `main` dan `production` masih di commit awal.
 
-**3. Sisa modul Keuangan** — biaya di luar gudang (upah, sewa, transport),
-bagi hasil berempat, dan foto nota. Selama itu belum ada, angka di halaman
-Keuangan sengaja tidak disebut untung. Rinciannya di bagian 4.7.
+**3. Tren harga pasar lokal.** Sengaja ditunda: mencatat harga pasaran dari
+luar butuh masukan manual rutin, dan biasanya berhenti diisi setelah dua
+minggu.
 
-**4. Sisa fitur per modul** — dirinci di bagian 4: grafik panen, status cuaca,
-analitik antar musim, tampilan kalender, dan program nutrisi per-HST.
+**4. Pemakaian bahan kecil di luar tugas** yang sampai ke laporan musim —
+mengambil dua puluh ajir mengganti yang patah masih tidak terhitung. Sengaja:
+membuat tugas untuk itu berlebihan, dan uangnya kecil.

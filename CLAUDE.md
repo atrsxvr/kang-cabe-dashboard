@@ -8,7 +8,7 @@
 - Styling: Tailwind CSS 4, shadcn/ui (`radix-nova` preset)
 - Database: Prisma 7 + PostgreSQL on Supabase
 - Icons: Lucide React
-- Charts: Recharts (not installed yet — add when the first chart lands)
+- Charts: Recharts
 - Tests: Vitest (unit) + Playwright (e2e, halaman + Server Action + Postgres)
 - Package manager: **pnpm** (not npm — the repo pins `pnpm@11.20.0`)
 
@@ -76,6 +76,12 @@ e2e/                        # Playwright; cleans up after itself by "E2E" prefix
   It is stored only so the shed's value need not replay the whole log on every
   render. Anything that edits history rather than appending to it — a price
   filled in weeks late — must recompute it from `StockMovement`.
+- **Members are deactivated, never deleted**, for the same reason materials are
+  archived: their name is attached to tasks, harvests, sales and every stock
+  movement they recorded.
+- **Profit shares are not normalised to 100%.** A gap in what four people
+  agreed is a conversation they need to have; inflating everyone's slice to
+  hide it would settle it on their behalf.
 - **A sale belongs to a season, not to a picking.** Chillies pile up waiting
   for a buyer, so what goes out is drawn from the heap. Unsold stock is derived
   — harvested less sold, per grade — and is allowed to go negative, because the

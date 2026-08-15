@@ -94,9 +94,9 @@ test.describe.serial("bahan masuk gudang lalu jadi biaya musim", () => {
   test("biayanya muncul di Keuangan musim itu", async ({ page }) => {
     await page.goto("/finance");
 
-    // 800 pcs at Rp 500 each.
+    // 800 pcs at Rp 500 each, under the season's outgoings.
     await expect(page.getByText("Rp 400.000").first()).toBeVisible();
-    await expect(page.getByText(MATERIAL).first()).toBeVisible();
+    await expect(page.getByText("Semua yang keluar")).toBeVisible();
   });
 
   test("bahan diarsipkan, bukan dihapus, dan bisa dikembalikan", async ({

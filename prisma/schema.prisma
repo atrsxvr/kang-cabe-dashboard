@@ -122,6 +122,11 @@ model User {
   email     String    @unique
   password  String
   role      Role      @default(ADMIN)
+  /// Porsi bagi hasil, persen. Bebas tidak berjumlah 100 — halaman Keuangan
+  /// menampilkan selisihnya apa adanya daripada diam-diam menormalkan, karena
+  /// pembagian yang tidak genap adalah hal yang perlu dilihat empat orang,
+  /// bukan disembunyikan.
+  profitShare Float    @default(0)
   deletedAt DateTime? // Pekerja nonaktif ditandai di sini, barisnya tidak dihapus
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt
@@ -139,6 +144,23 @@ model User {
   salesRecorded     SaleTransaction[] @relation("RecordedSales")
 
   @@index([deletedAt])
+}
+
+/// Satu baris untuk seluruh kebun. Hal-hal yang berlaku di mana-mana dan tidak
+/// masuk akal diulang per musim: di mana kebunnya, dan tangki ukuran berapa
+/// yang biasa dipakai.
+model GardenProfile {
+  id        String   @id @default("garden")
+  name      String   @default("Kebun Kang Cabe")
+  /// Koordinat untuk ramalan cuaca. Kosong berarti kartu cuacanya diam saja
+  /// dan menyuruh mengisinya, bukan menebak lokasi.
+  latitude  Float?
+  longitude Float?
+  locationName String?
+  /// Volume tangki yang biasa dipakai, jadi kalkulator dosis tidak perlu
+  /// diketik ulang tiap kali.
+  defaultTankLitres Float @default(45)
+  updatedAt DateTime @updatedAt
 }
 
 model Season {

@@ -177,13 +177,50 @@ export async function toolSpend(): Promise<ToolSpend> {
   return { total: bought + serviced, bought, serviced };
 }
 
+export type FinanceEntryRow = {
+  id: string;
+  type: "INCOME" | "EXPENSE";
+  category: string;
+  amount: number;
+  description: string;
+  date: Date;
+  proofUrl: string | null;
+};
+
+export async function listFinanceEntries(
+  seasonId: string
+): Promise<FinanceEntryRow[]> {
+  const rows = await prisma.financeTransaction.findMany({
+    where: { seasonId },
+    orderBy: [{ date: "desc" }, { createdAt: "desc" }],
+    select: {
+      id: true,
+      type: true,
+      category: true,
+      amount: true,
+      description: true,
+      date: true,
+      proofUrl: true,
+    },
+  });
+
+  return rows;
+}
+
 export type SeasonResult = {
+  /** Penjualan panen ditambah pemasukan lain yang dicatat manual. */
   income: number;
+  salesIncome: number;
+  otherIncome: number;
   received: number;
   outstanding: number;
   materialCost: number;
-  /** Pemasukan dikurangi biaya bahan. Belum termasuk upah, sewa, transport. */
+  /** Upah, sewa, transport — yang tidak lewat gudang maupun timbangan. */
+  otherCost: number;
+  totalCost: number;
+  /** Pemasukan dikurangi seluruh biaya yang tercatat. */
   margin: number;
+  costByCategory: CostLine[];
 };
 
 /**
@@ -200,16 +237,163 @@ export type SeasonResult = {
  * to buy it would misreport them all.
  */
 export async function seasonResult(seasonId: string): Promise<SeasonResult> {
-  const [cost, summary] = await Promise.all([
+  const [cost, summary, entries] = await Promise.all([
     seasonMaterialCost(seasonId),
     harvestSummary(seasonId),
+    listFinanceEntries(seasonId),
   ]);
 
+  const byCategory = new Map<string, number>();
+  let otherCost = 0;
+  let otherIncome = 0;
+
+  for (const entry of entries) {
+    if (entry.type === "EXPENSE") {
+      otherCost += entry.amount;
+      byCategory.set(
+        entry.category,
+        (byCategory.get(entry.category) ?? 0) + entry.amount
+      );
+    } else {
+      otherIncome += entry.amount;
+    }
+  }
+
+  const income = summary.income + otherIncome;
+  const totalCost = cost.total + otherCost;
+
   return {
-    income: summary.income,
+    income,
+    salesIncome: summary.income,
+    otherIncome,
     received: summary.received,
     outstanding: summary.outstanding,
     materialCost: cost.total,
-    margin: summary.income - cost.total,
+    otherCost,
+    totalCost,
+    margin: income - totalCost,
+    costByCategory: [
+      ...(cost.total > 0
+        ? [
+            {
+              key: "__material",
+              label: "Bahan",
+              amount: cost.total,
+              detail: "dari pemakaian tercatat",
+            },
+          ]
+        : []),
+      ...[...byCategory.entries()]
+        .map(([category, amount]) => ({
+          key: category,
+          label: category,
+          amount,
+          detail: "dicatat manual",
+        }))
+        .sort((a, b) => b.amount - a.amount),
+    ],
   };
+}
+
+export type ProfitShareRow = {
+  id: string;
+  name: string;
+  share: number;
+  amount: number;
+};
+
+export type ProfitSharing = {
+  margin: number;
+  totalShare: number;
+  rows: ProfitShareRow[];
+  /** Yang belum teralokasi karena porsinya belum genap 100%. */
+  unallocated: number;
+};
+
+/**
+ * Splits the margin by each member's agreed percentage.
+ *
+ * The percentages are not normalised to add up to 100. If four people have
+ * agreed on shares that leave a gap, that gap is a conversation they need to
+ * have — quietly inflating everyone's slice to hide it would settle it on
+ * their behalf, and wrongly.
+ */
+export async function profitSharing(
+  seasonId: string
+): Promise<ProfitSharing> {
+  const [result, members] = await Promise.all([
+    seasonResult(seasonId),
+    prisma.user.findMany({
+      where: { deletedAt: null },
+      orderBy: { name: "asc" },
+      select: { id: true, name: true, profitShare: true },
+    }),
+  ]);
+
+  const totalShare = members.reduce((sum, m) => sum + m.profitShare, 0);
+  const base = Math.max(0, result.margin);
+
+  const rows = members.map((member) => ({
+    id: member.id,
+    name: member.name,
+    share: member.profitShare,
+    amount: Math.round((base * member.profitShare) / 100),
+  }));
+
+  return {
+    margin: result.margin,
+    totalShare,
+    rows,
+    unallocated: base - rows.reduce((sum, row) => sum + row.amount, 0),
+  };
+}
+
+export type SeasonComparison = {
+  id: string;
+  name: string;
+  status: string;
+  income: number;
+  cost: number;
+  margin: number;
+  harvestedKg: number;
+  /** Rupiah per kilo panen — satu-satunya angka yang adil membandingkan musim. */
+  perKg: number;
+};
+
+/**
+ * Every season side by side.
+ *
+ * The headline figures do not compare well on their own: a season that ran
+ * twice as long will show twice the income without being twice as good. The
+ * margin per kilo harvested is the one number that survives the difference.
+ */
+export async function seasonComparison(): Promise<SeasonComparison[]> {
+  const seasons = await prisma.season.findMany({
+    where: { status: { not: "ARCHIVED" } },
+    orderBy: { startDate: "asc" },
+    select: { id: true, name: true, status: true },
+  });
+
+  return Promise.all(
+    seasons.map(async (season) => {
+      const [result, summary] = await Promise.all([
+        seasonResult(season.id),
+        harvestSummary(season.id),
+      ]);
+
+      return {
+        id: season.id,
+        name: season.name,
+        status: season.status,
+        income: result.income,
+        cost: result.totalCost,
+        margin: result.margin,
+        harvestedKg: summary.totalHarvestedKg,
+        perKg:
+          summary.totalHarvestedKg > 0
+            ? Math.round(result.margin / summary.totalHarvestedKg)
+            : 0,
+      };
+    })
+  );
 }

@@ -10,9 +10,13 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { calculateHst, formatDate, formatDateRange } from "@/lib/hst";
 import { readSeasonParam, withSeason } from "@/lib/season-param";
 import { formatRupiah } from "@/lib/money";
+import { HarvestChart } from "@/components/charts/harvest-chart";
+import { WeatherCard } from "@/components/dashboard/weather-card";
 import { countWeekendTasks } from "@/server/queries/dashboard";
 import { seasonMaterialCost } from "@/server/queries/finance";
-import { harvestSummary } from "@/server/queries/harvest";
+import { harvestCurve, harvestSummary } from "@/server/queries/harvest";
+import { getGardenProfile } from "@/server/queries/users";
+import { getWeather } from "@/server/queries/weather";
 import { resolveSeason } from "@/server/queries/seasons";
 
 export const metadata: Metadata = { title: "Dashboard" };
@@ -26,11 +30,21 @@ export default async function DashboardPage(props: PageProps<"/">) {
 
   if (!season) return <NoSeason />;
 
-  const [weekend, cost, harvest] = await Promise.all([
+  const [weekend, cost, harvest, curve, profile] = await Promise.all([
     countWeekendTasks(season.id),
     seasonMaterialCost(season.id),
     harvestSummary(season.id),
+    harvestCurve(season.id, season.startDate),
+    getGardenProfile(),
   ]);
+
+  // Fetched after the profile because it needs the coordinates, and skipped
+  // entirely when they are not set — a missing forecast must never be the
+  // reason this page fails.
+  const weather =
+    profile.latitude !== null && profile.longitude !== null
+      ? await getWeather(profile.latitude, profile.longitude)
+      : null;
   const currentHst = calculateHst(season.startDate);
   const notPlanted = season.status === "PLANNING";
 
@@ -93,25 +107,23 @@ export default async function DashboardPage(props: PageProps<"/">) {
         />
       </div>
 
-      <Card className="mt-6">
-        <CardHeader>
-          <CardTitle className="text-base">Status Data</CardTitle>
-        </CardHeader>
-        <CardContent className="text-muted-foreground space-y-2 text-sm">
-          <p>
-            <strong className="text-foreground">Umur Tanaman</strong> dan{" "}
-            <strong className="text-foreground">Tugas Weekend Ini</strong>{" "}
-            dihitung dari database untuk musim yang dipilih di navbar.
-          </p>
-          <p>
-            Dua kartu lainnya masih berisi angka contoh karena modul Keuangan
-            dan Panen belum dibangun.
-          </p>
-          <Button asChild size="sm" variant="secondary" className="mt-2">
-            <Link href={withSeason("/tasks", season.id)}>Lihat semua tugas</Link>
-          </Button>
-        </CardContent>
-      </Card>
+      <div className="mt-6 grid gap-6 lg:grid-cols-2">
+        <WeatherCard weather={weather} locationName={profile.locationName} />
+
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base">Hasil panen musim ini</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <HarvestChart points={curve} />
+            <Button asChild size="sm" variant="secondary" className="mt-3">
+              <Link href={withSeason("/harvest", season.id)}>
+                Buka Panen & Penjualan
+              </Link>
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
     </>
   );
 }

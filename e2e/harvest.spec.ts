@@ -136,12 +136,17 @@ test.describe.serial("panen, jual, tagih", () => {
   test("pemasukannya sampai ke Keuangan", async ({ page }) => {
     await page.goto(`/finance?season=${seasonId}`);
 
-    await expect(page.getByText("Masuk dari jualan")).toBeVisible();
-    // 750.000 from the first load plus 11.500 for the rounded quarter kilo.
-    await expect(page.getByText("Rp 761.500").first()).toBeVisible();
+    // Scoped to the page body: the sidebar drawer holds a hidden link called
+    // "Panen & Penjualan", which any loose match on "jualan" finds first.
+    const main = page.getByRole("main");
 
-    // Named honestly: labour, rent and transport are still unrecorded.
-    await expect(page.getByText(/bukan/).first()).toBeVisible();
+    await expect(main.getByText("Masuk", { exact: true })).toBeVisible();
+    // 750.000 from the first load plus 11.500 for the rounded quarter kilo.
+    await expect(main.getByText("Rp 761.500").first()).toBeVisible();
+    await expect(main.getByText(/jualan/).first()).toBeVisible();
+
+    // Named honestly: it is only as accurate as what has been written down.
+    await expect(page.getByText(/Seakurat apa yang kalian catat/)).toBeVisible();
   });
 
   test("dan ke kartu panen di Dashboard", async ({ page }) => {

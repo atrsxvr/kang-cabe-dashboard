@@ -476,3 +476,106 @@ export const markSalePaidSchema = z.object({
   /// Membatalkan penandaan kalau ternyata keliru.
   unpaid: z.coerce.boolean().optional(),
 });
+
+export const roles = ["ADMIN", "AGRONOMIST", "LOGISTICS", "SALES"] as const;
+
+const memberBase = {
+  name: z.string().trim().min(2, "Nama minimal 2 karakter").max(120),
+  email: z.email("Email tidak valid"),
+  role: z.enum(roles),
+  profitShare: z.coerce
+    .number("Isi angka persen")
+    .min(0, "Tidak boleh minus")
+    .max(100, "Tidak boleh lebih dari 100")
+    .optional(),
+};
+
+export const createMemberSchema = z.object(memberBase);
+
+export const updateMemberSchema = z.object({
+  ...memberBase,
+  memberId: z.string().min(1),
+});
+
+export const deactivateMemberSchema = z.object({
+  memberId: z.string().min(1),
+  restore: z.coerce.boolean().optional(),
+});
+
+export const gardenProfileSchema = z.object({
+  name: z.string().trim().min(2, "Nama kebun minimal 2 karakter").max(120),
+  locationName: z.string().trim().max(120).optional().or(z.literal("")),
+  latitude: z.coerce
+    .number("Lintang tidak valid")
+    .min(-90)
+    .max(90)
+    .optional(),
+  longitude: z.coerce
+    .number("Bujur tidak valid")
+    .min(-180)
+    .max(180)
+    .optional(),
+  defaultTankLitres: z.coerce
+    .number("Isi volume tangki")
+    .positive("Harus lebih dari 0")
+    .max(10_000),
+});
+
+export const expenseCategories = [
+  "Upah",
+  "Sewa",
+  "Transport",
+  "Operasional",
+  "Benih",
+  "Peralatan",
+  "Lainnya",
+] as const;
+
+export const transactionTypes = ["INCOME", "EXPENSE"] as const;
+
+const financeBase = {
+  seasonId: z.string().min(1),
+  type: z.enum(transactionTypes),
+  category: z.enum(expenseCategories),
+  amount: rupiah.refine((value) => value > 0, "Isi jumlahnya"),
+  description: z.string().trim().min(2, "Tulis keterangannya").max(300),
+  date: z.coerce.date("Tanggal tidak valid"),
+  proofUrl: z.url("Tautan bukti tidak valid").optional().or(z.literal("")),
+};
+
+export const createFinanceEntrySchema = z.object(financeBase);
+
+export const updateFinanceEntrySchema = z.object({
+  ...financeBase,
+  entryId: z.string().min(1),
+});
+
+/**
+ * Menjadwalkan racikan rutin berulang di rentang HST tertentu.
+ *
+ * Batas 60 tugas sekali jalan bukan angka teknis: sekali klik yang membuat
+ * ratusan baris adalah sekali klik yang tidak bisa dibatalkan dengan mudah.
+ */
+export const scheduleProgramSchema = z
+  .object({
+    seasonId: z.string().min(1),
+    recipeId: z.string().min(1),
+    fromHst: z.coerce.number("Isi HST mulai").int().min(0).max(1000),
+    toHst: z.coerce.number("Isi HST selesai").int().min(0).max(1000),
+    intervalDays: z.coerce
+      .number("Isi jarak hari")
+      .int()
+      .positive("Harus lebih dari 0")
+      .max(120),
+    volumeL: z.coerce.number("Isi volume").positive().max(10_000),
+    assigneeIds: z.array(z.string()).default([]),
+  })
+  .refine((value) => value.toHst >= value.fromHst, {
+    message: "HST selesai harus setelah HST mulai",
+    path: ["toHst"],
+  })
+  .refine(
+    (value) =>
+      Math.floor((value.toHst - value.fromHst) / value.intervalDays) + 1 <= 60,
+    { message: "Kebanyakan — maksimal 60 tugas sekali jadwal", path: ["toHst"] }
+  );

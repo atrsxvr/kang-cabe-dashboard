@@ -27,7 +27,7 @@ export type UploadResult =
   | { ok: true; url: string }
   | { ok: false; message: string };
 
-export async function uploadFindingPhoto(file: File): Promise<UploadResult> {
+export async function uploadPhoto(file: File): Promise<UploadResult> {
   const config = storageConfig();
 
   if (!config) {
@@ -87,7 +87,7 @@ export async function uploadFindingPhoto(file: File): Promise<UploadResult> {
  * Returns nothing: a photo that outlives its finding is worth logging, not
  * worth blocking the deletion the user asked for.
  */
-export async function deleteFindingPhoto(photoUrl: string): Promise<void> {
+export async function deletePhoto(photoUrl: string): Promise<void> {
   const config = storageConfig();
   if (!config) return;
 
@@ -111,3 +111,7 @@ export async function deleteFindingPhoto(photoUrl: string): Promise<void> {
     console.error("Gagal menghapus foto:", response.status, path);
   }
 }
+
+/** Nama lama, dipertahankan supaya modul Kesehatan tidak ikut diubah. */
+export const uploadFindingPhoto = uploadPhoto;
+export const deleteFindingPhoto = deletePhoto;

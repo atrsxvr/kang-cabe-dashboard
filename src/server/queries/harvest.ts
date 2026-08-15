@@ -1,6 +1,7 @@
 import "server-only";
 
 import { prisma } from "@/lib/prisma";
+import { calculateHst, formatDate } from "@/lib/hst";
 import { roundUpToCash } from "@/lib/money";
 import {
   averagePrice,
@@ -194,4 +195,50 @@ export async function buyerSuggestions(limit = 20): Promise<string[]> {
   });
 
   return rows.map((row) => row.buyerName);
+}
+
+export type HarvestPointRow = {
+  hst: number;
+  date: string;
+  good: number;
+  reject: number;
+};
+
+/**
+ * Yield plotted against crop age rather than the calendar.
+ *
+ * HST is what lets one planting be laid over another: two seasons started
+ * months apart still line up at "day 90". Pickings on the same day are added
+ * together, since two trips to the same block are one day's yield.
+ */
+export async function harvestCurve(
+  seasonId: string,
+  startDate: Date
+): Promise<HarvestPointRow[]> {
+  const rows = await prisma.harvestLog.findMany({
+    where: { seasonId },
+    orderBy: { harvestDate: "asc" },
+    select: { harvestDate: true, goodKg: true, rejectKg: true },
+  });
+
+  const byHst = new Map<number, HarvestPointRow>();
+
+  for (const row of rows) {
+    const hst = calculateHst(startDate, row.harvestDate);
+    const existing = byHst.get(hst);
+
+    if (existing) {
+      existing.good += row.goodKg;
+      existing.reject += row.rejectKg;
+    } else {
+      byHst.set(hst, {
+        hst,
+        date: formatDate(row.harvestDate),
+        good: row.goodKg,
+        reject: row.rejectKg,
+      });
+    }
+  }
+
+  return [...byHst.values()].sort((a, b) => a.hst - b.hst);
 }

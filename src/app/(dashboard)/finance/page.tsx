@@ -1,50 +1,67 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { Coins, PackageMinus, Sprout, Wrench } from "lucide-react";
+import { Coins, PackageMinus, Sprout, Users, Wrench } from "lucide-react";
 
 import { PageHeader } from "@/components/common/page-header";
+import { SeasonCompareChart } from "@/components/charts/season-compare-chart";
+import { FinanceEntryDialog } from "@/components/finance/finance-entry-dialog";
+import { FinanceEntryList } from "@/components/finance/finance-entry-list";
+import { FinanceViews } from "@/components/finance/finance-views";
 import { materialCategoryLabels } from "@/components/inventory/inventory-labels";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+import { formatKg } from "@/lib/harvest";
 import { formatRupiah } from "@/lib/money";
 import { readSeasonParam } from "@/lib/season-param";
 import {
+  listFinanceEntries,
+  profitSharing,
+  seasonComparison,
   seasonMaterialCost,
   seasonResult,
   toolSpend,
 } from "@/server/queries/finance";
 import type { CostLine } from "@/server/queries/finance";
 import { resolveSeason } from "@/server/queries/seasons";
+import { isPhotoUploadEnabled } from "@/server/storage";
 
 export const metadata: Metadata = { title: "Keuangan & Kas" };
 
 export default async function FinancePage(props: PageProps<"/finance">) {
   const searchParams = await props.searchParams;
 
-  // Reading searchParams already opts this page out of prerendering, so no
-  // connection() is needed here.
+  // Reading searchParams already opts this page out of prerendering.
   const season = await resolveSeason(readSeasonParam(searchParams));
 
   if (!season) return <NoSeason />;
 
-  const [cost, tools, result] = await Promise.all([
+  const [cost, tools, result, entries, sharing, seasons] = await Promise.all([
     seasonMaterialCost(season.id),
     toolSpend(),
     seasonResult(season.id),
+    listFinanceEntries(season.id),
+    profitSharing(season.id),
+    seasonComparison(),
   ]);
+
+  const photoEnabled = isPhotoUploadEnabled();
 
   return (
     <>
-      <PageHeader
-        title="Keuangan & Kas"
-        description={`${season.name} · uang masuk dari penjualan, uang keluar dari bahan yang kepakai`}
-      />
+      <div className="mb-6 flex flex-wrap items-start justify-between gap-3">
+        <PageHeader
+          title="Keuangan & Kas"
+          description={`${season.name} · uang masuk dari penjualan, uang keluar dari bahan dan catatan manual`}
+        />
+        <FinanceEntryDialog seasonId={season.id} photoEnabled={photoEnabled} />
+      </div>
 
-      <Card className="mt-6">
+      <Card className="mb-6">
         <CardContent className="grid gap-4 py-6">
           <div className="grid gap-1 text-center">
             <p className="text-muted-foreground text-sm">
-              Sisa setelah dikurangi bahan
+              Sisa musim ini
             </p>
             <p
               className={
@@ -55,12 +72,10 @@ export default async function FinancePage(props: PageProps<"/finance">) {
             >
               {formatRupiah(result.margin)}
             </p>
-            {/* Named for what it is. Calling it profit would overstate it by
-                every cost this app does not yet record. */}
             <p className="text-muted-foreground mx-auto max-w-md text-xs">
-              Ini <strong>bukan</strong> untung bersih. Upah, sewa, dan
-              transport belum tercatat di mana pun, jadi angka aslinya lebih
-              kecil dari ini.
+              Uang masuk dikurangi semua biaya yang tercatat. Seakurat apa yang
+              kalian catat — kalau ada upah yang belum diketik, angka ini masih
+              kebesaran.
             </p>
           </div>
 
@@ -69,20 +84,29 @@ export default async function FinancePage(props: PageProps<"/finance">) {
               <p className="text-lg font-semibold tabular-nums text-emerald-700 dark:text-emerald-400">
                 {formatRupiah(result.income)}
               </p>
-              <p className="text-muted-foreground text-xs">Masuk dari jualan</p>
+              <p className="text-muted-foreground text-xs">Masuk</p>
+              <p className="text-muted-foreground mt-0.5 text-[11px]">
+                {formatRupiah(result.salesIncome)} jualan
+                {result.otherIncome > 0
+                  ? ` · ${formatRupiah(result.otherIncome)} lain`
+                  : ""}
+              </p>
               {result.outstanding > 0 ? (
-                <p className="text-muted-foreground mt-0.5 text-[11px]">
+                <p className="text-muted-foreground text-[11px]">
                   {formatRupiah(result.outstanding)} masih ditagih
                 </p>
               ) : null}
             </div>
             <div>
-              <p className="text-lg font-semibold tabular-nums">
-                {formatRupiah(result.materialCost)}
+              <p className="text-destructive text-lg font-semibold tabular-nums">
+                {formatRupiah(result.totalCost)}
               </p>
-              <p className="text-muted-foreground text-xs">Habis buat bahan</p>
+              <p className="text-muted-foreground text-xs">Keluar</p>
               <p className="text-muted-foreground mt-0.5 text-[11px]">
-                dihitung saat bahannya kepakai
+                {formatRupiah(result.materialCost)} bahan
+                {result.otherCost > 0
+                  ? ` · ${formatRupiah(result.otherCost)} lain`
+                  : ""}
               </p>
             </div>
           </div>
@@ -90,64 +114,161 @@ export default async function FinancePage(props: PageProps<"/finance">) {
       </Card>
 
       {cost.unpricedUsages > 0 ? (
-        <p className="text-muted-foreground mt-3 text-xs">
+        <p className="text-muted-foreground mb-4 text-xs">
           {cost.unpricedUsages} pemakaian tercatat waktu bahannya belum ada
           harga, jadi masuk hitungan sebagai Rp 0. Isi harga belanjanya di
-          Inventaris supaya pemakaian berikutnya ikut kehitung.
+          Inventaris.
         </p>
       ) : null}
 
-      <div className="mt-6 grid gap-6 lg:grid-cols-2">
-        <Breakdown
-          title="Per jenis bahan"
-          icon={PackageMinus}
-          lines={cost.byCategory.map((line) => ({
-            ...line,
-            label: materialCategoryLabels[line.label] ?? line.label,
-          }))}
-          total={cost.total}
-          empty="Belum ada pemakaian yang tercatat di musim ini."
-        />
+      <FinanceViews
+        entryCount={entries.length}
+        summary={
+          <div className="grid gap-6">
+            <div className="grid gap-6 lg:grid-cols-2">
+              <Breakdown
+                title="Semua yang keluar"
+                icon={PackageMinus}
+                lines={result.costByCategory}
+                total={result.totalCost}
+                empty="Belum ada pengeluaran tercatat di musim ini."
+              />
+              <Breakdown
+                title="Bahan, per jenis"
+                icon={Sprout}
+                lines={cost.byCategory.map((line) => ({
+                  ...line,
+                  label: materialCategoryLabels[line.label] ?? line.label,
+                }))}
+                total={cost.total}
+                empty="Belum ada pemakaian bahan tercatat."
+              />
+            </div>
 
-        <Breakdown
-          title="Per bahan"
-          icon={Sprout}
-          lines={cost.byMaterial}
-          total={cost.total}
-          empty="Belum ada pemakaian yang tercatat di musim ini."
-        />
-      </div>
-
-      <Card className="mt-6">
-        <CardContent className="grid gap-3 py-5">
-          <div className="flex items-center gap-2">
-            <Wrench className="text-muted-foreground size-4" aria-hidden />
-            <h2 className="text-sm font-medium">Uang keluar buat alat</h2>
+            <Card>
+              <CardContent className="grid gap-3 py-5">
+                <div className="flex items-center gap-2">
+                  <Wrench className="text-muted-foreground size-4" aria-hidden />
+                  <h2 className="text-sm font-medium">Uang keluar buat alat</h2>
+                </div>
+                <p className="text-2xl font-semibold tabular-nums">
+                  {formatRupiah(tools.total)}
+                </p>
+                <p className="text-muted-foreground text-xs">
+                  {formatRupiah(tools.bought)} beli · {formatRupiah(tools.serviced)}{" "}
+                  servis. Dihitung semua musim, bukan per musim — cangkul kepakai
+                  terus, nggak habis kayak pupuk, jadi nggak ikut masuk hitungan
+                  sisa musim di atas.
+                </p>
+              </CardContent>
+            </Card>
           </div>
-          <p className="text-2xl font-semibold tabular-nums">
-            {formatRupiah(tools.total)}
-          </p>
-          <p className="text-muted-foreground text-xs">
-            {formatRupiah(tools.bought)} beli alat ·{" "}
-            {formatRupiah(tools.serviced)} servis. Dihitung semua musim, bukan
-            per musim — cangkul kepakai terus, nggak habis kayak pupuk.
-          </p>
-        </CardContent>
-      </Card>
+        }
+        entries={
+          <FinanceEntryList
+            entries={entries}
+            seasonId={season.id}
+            photoEnabled={photoEnabled}
+          />
+        }
+        sharing={
+          <Card>
+            <CardContent className="grid gap-4 py-5">
+              <div className="flex items-center gap-2">
+                <Users className="text-muted-foreground size-4" aria-hidden />
+                <h2 className="text-sm font-medium">
+                  Bagi hasil {formatRupiah(Math.max(0, sharing.margin))}
+                </h2>
+              </div>
 
-      <Card className="mt-6">
-        <CardContent className="grid gap-2 py-5">
-          <div className="flex items-center gap-2">
-            <Coins className="text-muted-foreground size-4" aria-hidden />
-            <h2 className="text-sm font-medium">Yang belum ada di sini</h2>
+              {sharing.margin <= 0 ? (
+                <p className="text-muted-foreground text-sm">
+                  Musim ini belum ada sisa buat dibagi.
+                </p>
+              ) : (
+                <ul className="grid gap-2">
+                  {sharing.rows.map((row) => (
+                    <li
+                      key={row.id}
+                      className="flex items-center justify-between gap-2 rounded-md border px-3 py-2 text-sm"
+                    >
+                      <span className="min-w-0 truncate">{row.name}</span>
+                      <span className="flex items-center gap-3">
+                        <Badge variant="secondary" className="tabular-nums">
+                          {row.share}%
+                        </Badge>
+                        <strong className="tabular-nums">
+                          {formatRupiah(row.amount)}
+                        </strong>
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+              )}
+
+              {/* Not normalised on purpose: a gap in the agreed shares is a
+                  conversation the four of them need to have, and inflating
+                  everyone's slice to hide it would settle it for them. */}
+              {sharing.totalShare !== 100 ? (
+                <p className="text-amber-700 text-xs dark:text-amber-400">
+                  Porsinya baru {sharing.totalShare}%, belum genap 100
+                  {sharing.unallocated > 0
+                    ? ` — ${formatRupiah(sharing.unallocated)} belum ada yang punya`
+                    : ""}
+                  . Atur di Settings & Users.
+                </p>
+              ) : null}
+            </CardContent>
+          </Card>
+        }
+        seasons={
+          <div className="grid gap-6">
+            <Card>
+              <CardContent className="py-5">
+                <h2 className="mb-3 text-sm font-medium">
+                  Masuk vs keluar per musim
+                </h2>
+                <SeasonCompareChart seasons={seasons} />
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardContent className="grid gap-2 py-5">
+                <h2 className="text-sm font-medium">Per kilo panen</h2>
+                <p className="text-muted-foreground text-xs">
+                  Musim yang jalan lebih lama otomatis dapat angka lebih besar,
+                  jadi angka total nggak adil dibandingkan. Sisa per kilo panen
+                  yang bisa.
+                </p>
+                <ul className="mt-2 grid gap-2">
+                  {seasons.map((row) => (
+                    <li
+                      key={row.id}
+                      className="flex flex-wrap items-center justify-between gap-2 rounded-md border px-3 py-2 text-sm"
+                    >
+                      <span className="min-w-0">
+                        {row.name}
+                        <span className="text-muted-foreground ml-2 text-xs">
+                          {formatKg(row.harvestedKg)}
+                        </span>
+                      </span>
+                      <strong
+                        className={
+                          row.perKg < 0
+                            ? "text-destructive tabular-nums"
+                            : "tabular-nums"
+                        }
+                      >
+                        {formatRupiah(row.perKg)}/kg
+                      </strong>
+                    </li>
+                  ))}
+                </ul>
+              </CardContent>
+            </Card>
           </div>
-          <ul className="text-muted-foreground grid gap-1 text-sm">
-            <li>Upah, sewa, transport, dan pengeluaran di luar gudang</li>
-            <li>Kalkulator bagi hasil berempat</li>
-            <li>Foto nota</li>
-          </ul>
-        </CardContent>
-      </Card>
+        }
+      />
     </>
   );
 }

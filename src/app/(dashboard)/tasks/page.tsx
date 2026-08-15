@@ -6,6 +6,8 @@ import { PageHeader } from "@/components/common/page-header";
 import { StatusBadge } from "@/components/common/status-badge";
 import { TaskDialog } from "@/components/tasks/task-dialog";
 import { TaskBoard } from "@/components/tasks/task-board";
+import { TaskCalendar } from "@/components/tasks/task-calendar";
+import { ProgramDialog } from "@/components/tasks/program-dialog";
 import { TaskLogbook } from "@/components/tasks/task-logbook";
 import { TaskTable } from "@/components/tasks/task-table";
 import { TaskViews } from "@/components/tasks/task-views";
@@ -14,6 +16,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { calculateHst, formatDate } from "@/lib/hst";
 import { readSeasonParam } from "@/lib/season-param";
 import { listStock } from "@/server/queries/inventory";
+import { getGardenProfile } from "@/server/queries/users";
 import { listRecipes } from "@/server/queries/recipes";
 import { resolveSeason } from "@/server/queries/seasons";
 import {
@@ -33,13 +36,15 @@ export default async function TasksPage(props: PageProps<"/tasks">) {
 
   if (!season) return <NoSeason />;
 
-  const [tasks, completed, members, recipes, materials] = await Promise.all([
-    listTasksBySeason(season.id),
-    listCompletedTasksBySeason(season.id),
-    listActiveMembers(),
-    listRecipes(),
-    listStock(),
-  ]);
+  const [tasks, completed, members, recipes, materials, profile] =
+    await Promise.all([
+      listTasksBySeason(season.id),
+      listCompletedTasksBySeason(season.id),
+      listActiveMembers(),
+      listRecipes(),
+      listStock(),
+      getGardenProfile(),
+    ]);
 
   const currentHst = calculateHst(season.startDate);
 
@@ -49,7 +54,7 @@ export default async function TasksPage(props: PageProps<"/tasks">) {
     (task) =>
       task.status === "DONE" &&
       task.materials.length > 0 &&
-      !task.usageRecordedAt
+      !task.usageRecordedAt,
   ).length;
 
   return (
@@ -59,13 +64,22 @@ export default async function TasksPage(props: PageProps<"/tasks">) {
           title="Jadwal & Tugas"
           description={`${season.name} · ditanam ${formatDate(season.startDate)}`}
         />
-        <TaskDialog
-          seasonId={season.id}
-          members={members}
-          currentHst={currentHst}
-          recipes={recipes}
-          materials={materials}
-        />
+        <div className="flex flex-wrap gap-2">
+          <ProgramDialog
+            seasonId={season.id}
+            recipes={recipes}
+            members={members}
+            currentHst={currentHst}
+            defaultTankLitres={profile.defaultTankLitres}
+          />
+          <TaskDialog
+            seasonId={season.id}
+            members={members}
+            currentHst={currentHst}
+            recipes={recipes}
+            materials={materials}
+          />
+        </div>
       </div>
 
       <div className="mb-6 flex flex-wrap items-center gap-3">
@@ -114,6 +128,7 @@ export default async function TasksPage(props: PageProps<"/tasks">) {
             materials={materials}
           />
         }
+        calendar={<TaskCalendar tasks={tasks} seasonStart={season.startDate} />}
         logbook={
           <TaskLogbook tasks={completed} seasonStart={season.startDate} />
         }

@@ -4,6 +4,7 @@ import { Wheat } from "lucide-react";
 
 import { PageHeader } from "@/components/common/page-header";
 import { StatusBadge } from "@/components/common/status-badge";
+import { HarvestChart } from "@/components/charts/harvest-chart";
 import { HarvestDialog } from "@/components/harvest/harvest-dialog";
 import { HarvestList } from "@/components/harvest/harvest-list";
 import { HarvestViews } from "@/components/harvest/harvest-views";
@@ -17,6 +18,7 @@ import { formatRupiah } from "@/lib/money";
 import { readSeasonParam } from "@/lib/season-param";
 import {
   buyerSuggestions,
+  harvestCurve,
   harvestSummary,
   listHarvests,
   listSales,
@@ -34,12 +36,13 @@ export default async function HarvestPage(props: PageProps<"/harvest">) {
 
   if (!season) return <NoSeason />;
 
-  const [harvests, sales, summary, members, buyers] = await Promise.all([
+  const [harvests, sales, summary, members, buyers, curve] = await Promise.all([
     listHarvests(season.id),
     listSales(season.id),
     harvestSummary(season.id),
     listActiveMembers(),
     buyerSuggestions(),
+    harvestCurve(season.id, season.startDate),
   ]);
 
   const unpaid = sales.filter((sale) => !sale.isPaid);
@@ -141,12 +144,29 @@ export default async function HarvestPage(props: PageProps<"/harvest">) {
       <HarvestViews
         unpaidCount={unpaid.length}
         harvest={
-          <HarvestList
+          <div className="grid gap-6">
+            {curve.length > 1 ? (
+              <Card>
+                <CardContent className="py-5">
+                  <h2 className="mb-1 text-sm font-medium">
+                    Hasil panen per umur tanaman
+                  </h2>
+                  <p className="text-muted-foreground mb-3 text-xs">
+                    Sumbu bawahnya HST, bukan tanggal — biar musim berikutnya
+                    bisa ditumpuk di atasnya buat dibandingkan.
+                  </p>
+                  <HarvestChart points={curve} />
+                </CardContent>
+              </Card>
+            ) : null}
+
+            <HarvestList
             harvests={harvests}
             seasonId={season.id}
             seasonStart={season.startDate}
             members={members}
           />
+          </div>
         }
         sales={
           <SaleList
