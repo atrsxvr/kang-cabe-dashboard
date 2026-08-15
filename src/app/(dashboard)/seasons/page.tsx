@@ -53,7 +53,7 @@ export default async function SeasonsPage() {
                   <TableHead className="text-right">HST</TableHead>
                   <TableHead className="text-right">Tugas</TableHead>
                   <TableHead>Status</TableHead>
-                  <TableHead className="w-72 text-right">Aksi</TableHead>
+                  <TableHead className="w-32 text-right">Aksi</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>

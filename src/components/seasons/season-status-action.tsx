@@ -48,14 +48,19 @@ export function SeasonStatusAction({
   return (
     <form action={onSubmit}>
       <input type="hidden" name="seasonId" value={seasonId} />
+      {/* Icon-only, like its neighbours. The arrow alone cannot say which
+          stage comes next, so the label it used to carry lives in the tooltip
+          and the accessible name instead — and the toast afterwards names the
+          stage it moved to. */}
       <SubmitButton
-        size="sm"
+        size="icon"
         variant="secondary"
-        pendingLabel="Mengubah…"
+        className="size-8"
+        pendingLabel=""
+        aria-label={`Ubah status ke ${labels[next]}`}
         title={`Ubah status ke ${labels[next]}`}
       >
-        <ArrowRight className="size-3.5" aria-hidden />
-        {labels[next]}
+        <ArrowRight className="size-4" aria-hidden />
       </SubmitButton>
     </form>
   );

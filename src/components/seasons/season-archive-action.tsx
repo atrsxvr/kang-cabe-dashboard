@@ -60,12 +60,12 @@ export function SeasonArchiveAction({
       <AlertDialogTrigger asChild>
         <Button
           variant="ghost"
-          size="sm"
-          className="text-muted-foreground"
+          size="icon"
+          className="text-muted-foreground size-8"
           aria-label={`Arsipkan ${name}`}
+          title={`Arsipkan ${name}`}
         >
           <Archive className="size-4" aria-hidden />
-          Arsipkan
         </Button>
       </AlertDialogTrigger>
 
