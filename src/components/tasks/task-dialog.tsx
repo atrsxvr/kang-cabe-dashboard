@@ -138,7 +138,12 @@ export function TaskDialog({
     >
       <DialogTrigger asChild>
         {editing ? (
-          <Button variant="ghost" size="sm" aria-label={`Edit ${task!.title}`}>
+          <Button
+            variant="ghost"
+            size="icon"
+            className="size-8"
+            aria-label={`Edit ${task!.title}`}
+          >
             <Pencil className="size-4" aria-hidden />
           </Button>
         ) : (

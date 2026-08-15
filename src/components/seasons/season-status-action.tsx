@@ -6,7 +6,10 @@ import { toast } from "sonner";
 
 import { SubmitButton } from "@/components/common/submit-button";
 import { advanceSeasonStatus } from "@/server/actions/seasons";
-import { nextSeasonStatus, type seasonStatuses } from "@/server/actions/schemas";
+import {
+  nextSeasonStatus,
+  type seasonStatuses,
+} from "@/server/actions/schemas";
 
 const labels: Record<string, string> = {
   PLANNING: "Perencanaan",
@@ -27,9 +30,7 @@ export function SeasonStatusAction({
   const next = nextSeasonStatus(status);
 
   if (!next) {
-    return (
-      <span className="text-muted-foreground text-xs">Tahap akhir</span>
-    );
+    return <span className="text-muted-foreground text-xs">Tahap akhir</span>;
   }
 
   async function onSubmit(formData: FormData) {

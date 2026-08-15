@@ -43,7 +43,7 @@ export function HealthTabs() {
               "focus-visible:ring-ring focus-visible:ring-2 focus-visible:outline-none",
               active
                 ? "bg-background shadow-xs"
-                : "text-muted-foreground hover:text-foreground"
+                : "text-muted-foreground hover:text-foreground",
             )}
           >
             <Icon className="size-4" aria-hidden />

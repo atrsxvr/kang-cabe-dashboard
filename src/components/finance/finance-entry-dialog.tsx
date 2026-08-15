@@ -95,7 +95,12 @@ export function FinanceEntryDialog({
     >
       <DialogTrigger asChild>
         {editing ? (
-          <Button variant="ghost" size="sm" aria-label="Edit catatan">
+          <Button
+            variant="ghost"
+            size="icon"
+            className="size-8"
+            aria-label="Edit catatan"
+          >
             <Pencil className="size-4" aria-hidden />
           </Button>
         ) : (
@@ -206,9 +211,7 @@ export function FinanceEntryDialog({
                 type="file"
                 accept="image/*"
                 capture="environment"
-                onChange={(event) =>
-                  setProof(event.target.files?.[0] ?? null)
-                }
+                onChange={(event) => setProof(event.target.files?.[0] ?? null)}
               />
               {entry?.proofUrl && keepProof && !proof ? (
                 <div className="flex items-center gap-2">

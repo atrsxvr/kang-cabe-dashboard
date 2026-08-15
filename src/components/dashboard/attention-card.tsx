@@ -81,7 +81,9 @@ export function AttentionCard({
             <item.icon
               className={cn(
                 "size-4 shrink-0",
-                item.count > 0 ? "text-amber-600 dark:text-amber-400" : "text-muted-foreground"
+                item.count > 0
+                  ? "text-amber-600 dark:text-amber-400"
+                  : "text-muted-foreground",
               )}
               aria-hidden
             />
@@ -94,7 +96,7 @@ export function AttentionCard({
                 "text-lg font-semibold tabular-nums",
                 item.count > 0
                   ? "text-amber-700 dark:text-amber-400"
-                  : "text-muted-foreground"
+                  : "text-muted-foreground",
               )}
             >
               {item.count}

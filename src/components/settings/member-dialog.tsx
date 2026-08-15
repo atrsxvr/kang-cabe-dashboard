@@ -65,7 +65,12 @@ export function MemberDialog({ member }: { member?: MemberRow }) {
     >
       <DialogTrigger asChild>
         {editing ? (
-          <Button variant="ghost" size="sm" aria-label={`Edit ${member!.name}`}>
+          <Button
+            variant="ghost"
+            size="icon"
+            className="size-8"
+            aria-label={`Edit ${member!.name}`}
+          >
             <Pencil className="size-4" aria-hidden />
           </Button>
         ) : (

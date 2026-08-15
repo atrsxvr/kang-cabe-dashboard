@@ -52,7 +52,9 @@ export function TaskLogbook({
                   ) : null}
                   <p className="text-muted-foreground mt-1 text-xs">
                     {task.completedAt ? formatDateTime(task.completedAt) : "—"}
-                    {hstAtCompletion !== null ? ` · HST ${hstAtCompletion}` : null}
+                    {hstAtCompletion !== null
+                      ? ` · HST ${hstAtCompletion}`
+                      : null}
                     {task.assignees.length > 0
                       ? ` · ${task.assignees.map((a) => a.name).join(", ")}`
                       : null}

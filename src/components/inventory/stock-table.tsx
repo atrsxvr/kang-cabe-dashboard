@@ -221,7 +221,7 @@ export function StockTable({
                       </Badge>
                     </TableCell>
                     <TableCell className="w-48">
-                      <div className="flex items-center justify-end gap-0.5">
+                      <div className="flex items-center justify-end gap-1">
                         <AdjustStockDialog
                           material={row}
                           members={members}
@@ -303,7 +303,7 @@ function StockCard({
               / min {formatStock(row.minStock, row.unit)}
             </span>
           </p>
-          <div className="flex items-center gap-0.5">
+          <div className="flex items-center gap-1">
             <AdjustStockDialog
               material={row}
               members={members}
@@ -337,7 +337,7 @@ function ExpiryNote({ row }: { row: StockRow }) {
         "block text-xs font-normal",
         status === "EXPIRED"
           ? "text-destructive"
-          : "text-amber-700 dark:text-amber-400"
+          : "text-amber-700 dark:text-amber-400",
       )}
     >
       {status === "EXPIRED" ? "Kedaluwarsa" : "Kedaluwarsa"}{" "}

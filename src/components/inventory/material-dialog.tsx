@@ -77,10 +77,10 @@ export function MaterialDialog({
           <Button
             variant="ghost"
             size={compact ? "icon" : "sm"}
-            className={compact ? "size-6" : undefined}
+            className={compact ? "size-8" : undefined}
             aria-label={`Edit ${material!.name}`}
           >
-            <Pencil className={compact ? "size-3" : "size-4"} aria-hidden />
+            <Pencil className="size-4" aria-hidden />
             {compact ? null : "Edit"}
           </Button>
         ) : (
@@ -131,17 +131,23 @@ export function MaterialDialog({
               </NativeSelect>
             </Field>
 
-            <Field id="material-category" label="Kategori" error={errors.category}>
+            <Field
+              id="material-category"
+              label="Kategori"
+              error={errors.category}
+            >
               <NativeSelect
                 id="material-category"
                 name="category"
                 defaultValue={material?.category ?? "FERTILIZER"}
               >
-                {Object.entries(materialCategoryLabels).map(([value, label]) => (
-                  <option key={value} value={value}>
-                    {label}
-                  </option>
-                ))}
+                {Object.entries(materialCategoryLabels).map(
+                  ([value, label]) => (
+                    <option key={value} value={value}>
+                      {label}
+                    </option>
+                  ),
+                )}
               </NativeSelect>
             </Field>
           </div>

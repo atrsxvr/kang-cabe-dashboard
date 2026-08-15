@@ -76,7 +76,12 @@ export function SeasonDialog({ season }: { season?: SeasonRow }) {
     >
       <DialogTrigger asChild>
         {editing ? (
-          <Button variant="ghost" size="sm" aria-label={`Edit ${season!.name}`}>
+          <Button
+            variant="ghost"
+            size="icon"
+            className="size-8"
+            aria-label={`Edit ${season!.name}`}
+          >
             <Pencil className="size-4" aria-hidden />
             Edit
           </Button>
@@ -144,7 +149,11 @@ export function SeasonDialog({ season }: { season?: SeasonRow }) {
               />
             </Field>
 
-            <Field id="startDate" label="Tanggal Tanam" error={errors.startDate}>
+            <Field
+              id="startDate"
+              label="Tanggal Tanam"
+              error={errors.startDate}
+            >
               <Input
                 id="startDate"
                 name="startDate"

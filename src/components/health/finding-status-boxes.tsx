@@ -34,7 +34,7 @@ export function FindingStatusBoxes({
             // filter.
             className={cn(
               "rounded-lg border px-2 py-1.5 sm:px-3 sm:py-2",
-              selected && "border-foreground/40 bg-muted"
+              selected && "border-foreground/40 bg-muted",
             )}
           >
             <p className="text-base font-semibold tabular-nums sm:text-lg">
@@ -45,7 +45,7 @@ export function FindingStatusBoxes({
                 "text-[11px] leading-tight sm:text-xs",
                 selected
                   ? "text-foreground font-medium"
-                  : "text-muted-foreground"
+                  : "text-muted-foreground",
               )}
             >
               {findingStatusLabels[status]}

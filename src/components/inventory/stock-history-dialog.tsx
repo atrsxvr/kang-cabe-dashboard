@@ -98,7 +98,7 @@ export function StockHistoryDialog({
                       "font-medium tabular-nums",
                       row.delta < 0
                         ? "text-destructive"
-                        : "text-emerald-700 dark:text-emerald-400"
+                        : "text-emerald-700 dark:text-emerald-400",
                     )}
                   >
                     {row.delta > 0 ? "+" : "−"}

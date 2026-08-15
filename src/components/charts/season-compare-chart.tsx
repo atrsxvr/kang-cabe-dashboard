@@ -43,7 +43,11 @@ export function SeasonCompareChart({ seasons }: { seasons: SeasonBar[] }) {
     <div className="h-64 w-full">
       <ResponsiveContainer width="100%" height="100%">
         <BarChart data={seasons} margin={{ left: -8, right: 8, top: 8 }}>
-          <CartesianGrid strokeDasharray="3 3" vertical={false} className="stroke-border" />
+          <CartesianGrid
+            strokeDasharray="3 3"
+            vertical={false}
+            className="stroke-border"
+          />
           <XAxis
             dataKey="name"
             tickLine={false}
@@ -73,8 +77,18 @@ export function SeasonCompareChart({ seasons }: { seasons: SeasonBar[] }) {
           />
           <Legend wrapperStyle={{ fontSize: 12 }} />
 
-          <Bar dataKey="income" name="Masuk" fill={INCOME_COLOR} radius={[4, 4, 0, 0]} />
-          <Bar dataKey="cost" name="Keluar" fill={COST_COLOR} radius={[4, 4, 0, 0]} />
+          <Bar
+            dataKey="income"
+            name="Masuk"
+            fill={INCOME_COLOR}
+            radius={[4, 4, 0, 0]}
+          />
+          <Bar
+            dataKey="cost"
+            name="Keluar"
+            fill={COST_COLOR}
+            radius={[4, 4, 0, 0]}
+          />
         </BarChart>
       </ResponsiveContainer>
     </div>

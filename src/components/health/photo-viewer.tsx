@@ -65,7 +65,9 @@ export function PhotoViewer({
           <img
             src={src}
             alt={caption}
-            onClick={() => setLevel((l) => (l === LEVELS.length - 1 ? 0 : l + 1))}
+            onClick={() =>
+              setLevel((l) => (l === LEVELS.length - 1 ? 0 : l + 1))
+            }
             style={{ width: `${zoom * 100}%`, maxWidth: "none" }}
             className={
               zoom === 1
@@ -100,7 +102,9 @@ export function PhotoViewer({
               variant="secondary"
               aria-label="Perbesar"
               disabled={level === LEVELS.length - 1}
-              onClick={() => setLevel((l) => Math.min(LEVELS.length - 1, l + 1))}
+              onClick={() =>
+                setLevel((l) => Math.min(LEVELS.length - 1, l + 1))
+              }
             >
               <Plus className="size-4" aria-hidden />
             </Button>

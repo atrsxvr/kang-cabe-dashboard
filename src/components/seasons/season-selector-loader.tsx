@@ -24,16 +24,14 @@ export async function SeasonSelectorLoader() {
     (error: unknown) => {
       console.error("Gagal memuat daftar musim:", error);
       return null;
-    }
+    },
   );
 
   if (!data) return <SeasonSelectorUnavailable />;
 
   const [seasons, fallback] = data;
 
-  return (
-    <SeasonSelector seasons={seasons} defaultSeasonId={fallback?.id} />
-  );
+  return <SeasonSelector seasons={seasons} defaultSeasonId={fallback?.id} />;
 }
 
 function SeasonSelectorUnavailable() {

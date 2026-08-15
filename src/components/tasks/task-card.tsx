@@ -43,7 +43,11 @@ export function TaskCard({
         <div className="flex items-start justify-between gap-2">
           <p className="text-sm leading-snug font-medium">{task.title}</p>
           {showStatus ? (
-            <StatusBadge status={task.status} kind="task" className="shrink-0" />
+            <StatusBadge
+              status={task.status}
+              kind="task"
+              className="shrink-0"
+            />
           ) : null}
         </div>
 
@@ -57,7 +61,7 @@ export function TaskCard({
           <span
             className={cn(
               "inline-flex items-center gap-1",
-              overdue && "text-destructive font-medium"
+              overdue && "text-destructive font-medium",
             )}
           >
             <CalendarDays className="size-3.5" aria-hidden />

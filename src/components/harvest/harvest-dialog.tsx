@@ -82,7 +82,12 @@ export function HarvestDialog({
     >
       <DialogTrigger asChild>
         {editing ? (
-          <Button variant="ghost" size="sm" aria-label="Edit panen">
+          <Button
+            variant="ghost"
+            size="icon"
+            className="size-8"
+            aria-label="Edit panen"
+          >
             <Pencil className="size-4" aria-hidden />
           </Button>
         ) : (
@@ -97,8 +102,8 @@ export function HarvestDialog({
         <DialogHeader>
           <DialogTitle>{editing ? "Edit Panen" : "Catat Panen"}</DialogTitle>
           <DialogDescription>
-            Isi bobot hasil sortir. Afkir tetap dicatat — dia tetap dijual,
-            cuma lebih murah.
+            Isi bobot hasil sortir. Afkir tetap dicatat — dia tetap dijual, cuma
+            lebih murah.
           </DialogDescription>
         </DialogHeader>
 
@@ -164,7 +169,11 @@ export function HarvestDialog({
             </strong>
           </p>
 
-          <Field id="recordedById" label="Dicatat oleh" error={errors.recordedById}>
+          <Field
+            id="recordedById"
+            label="Dicatat oleh"
+            error={errors.recordedById}
+          >
             <NativeSelect
               id="recordedById"
               name="recordedById"
@@ -179,7 +188,11 @@ export function HarvestDialog({
             </NativeSelect>
           </Field>
 
-          <Field id="harvest-notes" label="Catatan (opsional)" error={errors.notes}>
+          <Field
+            id="harvest-notes"
+            label="Catatan (opsional)"
+            error={errors.notes}
+          >
             <Textarea
               id="harvest-notes"
               name="notes"

@@ -61,7 +61,8 @@ export function SaleList({
                 </p>
                 {sale.rounding > 0 ? (
                   <p className="text-muted-foreground text-[11px] tabular-nums">
-                    {formatRupiah(sale.subtotal)} + {formatRupiah(sale.rounding)}
+                    {formatRupiah(sale.subtotal)} +{" "}
+                    {formatRupiah(sale.rounding)}
                   </p>
                 ) : null}
               </div>
@@ -102,7 +103,7 @@ export function SaleList({
 
             <div className="flex items-center gap-1 border-t pt-2">
               <SalePaidAction sale={sale} seasonId={seasonId} />
-              <div className="ml-auto flex items-center gap-0.5">
+              <div className="ml-auto flex items-center gap-1">
                 <SaleDialog
                   seasonId={seasonId}
                   members={members}

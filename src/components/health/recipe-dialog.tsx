@@ -45,7 +45,7 @@ export function RecipeDialog({
   const [kind, setKind] = useState<string>(recipe?.kind ?? "ROUTINE");
   // One row per existing ingredient when editing, otherwise a single blank.
   const [rows, setRows] = useState(() =>
-    recipe ? recipe.items.map((_, index) => index) : [0]
+    recipe ? recipe.items.map((_, index) => index) : [0],
   );
   const router = useRouter();
 
@@ -104,7 +104,12 @@ export function RecipeDialog({
     >
       <DialogTrigger asChild>
         {editing ? (
-          <Button variant="ghost" size="sm" aria-label={`Edit ${recipe!.name}`}>
+          <Button
+            variant="ghost"
+            size="icon"
+            className="size-8"
+            aria-label={`Edit ${recipe!.name}`}
+          >
             <Pencil className="size-4" aria-hidden />
             Edit
           </Button>
@@ -118,7 +123,9 @@ export function RecipeDialog({
 
       <DialogContent className="max-h-[90dvh] overflow-y-auto sm:max-w-2xl">
         <DialogHeader>
-          <DialogTitle>{editing ? "Edit Racikan" : "Tambah Racikan"}</DialogTitle>
+          <DialogTitle>
+            {editing ? "Edit Racikan" : "Tambah Racikan"}
+          </DialogTitle>
           <DialogDescription>
             Takaran diisi per liter. Volume acuan hanya menentukan angka yang
             ditampilkan pertama kali.
@@ -353,4 +360,3 @@ export function RecipeDialog({
     </Dialog>
   );
 }
-

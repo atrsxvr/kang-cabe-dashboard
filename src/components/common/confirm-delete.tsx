@@ -17,6 +17,7 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 import type { ActionResult } from "@/server/actions/result";
 
 /**
@@ -75,7 +76,13 @@ export function ConfirmDelete({
           variant="ghost"
           size={iconOnly ? "icon" : "sm"}
           aria-label={iconOnly ? `${label} ${itemName}` : undefined}
-          className="text-muted-foreground hover:text-destructive"
+          // size-8 on the icon-only form: this button deletes a row and often
+          // sits beside Edit. On a phone held one-handed in a garden, 24px
+          // with two pixels of clearance is a mis-tap waiting to happen.
+          className={cn(
+            "text-muted-foreground hover:text-destructive",
+            iconOnly && "size-8",
+          )}
         >
           <Trash2 className="size-4" aria-hidden />
           {iconOnly ? null : label}

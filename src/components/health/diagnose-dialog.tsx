@@ -46,7 +46,7 @@ export function DiagnoseDialog({
   // Agronomists first: this form is theirs, so their name should be the
   // default rather than buried in the list.
   const sorted = [...members].sort((a, b) =>
-    a.role === "AGRONOMIST" ? -1 : b.role === "AGRONOMIST" ? 1 : 0
+    a.role === "AGRONOMIST" ? -1 : b.role === "AGRONOMIST" ? 1 : 0,
   );
 
   async function onSubmit(formData: FormData) {
@@ -151,7 +151,7 @@ export function DiagnoseDialog({
               label="Ambil dari Pustaka Racikan"
               onApply={({ text }) =>
                 setTreatment((current) =>
-                  current.trim() ? `${current.trim()}\n\n${text}` : text
+                  current.trim() ? `${current.trim()}\n\n${text}` : text,
                 )
               }
             />
@@ -173,7 +173,9 @@ export function DiagnoseDialog({
           </div>
 
           <div className="grid gap-2">
-            <Label htmlFor={`diagnosedById-${finding.id}`}>Didiagnosa oleh</Label>
+            <Label htmlFor={`diagnosedById-${finding.id}`}>
+              Didiagnosa oleh
+            </Label>
             <NativeSelect
               id={`diagnosedById-${finding.id}`}
               name="diagnosedById"

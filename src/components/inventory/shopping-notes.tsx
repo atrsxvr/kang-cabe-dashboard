@@ -41,7 +41,7 @@ export function ShoppingNotes({
   const run = (
     action: (formData: FormData) => Promise<{ ok: boolean; message?: string }>,
     fields: Record<string, string>,
-    after?: () => void
+    after?: () => void,
   ) =>
     startTransition(async () => {
       const formData = new FormData();
@@ -142,7 +142,7 @@ export function ShoppingNotes({
               <span
                 className={cn(
                   "min-w-0 flex-1 text-sm",
-                  note.done && "text-muted-foreground line-through"
+                  note.done && "text-muted-foreground line-through",
                 )}
               >
                 {note.text}

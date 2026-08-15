@@ -34,7 +34,7 @@ export function StockCapacityCard({
                   ? "text-muted-foreground"
                   : up
                     ? "text-emerald-600 dark:text-emerald-400"
-                    : "text-amber-600 dark:text-amber-400"
+                    : "text-amber-600 dark:text-amber-400",
               )}
               aria-hidden
             />
@@ -53,7 +53,10 @@ export function StockCapacityCard({
 
         <div className="grid gap-2 border-t pt-4">
           <div className="flex items-center gap-2">
-            <FlaskConical className="text-muted-foreground size-4" aria-hidden />
+            <FlaskConical
+              className="text-muted-foreground size-4"
+              aria-hidden
+            />
             <h2 className="text-sm font-medium">Stok cukup buat berapa kali</h2>
           </div>
 
@@ -76,7 +79,7 @@ export function StockCapacityCard({
                         ? "text-destructive font-medium"
                         : mix.batches <= 2
                           ? "text-amber-700 dark:text-amber-400"
-                          : ""
+                          : "",
                     )}
                   >
                     {mix.batches === 0

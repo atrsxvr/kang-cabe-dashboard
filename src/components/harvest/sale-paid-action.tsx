@@ -41,7 +41,7 @@ export function SalePaidAction({
       toast.success(
         sale.isPaid
           ? "Ditandai belum dibayar lagi."
-          : `Pembayaran ${sale.buyerName} tercatat.`
+          : `Pembayaran ${sale.buyerName} tercatat.`,
       );
       router.refresh();
     });

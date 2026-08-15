@@ -48,8 +48,8 @@ export function RecipeCard({
     .map(
       (item) =>
         `${item.material.name} ${formatAmount(
-          amountForVolume(item, recipe.basisVolumeL)
-        )} ${item.material.unit}`
+          amountForVolume(item, recipe.basisVolumeL),
+        )} ${item.material.unit}`,
     )
     .join(" · ");
 
@@ -111,7 +111,7 @@ export function RecipeCard({
           <ChevronDown
             className={cn(
               "text-muted-foreground mt-1 size-4 shrink-0 transition-transform",
-              open && "rotate-180"
+              open && "rotate-180",
             )}
             aria-hidden
           />

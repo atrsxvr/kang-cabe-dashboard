@@ -88,7 +88,7 @@ export function SaleDialog({
   const totalKg = filled.reduce((sum, line) => sum + line.weightKg, 0);
   const subtotal = filled.reduce(
     (sum, line) => sum + lineTotal(line.weightKg, line.pricePerKg),
-    0
+    0,
   );
   // What actually changes hands: nobody here carries anything smaller than a
   // five-hundred note.
@@ -138,7 +138,12 @@ export function SaleDialog({
     >
       <DialogTrigger asChild>
         {editing ? (
-          <Button variant="ghost" size="sm" aria-label="Edit penjualan">
+          <Button
+            variant="ghost"
+            size="icon"
+            className="size-8"
+            aria-label="Edit penjualan"
+          >
             <Pencil className="size-4" aria-hidden />
           </Button>
         ) : (
@@ -289,7 +294,11 @@ export function SaleDialog({
             </NativeSelect>
           </Field>
 
-          <Field id="sale-notes" label="Catatan (opsional)" error={errors.notes}>
+          <Field
+            id="sale-notes"
+            label="Catatan (opsional)"
+            error={errors.notes}
+          >
             <Textarea
               id="sale-notes"
               name="notes"

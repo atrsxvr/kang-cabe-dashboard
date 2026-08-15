@@ -38,7 +38,7 @@ export function MemberActiveAction({ member }: { member: MemberRow }) {
       toast.success(
         inactive
           ? `${member.name} aktif lagi.`
-          : `${member.name} dinonaktifkan.`
+          : `${member.name} dinonaktifkan.`,
       );
       router.refresh();
     });

@@ -19,7 +19,10 @@ export function ComingSoon({
       <Card>
         <CardContent className="flex flex-col items-start gap-4 py-10 sm:flex-row sm:items-center">
           <div className="bg-muted rounded-lg p-3">
-            <Construction className="text-muted-foreground size-6" aria-hidden />
+            <Construction
+              className="text-muted-foreground size-6"
+              aria-hidden
+            />
           </div>
           <div className="min-w-0">
             <p className="font-medium">Segera hadir</p>

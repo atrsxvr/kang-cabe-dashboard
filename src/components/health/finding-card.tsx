@@ -42,13 +42,19 @@ export function FindingCard({
           <div className="mb-2 flex flex-wrap items-center gap-2">
             <Badge
               variant="secondary"
-              className={cn("border-transparent", findingStatusTones[finding.status])}
+              className={cn(
+                "border-transparent",
+                findingStatusTones[finding.status],
+              )}
             >
               {findingStatusLabels[finding.status]}
             </Badge>
             <Badge
               variant="secondary"
-              className={cn("border-transparent", severityTones[finding.severity])}
+              className={cn(
+                "border-transparent",
+                severityTones[finding.severity],
+              )}
             >
               {severityLabels[finding.severity]}
             </Badge>
@@ -99,7 +105,9 @@ export function FindingCard({
               <div>
                 <p className="text-muted-foreground text-xs font-medium">
                   Diagnosa
-                  {finding.diagnosedBy ? ` · ${finding.diagnosedBy.name}` : null}
+                  {finding.diagnosedBy
+                    ? ` · ${finding.diagnosedBy.name}`
+                    : null}
                 </p>
                 <p>{finding.diagnosis}</p>
               </div>

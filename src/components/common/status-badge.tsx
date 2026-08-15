@@ -53,7 +53,7 @@ export function StatusBadge({
         "border-transparent",
         block && "w-full justify-center",
         tones[status],
-        className
+        className,
       )}
     >
       {labels[status] ?? status}

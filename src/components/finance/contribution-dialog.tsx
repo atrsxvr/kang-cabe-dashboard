@@ -50,7 +50,7 @@ export function ContributionDialog({
   const [open, setOpen] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [amount, setAmount] = useState(
-    contribution ? String(contribution.amount) : ""
+    contribution ? String(contribution.amount) : "",
   );
   const [proof, setProof] = useState<File | null>(null);
   const [keepProof, setKeepProof] = useState(Boolean(contribution?.proofUrl));
@@ -99,7 +99,12 @@ export function ContributionDialog({
     >
       <DialogTrigger asChild>
         {editing ? (
-          <Button variant="ghost" size="sm" aria-label="Edit setoran">
+          <Button
+            variant="ghost"
+            size="icon"
+            className="size-8"
+            aria-label="Edit setoran"
+          >
             <Pencil className="size-4" aria-hidden />
           </Button>
         ) : (
@@ -116,8 +121,8 @@ export function ContributionDialog({
             {editing ? "Edit Setoran Modal" : "Catat Setoran Modal"}
           </DialogTitle>
           <DialogDescription>
-            Iuran yang disetor anggota. Dicatat terpisah dari hasil jualan —
-            ini uang yang ditaruh, bukan uang yang didapat.
+            Iuran yang disetor anggota. Dicatat terpisah dari hasil jualan — ini
+            uang yang ditaruh, bukan uang yang didapat.
           </DialogDescription>
         </DialogHeader>
 
@@ -145,7 +150,11 @@ export function ContributionDialog({
           </Field>
 
           <div className="grid gap-4 sm:grid-cols-2">
-            <Field id="contrib-amount" label="Jumlah (Rp)" error={errors.amount}>
+            <Field
+              id="contrib-amount"
+              label="Jumlah (Rp)"
+              error={errors.amount}
+            >
               <Input
                 id="contrib-amount"
                 name="amount"
@@ -165,7 +174,11 @@ export function ContributionDialog({
               ) : null}
             </Field>
 
-            <Field id="contrib-paidAt" label="Tanggal Setor" error={errors.paidAt}>
+            <Field
+              id="contrib-paidAt"
+              label="Tanggal Setor"
+              error={errors.paidAt}
+            >
               <Input
                 id="contrib-paidAt"
                 name="paidAt"
@@ -197,7 +210,11 @@ export function ContributionDialog({
             </NativeSelect>
           </Field>
 
-          <Field id="contrib-note" label="Catatan (opsional)" error={errors.note}>
+          <Field
+            id="contrib-note"
+            label="Catatan (opsional)"
+            error={errors.note}
+          >
             <Input
               id="contrib-note"
               name="note"

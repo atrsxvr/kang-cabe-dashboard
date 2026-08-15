@@ -57,7 +57,7 @@ export function MaterialArchiveAction({
       toast.success(
         archived
           ? `${material.name} dikembalikan.`
-          : `${material.name} diarsipkan.`
+          : `${material.name} diarsipkan.`,
       );
       router.refresh();
     });
@@ -85,10 +85,10 @@ export function MaterialArchiveAction({
         <Button
           variant="ghost"
           size={compact ? "icon" : "sm"}
-          className={compact ? "size-6" : "text-muted-foreground"}
+          className={compact ? "size-8" : "text-muted-foreground"}
           aria-label={`Arsipkan ${material.name}`}
         >
-          <Archive className={compact ? "size-3" : "size-4"} aria-hidden />
+          <Archive className="size-4" aria-hidden />
           {compact ? null : "Arsipkan"}
         </Button>
       </AlertDialogTrigger>

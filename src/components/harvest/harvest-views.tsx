@@ -24,7 +24,7 @@ export function HarvestViews({
 
   return (
     <Tabs value={view} onValueChange={setView}>
-      <TabsList className="mb-4">
+      <TabsList className="mb-4 max-w-full justify-start overflow-x-auto">
         <TabsTrigger value="harvest">
           <Wheat className="size-4" aria-hidden />
           Panen

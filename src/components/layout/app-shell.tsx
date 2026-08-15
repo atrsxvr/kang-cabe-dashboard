@@ -108,7 +108,7 @@ export function AppShell({
         aria-hidden
         className={cn(
           "fixed inset-0 z-30 bg-black/50 transition-opacity lg:hidden",
-          open ? "opacity-100" : "pointer-events-none opacity-0"
+          open ? "opacity-100" : "pointer-events-none opacity-0",
         )}
       />
 
@@ -128,7 +128,7 @@ export function AppShell({
           // the panel stays on screen for the slide-out.
           open
             ? "visible translate-x-0 transition-transform"
-            : "invisible -translate-x-full transition-[transform,visibility]"
+            : "invisible -translate-x-full transition-[transform,visibility]",
         )}
       >
         <div className="border-sidebar-border flex h-14 items-center gap-2 border-b px-4">
@@ -157,10 +157,7 @@ export function AppShell({
 
       {/* While the drawer is open it owns the screen; the column behind it must
           not be reachable by tab or screen reader. */}
-      <div
-        inert={open}
-        className="flex min-w-0 flex-1 flex-col lg:pl-64"
-      >
+      <div inert={open} className="flex min-w-0 flex-1 flex-col lg:pl-64">
         <header className="bg-background/95 supports-backdrop-filter:bg-background/75 sticky top-0 z-20 flex h-14 items-center gap-3 border-b px-4 backdrop-blur">
           <Button
             ref={openButtonRef}

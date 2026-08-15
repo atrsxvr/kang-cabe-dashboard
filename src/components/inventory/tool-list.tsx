@@ -64,7 +64,7 @@ export function ToolList({
                   variant="secondary"
                   className={cn(
                     "shrink-0 border-transparent",
-                    toolConditionTones[tool.condition]
+                    toolConditionTones[tool.condition],
                   )}
                 >
                   {toolConditionLabels[tool.condition]}
@@ -111,7 +111,9 @@ export function ToolList({
                   <TableCell className="font-medium">{tool.name}</TableCell>
                   <TableCell className="text-right tabular-nums">
                     {tool.quantity === 0 ? (
-                      <span className="text-rose-700 dark:text-rose-400">0</span>
+                      <span className="text-rose-700 dark:text-rose-400">
+                        0
+                      </span>
                     ) : (
                       tool.quantity
                     )}
@@ -121,7 +123,7 @@ export function ToolList({
                       variant="secondary"
                       className={cn(
                         "w-full justify-center border-transparent",
-                        toolConditionTones[tool.condition]
+                        toolConditionTones[tool.condition],
                       )}
                     >
                       {toolConditionLabels[tool.condition]}
@@ -137,7 +139,7 @@ export function ToolList({
                     {tool.notes ?? "—"}
                   </TableCell>
                   <TableCell className="w-32">
-                    <div className="flex items-center justify-end gap-0.5">
+                    <div className="flex items-center justify-end gap-1">
                       <ToolEventDialog tool={tool} members={members} />
                       <ToolDialog tool={tool} />
                       <ConfirmDelete
@@ -170,7 +172,7 @@ function ServiceNote({ tool }: { tool: ToolRow }) {
         "text-xs",
         status === "OVERDUE"
           ? "text-rose-700 dark:text-rose-400"
-          : "text-amber-700 dark:text-amber-400"
+          : "text-amber-700 dark:text-amber-400",
       )}
     >
       {serviceStatusLabels[status]}
@@ -182,9 +184,7 @@ function HolderNote({ tool }: { tool: ToolRow }) {
   if (!tool.heldBy) return null;
 
   return (
-    <p className="text-muted-foreground text-xs">
-      Dibawa {tool.heldBy.name}
-    </p>
+    <p className="text-muted-foreground text-xs">Dibawa {tool.heldBy.name}</p>
   );
 }
 

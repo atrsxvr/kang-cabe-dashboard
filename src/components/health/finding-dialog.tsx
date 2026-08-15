@@ -86,7 +86,9 @@ export function FindingDialog({
     resetForm();
     setOpen(false);
     toast.success(
-      editing ? "Temuan diperbarui." : "Temuan dicatat. Menunggu diagnosa Agronomis."
+      editing
+        ? "Temuan diperbarui."
+        : "Temuan dicatat. Menunggu diagnosa Agronomis.",
     );
     router.refresh();
   }
@@ -109,7 +111,12 @@ export function FindingDialog({
     >
       <DialogTrigger asChild>
         {editing ? (
-          <Button variant="ghost" size="sm" aria-label="Edit temuan">
+          <Button
+            variant="ghost"
+            size="icon"
+            className="size-8"
+            aria-label="Edit temuan"
+          >
             <Pencil className="size-4" aria-hidden />
             Edit
           </Button>
@@ -161,7 +168,9 @@ export function FindingDialog({
                   // eslint-disable-next-line @next/next/no-img-element
                   <img
                     src={shownPhoto}
-                    alt={preview ? "Pratinjau foto temuan" : "Foto temuan saat ini"}
+                    alt={
+                      preview ? "Pratinjau foto temuan" : "Foto temuan saat ini"
+                    }
                     className="max-h-48 w-full rounded-md border object-cover"
                   />
                 ) : null}
@@ -188,7 +197,11 @@ export function FindingDialog({
             )}
           </div>
 
-          <Field id="symptoms" label="Gejala yang terlihat" error={errors.symptoms}>
+          <Field
+            id="symptoms"
+            label="Gejala yang terlihat"
+            error={errors.symptoms}
+          >
             <Textarea
               id="symptoms"
               name="symptoms"
@@ -201,7 +214,11 @@ export function FindingDialog({
           </Field>
 
           <div className="grid gap-4 sm:grid-cols-2">
-            <Field id="severity" label="Tingkat keparahan" error={errors.severity}>
+            <Field
+              id="severity"
+              label="Tingkat keparahan"
+              error={errors.severity}
+            >
               <NativeSelect
                 id="severity"
                 name="severity"
@@ -233,7 +250,11 @@ export function FindingDialog({
             </Field>
           </div>
 
-          <Field id="location" label="Lokasi / petak (opsional)" error={errors.location}>
+          <Field
+            id="location"
+            label="Lokasi / petak (opsional)"
+            error={errors.location}
+          >
             <Input
               id="location"
               name="location"
@@ -242,7 +263,11 @@ export function FindingDialog({
             />
           </Field>
 
-          <Field id="reportedById" label="Ditemukan oleh" error={errors.reportedById}>
+          <Field
+            id="reportedById"
+            label="Ditemukan oleh"
+            error={errors.reportedById}
+          >
             <NativeSelect
               id="reportedById"
               name="reportedById"

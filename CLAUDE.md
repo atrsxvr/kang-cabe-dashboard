@@ -110,7 +110,12 @@ e2e/                        # Playwright; cleans up after itself by "E2E" prefix
   boundary. Suspense alone still prerenders at build time and freezes the data.
 - Anything rendered from a **layout** must handle its own failure. A layout's
   throw skips `error.tsx` and hits `global-error`, blanking the whole shell.
-- Mobile-first: the dashboard is used in the field on phones.
+- Mobile-first: the dashboard is used in the field on phones. Checked at
+  **360px**, and a `<TabsList>` always needs `max-w-full justify-start
+  overflow-x-auto` — it is `inline-flex w-fit`, so it runs off the side of a
+  phone with nothing to scroll and the page-level overflow check stays green.
+- **Icon-only buttons are at least 32px.** They sit beside ones that archive or
+  delete a row, and get tapped one-handed in a garden.
 - Every new table needs `ALTER TABLE ... ENABLE ROW LEVEL SECURITY` in its
   migration. Postgres does not do this automatically, and Supabase exposes
   `public` through PostgREST.

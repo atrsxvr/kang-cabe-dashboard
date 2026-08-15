@@ -26,7 +26,7 @@ export function InventoryViews({
 
   return (
     <Tabs value={view} onValueChange={setView}>
-      <TabsList className="mb-4">
+      <TabsList className="mb-4 max-w-full justify-start overflow-x-auto">
         <TabsTrigger value="stock">
           <Package className="size-4" aria-hidden />
           Stok Bahan

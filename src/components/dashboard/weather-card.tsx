@@ -6,7 +6,10 @@ import { sprayAdvice, weatherLabels, type WeatherKind } from "@/lib/weather";
 import { cn } from "@/lib/utils";
 import type { WeatherNow } from "@/server/queries/weather";
 
-const icons: Record<WeatherKind, React.ComponentType<{ className?: string }>> = {
+const icons: Record<
+  WeatherKind,
+  React.ComponentType<{ className?: string }>
+> = {
   CERAH: Sun,
   BERAWAN: CloudSun,
   HUJAN: CloudRain,
@@ -96,7 +99,8 @@ export function WeatherCard({
                   aria-hidden
                 />
                 <p className="text-xs tabular-nums">
-                  {day.maxTemp}°<span className="text-muted-foreground">/{day.minTemp}°</span>
+                  {day.maxTemp}°
+                  <span className="text-muted-foreground">/{day.minTemp}°</span>
                 </p>
                 <p className="text-muted-foreground text-[11px] tabular-nums">
                   {day.rainChance}% hujan

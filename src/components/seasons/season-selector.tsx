@@ -53,10 +53,7 @@ export function SeasonSelector({
 
   return (
     <Select value={selectedId} onValueChange={onChange}>
-      <SelectTrigger
-        className="w-47.5 sm:w-60"
-        aria-label="Pilih musim tanam"
-      >
+      <SelectTrigger className="w-47.5 sm:w-60" aria-label="Pilih musim tanam">
         <SelectValue placeholder="Pilih musim" />
       </SelectTrigger>
       <SelectContent>

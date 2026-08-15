@@ -8,10 +8,7 @@ import { formatDate } from "@/lib/hst";
 import { formatRupiah } from "@/lib/money";
 import { cn } from "@/lib/utils";
 import { deleteContribution } from "@/server/actions/capital";
-import type {
-  CapitalSummary,
-  ContributionRow,
-} from "@/server/queries/capital";
+import type { CapitalSummary, ContributionRow } from "@/server/queries/capital";
 import type { SeasonSummary } from "@/server/queries/seasons";
 import type { MemberOption } from "@/server/queries/users";
 
@@ -41,8 +38,8 @@ export function CapitalPanel({
             </p>
             <p className="text-muted-foreground mx-auto max-w-md text-xs">
               Uang yang kalian taruh sendiri, dihitung terpisah dari hasil
-              jualan. Modal bukan pemasukan — kalau dicampur, musimnya
-              kelihatan untung padahal cuma balik modal.
+              jualan. Modal bukan pemasukan — kalau dicampur, musimnya kelihatan
+              untung padahal cuma balik modal.
             </p>
           </div>
 
@@ -56,7 +53,8 @@ export function CapitalPanel({
                 // Shown side by side and never reconciled automatically:
                 // putting in more and taking a smaller cut is a fine thing to
                 // agree on — nobody noticing is not.
-                const gap = Math.round((row.capitalShare - row.profitShare) * 10) / 10;
+                const gap =
+                  Math.round((row.capitalShare - row.profitShare) * 10) / 10;
 
                 return (
                   <li key={row.id} className="grid gap-1 rounded-md border p-3">
@@ -98,10 +96,12 @@ export function CapitalPanel({
                             "border-transparent tabular-nums",
                             gap > 0
                               ? "bg-amber-500/15 text-amber-700 dark:text-amber-400"
-                              : "bg-sky-500/12 text-sky-700 dark:text-sky-400"
+                              : "bg-sky-500/12 text-sky-700 dark:text-sky-400",
                           )}
                         >
-                          {gap > 0 ? `setor ${gap}% lebih besar` : `setor ${Math.abs(gap)}% lebih kecil`}
+                          {gap > 0
+                            ? `setor ${gap}% lebih besar`
+                            : `setor ${Math.abs(gap)}% lebih kecil`}
                         </Badge>
                       ) : null}
                     </div>
@@ -167,7 +167,7 @@ export function CapitalPanel({
                   {formatRupiah(row.amount)}
                 </p>
 
-                <div className="flex items-center gap-0.5">
+                <div className="flex items-center gap-1">
                   <ContributionDialog
                     members={members}
                     seasons={seasons}

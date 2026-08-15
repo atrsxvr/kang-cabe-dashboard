@@ -27,7 +27,7 @@ export function TaskViews({
 
   return (
     <Tabs value={view} onValueChange={setView}>
-      <TabsList className="mb-4">
+      <TabsList className="mb-4 max-w-full justify-start overflow-x-auto">
         <TabsTrigger value="board">
           <KanbanSquare className="size-4" aria-hidden />
           Board

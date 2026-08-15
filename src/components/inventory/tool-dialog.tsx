@@ -57,7 +57,12 @@ export function ToolDialog({ tool }: { tool?: ToolRow }) {
     >
       <DialogTrigger asChild>
         {editing ? (
-          <Button variant="ghost" size="sm" aria-label={`Edit ${tool!.name}`}>
+          <Button
+            variant="ghost"
+            size="icon"
+            className="size-8"
+            aria-label={`Edit ${tool!.name}`}
+          >
             <Pencil className="size-4" aria-hidden />
           </Button>
         ) : (

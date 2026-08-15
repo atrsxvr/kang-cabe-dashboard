@@ -75,14 +75,14 @@ export function FinanceEntryList({
                   "font-semibold tabular-nums",
                   outgoing
                     ? "text-destructive"
-                    : "text-emerald-700 dark:text-emerald-400"
+                    : "text-emerald-700 dark:text-emerald-400",
                 )}
               >
                 {outgoing ? "−" : "+"}
                 {formatRupiah(entry.amount)}
               </p>
 
-              <div className="flex items-center gap-0.5">
+              <div className="flex items-center gap-1">
                 <FinanceEntryDialog
                   seasonId={seasonId}
                   entry={entry}

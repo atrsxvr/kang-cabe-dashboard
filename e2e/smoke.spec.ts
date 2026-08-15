@@ -67,3 +67,70 @@ test("overview memuat panel yang dipakai tiap hari", async ({ page }) => {
     main.getByText(/Aman dipanen|Jangan panen dulu/)
   ).toBeVisible();
 });
+
+/**
+ * A narrower phone than the suite's default, because the default hid a real
+ * bug: five tabs on Keuangan needed 480px and ran off every screen, while the
+ * page-level overflow check stayed green — a flex row that spills inside a
+ * `min-w-0` parent never widens the document.
+ */
+test.describe("layar 360px", () => {
+  test.use({ viewport: { width: 360, height: 900 } });
+
+  test("semua tab tetap bisa dijangkau", async ({ page }) => {
+    for (const { path } of pages) {
+      await page.goto(path);
+
+      const problem = await page.evaluate(() => {
+        const list = document.querySelector<HTMLElement>(
+          '[data-slot="tabs-list"]'
+        );
+        if (!list) return null;
+
+        const rect = list.getBoundingClientRect();
+        // The box itself must sit inside the screen…
+        if (rect.right > window.innerWidth + 1) return "kotaknya keluar layar";
+
+        // …and when its tabs need more room than that, the overflow has to be
+        // scrollable rather than clipped, or the last tab is simply gone.
+        const overflows = list.scrollWidth > list.clientWidth + 1;
+        const overflowX = getComputedStyle(list).overflowX;
+
+        return overflows && !["auto", "scroll"].includes(overflowX)
+          ? "tab terpotong tanpa bisa digeser"
+          : null;
+      });
+
+      expect(problem, `${path}: ${problem}`).toBeNull();
+    }
+  });
+
+  /**
+   * Icon-only buttons sit shoulder to shoulder with ones that archive a row.
+   * A 24px target with two pixels of clearance is a mis-tap, and this is an
+   * app used one-handed in a garden.
+   */
+  test("tombol ikon cukup besar buat jempol", async ({ page }) => {
+    for (const path of ["/inventory", "/harvest", "/finance", "/tasks"]) {
+      await page.goto(path);
+
+      const tiny = await page.evaluate(() => {
+        const out: string[] = [];
+        document.querySelectorAll<HTMLElement>("button").forEach((el) => {
+          const rect = el.getBoundingClientRect();
+          if (rect.width === 0 || rect.height === 0) return;
+          // Icon-only: no text to widen the target.
+          if ((el.textContent ?? "").trim().length > 0) return;
+          if (rect.width >= 32 && rect.height >= 32) return;
+
+          out.push(
+            `${Math.round(rect.width)}x${Math.round(rect.height)} ${el.getAttribute("aria-label") ?? ""}`
+          );
+        });
+        return [...new Set(out)];
+      });
+
+      expect(tiny, `tombol ikon kekecilan di ${path}`).toEqual([]);
+    }
+  });
+});

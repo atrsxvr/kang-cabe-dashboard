@@ -27,7 +27,10 @@ function SeasonAwareNavLinks({ onNavigate }: { onNavigate?: () => void }) {
   // Navigation must not silently drop the season, or every click would reset
   // the user back to the default one.
   return (
-    <NavLinks seasonId={searchParams.get(SEASON_PARAM)} onNavigate={onNavigate} />
+    <NavLinks
+      seasonId={searchParams.get(SEASON_PARAM)}
+      onNavigate={onNavigate}
+    />
   );
 }
 
@@ -56,7 +59,7 @@ function NavLinks({
               "focus-visible:ring-ring focus-visible:ring-2 focus-visible:outline-none",
               active
                 ? "bg-sidebar-accent text-sidebar-accent-foreground"
-                : "text-sidebar-foreground/70 hover:bg-sidebar-accent/50 hover:text-sidebar-foreground"
+                : "text-sidebar-foreground/70 hover:bg-sidebar-accent/50 hover:text-sidebar-foreground",
             )}
           >
             <Icon className="size-4 shrink-0" aria-hidden />

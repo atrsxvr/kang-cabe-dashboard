@@ -111,7 +111,7 @@ export function TaskTable({
                     <TableCell
                       className={cn(
                         "whitespace-nowrap",
-                        overdue && "text-destructive font-medium"
+                        overdue && "text-destructive font-medium",
                       )}
                     >
                       {formatDate(task.dueDate)}

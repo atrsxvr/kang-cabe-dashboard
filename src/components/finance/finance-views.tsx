@@ -30,7 +30,13 @@ export function FinanceViews({
 
   return (
     <Tabs value={view} onValueChange={setView}>
-      <TabsList className="mb-4">
+      {/* TabsList is inline-flex w-fit, so on a phone it ran off the side with
+          nothing to scroll — five tabs need 480px and no phone is that wide.
+          It scrolls now rather than wrapping: a tab sliced off at the edge is
+          its own invitation to swipe, and the header stays one row tall.
+          justify-start matters — the default centring would push the first tab
+          out of reach on the left. */}
+      <TabsList className="mb-4 max-w-full justify-start overflow-x-auto">
         <TabsTrigger value="summary">
           <PieChart className="size-4" aria-hidden />
           Rincian

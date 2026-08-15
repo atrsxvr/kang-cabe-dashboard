@@ -33,7 +33,10 @@ export function TodayCard({
       <CardContent className="grid gap-3 py-5">
         <div className="flex items-center justify-between gap-2">
           <div className="flex items-center gap-2">
-            <CalendarCheck className="text-muted-foreground size-4" aria-hidden />
+            <CalendarCheck
+              className="text-muted-foreground size-4"
+              aria-hidden
+            />
             <h2 className="text-sm font-medium">Dikerjakan hari ini</h2>
           </div>
           {overdue.length > 0 ? (
@@ -62,7 +65,7 @@ export function TodayCard({
                       "text-xs",
                       task.daysLeft < 0
                         ? "text-destructive"
-                        : "text-muted-foreground"
+                        : "text-muted-foreground",
                     )}
                   >
                     {task.daysLeft < 0
@@ -87,7 +90,12 @@ export function TodayCard({
           </ul>
         )}
 
-        <Button asChild size="sm" variant="secondary" className="justify-self-start">
+        <Button
+          asChild
+          size="sm"
+          variant="secondary"
+          className="justify-self-start"
+        >
           <Link href={withSeason("/tasks", seasonId)}>Lihat semua tugas</Link>
         </Button>
       </CardContent>

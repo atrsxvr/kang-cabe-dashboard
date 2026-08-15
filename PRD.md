@@ -424,9 +424,18 @@ sistem** — daftar peran di sini mudah disangka kontrol akses, dan ia bukan.
 Hal-hal yang berlaku di seluruh aplikasi, bukan pada satu modul.
 
 **Mobile-first, dipakai di lapangan.** Diakses sambil berdiri di kebun: sidebar
-jadi drawer, papan Kanban bisa di-scroll horizontal, tabel berubah jadi kartu
-di layar kecil, dan form foto membuka kamera langsung. Setiap halaman
-diverifikasi tidak melebar horizontal di lebar 390px.
+jadi drawer, papan Kanban dan deretan tab bisa digeser horizontal, tabel
+berubah jadi kartu di layar kecil, dan form foto membuka kamera langsung.
+
+Diverifikasi di **360px**, bukan 390 — pengecekan lama melewatkan bug nyata:
+lima tab di Keuangan butuh 480px dan lari keluar layar di semua ponsel,
+sementara pemeriksaan "halaman melebar" tetap hijau, karena baris flex yang
+meluber di dalam induk `min-w-0` tidak pernah melebarkan dokumen.
+
+**Tombol yang isinya cuma ikon minimal 32px.** Beberapa di antaranya duduk
+bersebelahan dengan tombol yang mengarsipkan atau menghapus baris; 24px dengan
+jarak dua piksel adalah salah pencet yang menunggu terjadi pada ponsel yang
+dipegang satu tangan di kebun.
 
 **Waktu selalu WIB.** Server berjalan di UTC, yang berganti hari pukul 07:00
 WIB — menghitung HST di UTC akan menampilkan angka kemarin bagi orang yang

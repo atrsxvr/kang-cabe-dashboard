@@ -64,7 +64,7 @@ export function RecipeBrowser({
         recipe.name.toLowerCase().includes(needle) ||
         (recipe.targetIssue ?? "").toLowerCase().includes(needle) ||
         recipe.items.some((item) =>
-          item.material.name.toLowerCase().includes(needle)
+          item.material.name.toLowerCase().includes(needle),
         )
       );
     });
@@ -86,7 +86,7 @@ export function RecipeBrowser({
                 "disabled:pointer-events-none disabled:opacity-40",
                 group === value
                   ? "bg-foreground text-background"
-                  : "hover:bg-muted text-muted-foreground"
+                  : "hover:bg-muted text-muted-foreground",
               )}
             >
               {label}

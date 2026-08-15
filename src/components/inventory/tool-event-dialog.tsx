@@ -44,13 +44,11 @@ export function ToolEventDialog({
   // A tool someone is holding is most likely coming back; one in the shed is
   // most likely going out or being reported broken.
   const [type, setType] = useState<string>(
-    tool.heldBy ? "RETURNED" : "CHECKED_OUT"
+    tool.heldBy ? "RETURNED" : "CHECKED_OUT",
   );
   const router = useRouter();
 
-  const affectsCount = changesQuantity(
-    type as (typeof toolEventTypes)[number]
-  );
+  const affectsCount = changesQuantity(type as (typeof toolEventTypes)[number]);
 
   // Buying one and paying to fix one are the two that cost money. Losing a
   // hoe is a loss, but nobody handed over rupiah for it.
@@ -105,7 +103,11 @@ export function ToolEventDialog({
         <form action={onSubmit} className="grid gap-4">
           <input type="hidden" name="toolId" value={tool.id} />
 
-          <Field id={`event-type-${tool.id}`} label="Kejadian" error={errors.type}>
+          <Field
+            id={`event-type-${tool.id}`}
+            label="Kejadian"
+            error={errors.type}
+          >
             <NativeSelect
               id={`event-type-${tool.id}`}
               name="type"
@@ -239,7 +241,10 @@ export function ToolEventDialog({
                     </span>
                   ) : null}
                   {event.note ? (
-                    <span className="text-muted-foreground"> · {event.note}</span>
+                    <span className="text-muted-foreground">
+                      {" "}
+                      · {event.note}
+                    </span>
                   ) : null}
                 </p>
               ))}

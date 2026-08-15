@@ -79,8 +79,9 @@ export function TaskStatusButtons({
 
   const backButton = previous ? (
     <Button
-      size="sm"
+      size="icon"
       variant="ghost"
+      className="size-8"
       disabled={pending}
       onClick={() => move(previous)}
       aria-label={`Pindahkan ke ${labels[previous]}`}
@@ -91,8 +92,9 @@ export function TaskStatusButtons({
 
   const forwardButton = next ? (
     <Button
-      size="sm"
+      size={next === "DONE" ? "sm" : "icon"}
       variant="ghost"
+      className={next === "DONE" ? "h-8" : "size-8"}
       disabled={pending}
       onClick={() => move(next)}
       aria-label={`Pindahkan ke ${labels[next]}`}
@@ -112,7 +114,7 @@ export function TaskStatusButtons({
     <div
       className={cn(
         "flex items-center gap-1",
-        !isTable && `w-full ${cardAlignment}`
+        !isTable && `w-full ${cardAlignment}`,
       )}
     >
       {isTable ? (

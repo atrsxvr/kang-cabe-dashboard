@@ -90,9 +90,7 @@ export function HarvestList({
               <TableRow>
                 <TableHead>Tanggal</TableHead>
                 <TableHead className="text-right">HST</TableHead>
-                <TableHead className="text-right">
-                  {gradeLabels.GOOD}
-                </TableHead>
+                <TableHead className="text-right">{gradeLabels.GOOD}</TableHead>
                 <TableHead className="text-right">
                   {gradeLabels.REJECT}
                 </TableHead>
@@ -128,7 +126,7 @@ export function HarvestList({
                     {row.recordedBy?.name ?? "—"}
                   </TableCell>
                   <TableCell className="w-24">
-                    <div className="flex items-center justify-end gap-0.5">
+                    <div className="flex items-center justify-end gap-1">
                       <HarvestDialog
                         seasonId={seasonId}
                         members={members}

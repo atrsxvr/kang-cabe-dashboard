@@ -15,7 +15,7 @@ const WEEKDAYS = ["Sen", "Sel", "Rab", "Kam", "Jum", "Sab", "Min"];
 /** Jakarta has no daylight saving, so a plain date key is unambiguous. */
 function dayKey(date: Date): string {
   return new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Jakarta" }).format(
-    date
+    date,
   );
 }
 
@@ -138,7 +138,7 @@ export function TaskCalendar({
                 className={cn(
                   "min-h-16 rounded-md border p-1 text-left sm:min-h-20",
                   cell.isWeekend && "bg-muted/40",
-                  cell.isToday && "border-primary"
+                  cell.isToday && "border-primary",
                 )}
               >
                 <p
@@ -146,7 +146,7 @@ export function TaskCalendar({
                     "text-[11px] tabular-nums",
                     cell.isToday
                       ? "text-primary font-semibold"
-                      : "text-muted-foreground"
+                      : "text-muted-foreground",
                   )}
                 >
                   {cell.day}
@@ -160,7 +160,7 @@ export function TaskCalendar({
                         "truncate rounded px-1 py-0.5 text-[10px] leading-tight",
                         task.status === "DONE"
                           ? "bg-emerald-500/15 text-emerald-800 line-through dark:text-emerald-300"
-                          : "bg-primary/10 text-foreground"
+                          : "bg-primary/10 text-foreground",
                       )}
                       title={task.title}
                     >
@@ -174,7 +174,7 @@ export function TaskCalendar({
                   ) : null}
                 </div>
               </div>
-            )
+            ),
           )}
         </div>
 

@@ -15,11 +15,7 @@ import { ShoppingNotes } from "@/components/inventory/shopping-notes";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import {
-  describePurchase,
-  describeShortfall,
-  stockStatus,
-} from "@/lib/stock";
+import { describePurchase, describeShortfall, stockStatus } from "@/lib/stock";
 import { cn } from "@/lib/utils";
 import type {
   ShoppingNoteRow,
@@ -40,7 +36,7 @@ function asText(
   rows: StockRow[],
   replace: ToolRow[],
   service: ToolRow[],
-  notes: ShoppingNoteRow[]
+  notes: ShoppingNoteRow[],
 ): string {
   const today = new Intl.DateTimeFormat("id-ID", {
     timeZone: "Asia/Jakarta",
@@ -60,7 +56,7 @@ function asText(
           ? ` → beli min. ${describePurchase(needed, row.unit, row.purchaseUnit, row.purchaseSize)}`
           : "";
       parts.push(
-        `• ${row.name} — ${describeShortfall(row.stock, row.minStock, row.unit)}${suggestion}`
+        `• ${row.name} — ${describeShortfall(row.stock, row.minStock, row.unit)}${suggestion}`,
       );
     }
   }
@@ -69,7 +65,9 @@ function asText(
     parts.push("", "ALAT PERLU DIGANTI");
     for (const tool of replace) {
       const why =
-        tool.quantity === 0 ? "habis/hilang" : toolConditionLabels[tool.condition];
+        tool.quantity === 0
+          ? "habis/hilang"
+          : toolConditionLabels[tool.condition];
       parts.push(`• ${tool.name} — ${why.toLowerCase()}`);
     }
   }
@@ -178,7 +176,7 @@ export function ShoppingList({
                       variant="secondary"
                       className={cn(
                         "border-transparent",
-                        stockStatusTones[status]
+                        stockStatusTones[status],
                       )}
                     >
                       {stockStatusLabels[status]}
@@ -199,7 +197,7 @@ export function ShoppingList({
                             needed,
                             row.unit,
                             row.purchaseUnit,
-                            row.purchaseSize
+                            row.purchaseSize,
                           )}
                         </strong>
                       </>
@@ -210,7 +208,8 @@ export function ShoppingList({
                       list says what stops working if this is not bought. */}
                   {row.usedBy.length > 0 ? (
                     <p className="text-muted-foreground text-xs">
-                      Dipakai racikan: {row.usedBy.map((r) => r.name).join(", ")}
+                      Dipakai racikan:{" "}
+                      {row.usedBy.map((r) => r.name).join(", ")}
                     </p>
                   ) : null}
 
