@@ -579,3 +579,19 @@ export const scheduleProgramSchema = z
       Math.floor((value.toHst - value.fromHst) / value.intervalDays) + 1 <= 60,
     { message: "Kebanyakan — maksimal 60 tugas sekali jadwal", path: ["toHst"] }
   );
+
+const contributionBase = {
+  userId: z.string().min(1, "Pilih anggotanya"),
+  amount: rupiah.refine((value) => value > 0, "Isi jumlahnya"),
+  paidAt: z.coerce.date("Tanggal tidak valid"),
+  note: z.string().trim().max(300).optional().or(z.literal("")),
+  seasonId: z.string().optional().or(z.literal("")),
+  proofUrl: z.url("Tautan bukti tidak valid").optional().or(z.literal("")),
+};
+
+export const createContributionSchema = z.object(contributionBase);
+
+export const updateContributionSchema = z.object({
+  ...contributionBase,
+  contributionId: z.string().min(1),
+});

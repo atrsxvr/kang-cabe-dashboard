@@ -1,7 +1,13 @@
 "use client";
 
 import { useState } from "react";
-import { BarChart3, PieChart, ReceiptText, Users } from "lucide-react";
+import {
+  BarChart3,
+  HandCoins,
+  PieChart,
+  ReceiptText,
+  Users,
+} from "lucide-react";
 
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
@@ -9,12 +15,14 @@ export function FinanceViews({
   summary,
   entries,
   sharing,
+  capital,
   seasons,
   entryCount,
 }: {
   summary: React.ReactNode;
   entries: React.ReactNode;
   sharing: React.ReactNode;
+  capital: React.ReactNode;
   seasons: React.ReactNode;
   entryCount: number;
 }) {
@@ -36,6 +44,10 @@ export function FinanceViews({
             </span>
           ) : null}
         </TabsTrigger>
+        <TabsTrigger value="capital">
+          <HandCoins className="size-4" aria-hidden />
+          Modal
+        </TabsTrigger>
         <TabsTrigger value="sharing">
           <Users className="size-4" aria-hidden />
           Bagi Hasil
@@ -48,6 +60,7 @@ export function FinanceViews({
 
       <TabsContent value="summary">{summary}</TabsContent>
       <TabsContent value="entries">{entries}</TabsContent>
+      <TabsContent value="capital">{capital}</TabsContent>
       <TabsContent value="sharing">{sharing}</TabsContent>
       <TabsContent value="seasons">{seasons}</TabsContent>
     </Tabs>

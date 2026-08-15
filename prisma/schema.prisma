@@ -142,6 +142,7 @@ model User {
   shoppingNotes     ShoppingNote[]  @relation("ShoppingNotes")
   harvestsRecorded  HarvestLog[]    @relation("RecordedHarvests")
   salesRecorded     SaleTransaction[] @relation("RecordedSales")
+  contributions     CapitalContribution[] @relation("Contributions")
 
   @@index([deletedAt])
 }
@@ -163,6 +164,40 @@ model GardenProfile {
   updatedAt DateTime @updatedAt
 }
 
+/// Uang yang disetor anggota sebagai modal.
+///
+/// Tabel sendiri, **bukan** FinanceTransaction bertipe INCOME. Modal bukan
+/// pemasukan: mencatatnya begitu akan membuat musim terlihat untung padahal
+/// uangnya berasal dari kantong sendiri, dan itu justru angka yang paling
+/// berbahaya untuk dibagi berempat.
+///
+/// Juga tidak terikat musim — iuran awal menghidupi Musim 1 lalu sisanya
+/// terus dipakai musim berikutnya, jadi membebankannya ke satu musim membuat
+/// musim itu terlihat berat sendirian. `seasonId` boleh diisi hanya untuk
+/// menandai iuran susulan itu untuk putaran yang mana.
+model CapitalContribution {
+  id     String @id @default(uuid())
+  userId String
+  /// Rupiah bulat, seperti seluruh angka uang lain di aplikasi ini.
+  amount Int
+  paidAt DateTime
+  note     String?
+  proofUrl String?
+  seasonId String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Restrict: anggota dinonaktifkan lewat deletedAt, bukan dihapus — setoran
+  // modalnya harus tetap bertuan.
+  user   User    @relation("Contributions", fields: [userId], references: [id], onDelete: Restrict)
+  season Season? @relation(fields: [seasonId], references: [id], onDelete: SetNull)
+
+  @@index([userId])
+  @@index([paidAt])
+  @@index([seasonId])
+}
+
 model Season {
   id         String       @id @default(uuid())
   name       String // Contoh: "Musim Tanam 1 - Rawit Ori 212"
@@ -181,6 +216,7 @@ model Season {
   sales               SaleTransaction[]
   financeTransactions FinanceTransaction[]
   stockMovements      StockMovement[]
+  contributions       CapitalContribution[]
 }
 
 model Task {

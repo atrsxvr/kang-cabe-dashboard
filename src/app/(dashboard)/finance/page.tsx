@@ -4,6 +4,7 @@ import { Coins, PackageMinus, Sprout, Users, Wrench } from "lucide-react";
 
 import { PageHeader } from "@/components/common/page-header";
 import { SeasonCompareChart } from "@/components/charts/season-compare-chart";
+import { CapitalPanel } from "@/components/finance/capital-panel";
 import { FinanceEntryDialog } from "@/components/finance/finance-entry-dialog";
 import { FinanceEntryList } from "@/components/finance/finance-entry-list";
 import { FinanceViews } from "@/components/finance/finance-views";
@@ -23,7 +24,9 @@ import {
   toolSpend,
 } from "@/server/queries/finance";
 import type { CostLine } from "@/server/queries/finance";
-import { resolveSeason } from "@/server/queries/seasons";
+import { capitalSummary, listContributions } from "@/server/queries/capital";
+import { listSeasons, resolveSeason } from "@/server/queries/seasons";
+import { listActiveMembers } from "@/server/queries/users";
 import { isPhotoUploadEnabled } from "@/server/storage";
 
 export const metadata: Metadata = { title: "Keuangan & Kas" };
@@ -36,13 +39,28 @@ export default async function FinancePage(props: PageProps<"/finance">) {
 
   if (!season) return <NoSeason />;
 
-  const [cost, tools, result, entries, sharing, seasons] = await Promise.all([
+  const [
+    cost,
+    tools,
+    result,
+    entries,
+    sharing,
+    seasons,
+    capital,
+    contributions,
+    members,
+    seasonList,
+  ] = await Promise.all([
     seasonMaterialCost(season.id),
     toolSpend(),
     seasonResult(season.id),
     listFinanceEntries(season.id),
     profitSharing(season.id),
     seasonComparison(),
+    capitalSummary(),
+    listContributions(),
+    listActiveMembers(),
+    listSeasons(),
   ]);
 
   const photoEnabled = isPhotoUploadEnabled();
@@ -168,6 +186,15 @@ export default async function FinancePage(props: PageProps<"/finance">) {
           <FinanceEntryList
             entries={entries}
             seasonId={season.id}
+            photoEnabled={photoEnabled}
+          />
+        }
+        capital={
+          <CapitalPanel
+            summary={capital}
+            contributions={contributions}
+            members={members}
+            seasons={seasonList}
             photoEnabled={photoEnabled}
           />
         }

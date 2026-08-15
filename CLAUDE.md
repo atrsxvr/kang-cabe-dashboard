@@ -76,6 +76,10 @@ e2e/                        # Playwright; cleans up after itself by "E2E" prefix
   It is stored only so the shed's value need not replay the whole log on every
   render. Anything that edits history rather than appending to it — a price
   filled in weeks late — must recompute it from `StockMovement`.
+- **Capital paid in is not income.** `CapitalContribution` is its own table,
+  outside `FinanceTransaction` and outside any season: money the members put in
+  must never read as money the garden earned, or a season looks profitable on
+  the strength of its owners' savings.
 - **Members are deactivated, never deleted**, for the same reason materials are
   archived: their name is attached to tasks, harvests, sales and every stock
   movement they recorded.

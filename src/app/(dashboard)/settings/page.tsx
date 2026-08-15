@@ -14,6 +14,8 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
+import { capitalSummary } from "@/server/queries/capital";
+import { formatRupiah } from "@/lib/money";
 import { getGardenProfile, listMembers } from "@/server/queries/users";
 
 export const metadata: Metadata = { title: "Settings & Users" };
@@ -23,10 +25,13 @@ export default async function SettingsPage() {
   // rarely but must never be served from a build-time snapshot.
   await connection();
 
-  const [members, profile] = await Promise.all([
+  const [members, profile, capital] = await Promise.all([
     listMembers(),
     getGardenProfile(),
+    capitalSummary(),
   ]);
+
+  const paidIn = new Map(capital.contributors.map((row) => [row.id, row]));
 
   const active = members.filter((member) => !member.deletedAt);
   const inactive = members.filter((member) => member.deletedAt);
@@ -56,6 +61,9 @@ export default async function SettingsPage() {
       <section className="mb-8 grid gap-3">
         <div className="flex flex-wrap items-baseline justify-between gap-2">
           <h2 className="text-sm font-medium">Anggota Aktif</h2>
+          <p className="text-muted-foreground text-xs tabular-nums">
+            Modal terkumpul {formatRupiah(capital.total)}
+          </p>
           <p
             className={cn(
               "text-xs tabular-nums",
@@ -78,6 +86,16 @@ export default async function SettingsPage() {
                 <p className="text-muted-foreground mt-1 text-xs">
                   {member.counts.tasks} tugas · {member.counts.harvests} panen ·{" "}
                   {member.counts.sales} penjualan
+                </p>
+                <p className="mt-1 text-xs tabular-nums">
+                  Modal disetor{" "}
+                  <strong>
+                    {formatRupiah(paidIn.get(member.id)?.total ?? 0)}
+                  </strong>
+                  <span className="text-muted-foreground">
+                    {" "}
+                    · {paidIn.get(member.id)?.capitalShare ?? 0}% dari total
+                  </span>
                 </p>
               </div>
 

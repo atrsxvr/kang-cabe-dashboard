@@ -317,7 +317,7 @@ bisa menceritakan musim yang sedang dilihat.
 
 ### 4.7 Keuangan & Kas — jalan
 
-Empat tab: Rincian, Catatan, Bagi Hasil, dan Antar Musim.
+Lima tab: Rincian, Catatan, Modal, Bagi Hasil, dan Antar Musim.
 
 Angka besar di atas halaman disebut **sisa musim ini**, dan keterangannya
 menyebut batasnya terang-terangan: seakurat apa yang benar-benar dicatat.
@@ -346,6 +346,19 @@ kategori, keterangan, dan foto nota. Penjualan tidak diketik ulang di sini:
 pemasukan dibaca langsung dari transaksinya, jadi tidak pernah ada dua baris
 untuk satu rupiah.
 
+**Modal** mencatat iuran yang disetor tiap anggota, dengan tanggal, catatan,
+dan foto bukti transfer. Disimpan di tabelnya sendiri, **bukan** sebagai
+pemasukan: uang yang ditaruh sendiri bukan uang yang didapat, dan
+mencampurnya akan membuat musim terlihat untung padahal cuma balik modal.
+Juga tidak dibebankan ke satu musim — iuran awal menghidupi musim pertama lalu
+sisanya terus dipakai musim berikutnya. Iuran susulan boleh ditandai untuk
+putaran tertentu, tapi itu sekadar label.
+
+Tiap anggota ditampilkan dengan **porsi modalnya di samping porsi bagi
+hasilnya**. Keduanya sengaja tidak pernah disamakan otomatis: menyetor lebih
+banyak dan mengambil bagian lebih kecil adalah hal yang wajar disepakati empat
+orang — yang tidak wajar adalah tidak ada yang menyadarinya.
+
 **Bagi hasil** membagi sisa musim menurut porsi tiap anggota. Kalau porsinya
 belum genap 100%, sisanya ditampilkan sebagai belum ada yang punya.
 
@@ -366,6 +379,10 @@ Tiap anggota punya **porsi bagi hasil** dalam persen. Totalnya tidak dipaksa
 100 — kalau berempat menyepakati porsi yang menyisakan celah, celah itu perlu
 dibicarakan, bukan ditutupi dengan diam-diam menggelembungkan bagian semua
 orang.
+
+Total modal yang sudah disetor tiap anggota juga muncul di kartunya di sini,
+supaya siapa sudah menyetor berapa terbaca di tempat yang sama dengan porsi
+bagi hasilnya.
 
 **Profil kebun** menyimpan yang berlaku menyeluruh: nama, lokasi, koordinat
 untuk ramalan cuaca, dan volume tangki yang biasa dipakai.
