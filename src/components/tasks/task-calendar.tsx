@@ -20,6 +20,21 @@ function dayKey(date: Date): string {
 }
 
 /**
+ * Today's year and month **as Jakarta sees them**.
+ *
+ * `getFullYear()` and `getMonth()` read the browser's own clock, which is a
+ * different date from Jakarta's for seven hours a day. On a laptop set to UTC,
+ * 1 September at 01:00 WIB is still 31 August locally — the grid would draw
+ * August while the highlighted day belonged to September, so no cell would be
+ * marked at all. Everything else here is already pinned to Jakarta; this was
+ * the one thing that was not.
+ */
+function jakartaToday(now: Date): { year: number; month: number } {
+  const [year, month] = dayKey(now).split("-").map(Number);
+  return { year, month: month - 1 };
+}
+
+/**
  * A month at a glance, for the question the board cannot answer: is next week
  * empty, or is everything piled onto one Saturday?
  *
@@ -37,11 +52,8 @@ export function TaskCalendar({
 
   const { cells, label } = useMemo(() => {
     const today = new Date();
-    const cursor = new Date(
-      today.getFullYear(),
-      today.getMonth() + offset,
-      1
-    );
+    const anchor = jakartaToday(today);
+    const cursor = new Date(anchor.year, anchor.month + offset, 1);
 
     const year = cursor.getFullYear();
     const month = cursor.getMonth();
