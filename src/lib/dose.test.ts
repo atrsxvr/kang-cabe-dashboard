@@ -2,8 +2,10 @@ import { describe, expect, it } from "vitest";
 
 import {
   amountForVolume,
+  amountToInput,
   formatAmount,
   formatConcentration,
+  parseAmount,
   safeHarvestDate,
 } from "@/lib/dose";
 
@@ -70,5 +72,45 @@ describe("safeHarvestDate", () => {
 
   it("treats a zero-day interval as no restriction", () => {
     expect(safeHarvestDate(new Date(), 0)).toBeNull();
+  });
+});
+
+describe("parseAmount", () => {
+  it("reads the comma decimal people actually type", () => {
+    expect(parseAmount("37,5")).toBe(37.5);
+  });
+
+  it("still reads a dot decimal", () => {
+    expect(parseAmount("37.5")).toBe(37.5);
+  });
+
+  it("ignores stray spaces", () => {
+    expect(parseAmount(" 45 ")).toBe(45);
+  });
+
+  it("gives NaN for something that is not a number, so callers can check", () => {
+    expect(Number.isFinite(parseAmount("dua sak"))).toBe(false);
+    expect(Number.isFinite(parseAmount(""))).toBe(true); // "" coerces to 0
+  });
+});
+
+describe("amountToInput", () => {
+  /**
+   * The bug this exists to stop: formatAmount groups thousands the Indonesian
+   * way, so 1000 renders as "1.000" and parses back as 1 — a thousand bamboo
+   * stakes silently becoming one.
+   */
+  it("survives a round trip through the text box", () => {
+    for (const value of [1, 45, 135, 1000, 12500, 37.5, 0.5]) {
+      expect(parseAmount(amountToInput(value))).toBe(value);
+    }
+  });
+
+  it("does not group thousands", () => {
+    expect(amountToInput(1000)).toBe("1000");
+  });
+
+  it("writes decimals with a comma, the way they are typed", () => {
+    expect(amountToInput(37.5)).toBe("37,5");
   });
 });

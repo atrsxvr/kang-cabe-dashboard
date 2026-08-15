@@ -39,11 +39,34 @@ export function formatConcentration(item: DoseItem): string {
  */
 export function safeHarvestDate(
   appliedAt: Date,
-  preHarvestIntervalDays: number | null
+  preHarvestIntervalDays: number | null,
 ): Date | null {
   if (!preHarvestIntervalDays) return null;
 
   const date = new Date(appliedAt);
   date.setDate(date.getDate() + preHarvestIntervalDays);
   return date;
+}
+
+/**
+ * Reads a quantity the way someone in the garden types it.
+ *
+ * Indonesian decimals use a comma, so "37,5" has to mean 37.5. Returns NaN for
+ * anything that is not a number, which every caller checks with
+ * `Number.isFinite` before using.
+ */
+export function parseAmount(input: string): number {
+  return Number(input.trim().replace(",", "."));
+}
+
+/**
+ * Writes a quantity back into a text box it can be read out of again.
+ *
+ * Deliberately not `formatAmount`: that groups thousands the Indonesian way,
+ * so 1000 becomes "1.000" and `parseAmount` reads it back as 1 — which would
+ * quietly turn a thousand bamboo stakes into one. `String` never groups, and
+ * swapping the decimal point for a comma keeps it the way it would be typed.
+ */
+export function amountToInput(value: number): string {
+  return String(value).replace(".", ",");
 }

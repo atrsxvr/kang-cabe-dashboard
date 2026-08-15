@@ -16,6 +16,7 @@ import {
   amountForVolume,
   formatAmount,
   formatConcentration,
+  parseAmount,
 } from "@/lib/dose";
 import type { RecipeRow } from "@/server/queries/recipes";
 
@@ -40,8 +41,8 @@ function describe(recipe: RecipeRow, litres: number): string {
   const lines = recipe.items.map(
     (item) =>
       `- ${item.material.name}: ${formatAmount(
-        amountForVolume(item, litres)
-      )} ${item.material.unit} (${formatConcentration(item)})`
+        amountForVolume(item, litres),
+      )} ${item.material.unit} (${formatConcentration(item)})`,
   );
 
   const parts = [
@@ -49,10 +50,11 @@ function describe(recipe: RecipeRow, litres: number): string {
     ...lines,
   ];
 
-  if (recipe.intervalDays) parts.push(`Ulangi tiap ${recipe.intervalDays} hari.`);
+  if (recipe.intervalDays)
+    parts.push(`Ulangi tiap ${recipe.intervalDays} hari.`);
   if (recipe.preHarvestIntervalDays) {
     parts.push(
-      `Masa tunggu panen ${recipe.preHarvestIntervalDays} hari setelah aplikasi.`
+      `Masa tunggu panen ${recipe.preHarvestIntervalDays} hari setelah aplikasi.`,
     );
   }
   if (recipe.notes) parts.push(recipe.notes);
@@ -74,7 +76,7 @@ export function RecipePicker({
   const recipe = recipes.find((r) => r.id === selected);
   const [litres, setLitres] = useState(String(recipe?.basisVolumeL ?? 45));
 
-  const parsed = Number(litres.replace(",", "."));
+  const parsed = parseAmount(litres);
   const valid = Number.isFinite(parsed) && parsed > 0;
 
   // Routine and treatment are different jobs; grouping keeps a nutrition mix
@@ -84,7 +86,7 @@ export function RecipePicker({
       ROUTINE: recipes.filter((r) => r.kind === "ROUTINE"),
       TREATMENT: recipes.filter((r) => r.kind === "TREATMENT"),
     }),
-    [recipes]
+    [recipes],
   );
 
   if (recipes.length === 0) return null;
@@ -134,7 +136,7 @@ export function RecipePicker({
                 </option>
               ))}
             </optgroup>
-          ) : null
+          ) : null,
         )}
       </NativeSelect>
 
@@ -183,8 +185,8 @@ export function RecipePicker({
       ) : null}
 
       <p className="text-muted-foreground text-xs">
-        Takaran disalin apa adanya, jadi catatannya tetap sesuai yang
-        diracik walau racikannya direvisi nanti.
+        Takaran disalin apa adanya, jadi catatannya tetap sesuai yang diracik
+        walau racikannya direvisi nanti.
       </p>
     </div>
   );

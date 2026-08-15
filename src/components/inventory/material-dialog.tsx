@@ -23,6 +23,7 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import { formatStock } from "@/lib/stock";
 import { createMaterial, updateMaterial } from "@/server/actions/recipes";
 import type { StockRow } from "@/server/queries/inventory";
@@ -219,6 +220,21 @@ export function MaterialDialog({
               />
             </Field>
           )}
+
+          <Field
+            id="material-notes"
+            label="Catatan (opsional)"
+            error={errors.notes}
+            hint="Merek, toko langganan, atau apa pun yang perlu diingat"
+          >
+            <Textarea
+              id="material-notes"
+              name="notes"
+              rows={2}
+              defaultValue={material?.notes ?? ""}
+              placeholder="Beli di Tani Makmur, yang karung merah"
+            />
+          </Field>
 
           <DialogFooter>
             <Button

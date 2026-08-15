@@ -23,11 +23,11 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { formatAmount } from "@/lib/dose";
+import { amountToInput, formatAmount, parseAmount } from "@/lib/dose";
 import { createTask, updateTask } from "@/server/actions/tasks";
 import type { StockRow } from "@/server/queries/inventory";
 import type { RecipeRow } from "@/server/queries/recipes";
-import type { TaskMaterialView, TaskRow } from "@/server/queries/tasks";
+import type { TaskRow } from "@/server/queries/tasks";
 import type { MemberOption } from "@/server/queries/users";
 
 const roleLabels: Record<string, string> = {
@@ -64,14 +64,20 @@ export function TaskDialog({
   // One list, whether a line came from a recipe or straight off the shelf.
   // Carried as a snapshot rather than a live lookup: the shed is deducted
   // against exactly what the form said.
-  const [used, setUsed] = useState<TaskMaterialView[]>(task?.materials ?? []);
+  //
+  // The amount is kept as typed text, not a number: clearing the box to retype
+  // it would otherwise become NaN mid-keystroke and the row would look broken
+  // while someone was still typing in it.
+  const [used, setUsed] = useState<UsedRow[]>(
+    (task?.materials ?? []).map(toRow),
+  );
 
   // Only a label for where some of those lines came from. Nothing reads the
   // recipe back to work out amounts.
   const [recipe, setRecipe] = useState<{ id: string; volumeL: number } | null>(
     task?.recipeId
       ? { id: task.recipeId, volumeL: task.recipeVolumeL ?? 0 }
-      : null
+      : null,
   );
 
   // Once the shed has been debited, the amounts are history, not a plan.
@@ -85,15 +91,27 @@ export function TaskDialog({
     setErrors({});
     setTitle(task?.title ?? "");
     setDescription(task?.description ?? "");
-    setUsed(task?.materials ?? []);
+    setUsed((task?.materials ?? []).map(toRow));
     setRecipe(
       task?.recipeId
         ? { id: task.recipeId, volumeL: task.recipeVolumeL ?? 0 }
-        : null
+        : null,
     );
   };
 
+  const bad = used.find((row) => !isPositive(row.amount));
+
   async function onSubmit(formData: FormData) {
+    // Caught here rather than at the server, which would only be able to say
+    // "periksa kembali isian formulir" without pointing at the row.
+    if (bad) {
+      setErrors({
+        materials: `Isi jumlah ${bad.name} dengan angka lebih dari 0.`,
+      });
+      toast.error("Ada jumlah bahan yang belum benar.");
+      return;
+    }
+
     const result = editing
       ? await updateTask(formData)
       : await createTask(formData);
@@ -120,11 +138,7 @@ export function TaskDialog({
     >
       <DialogTrigger asChild>
         {editing ? (
-          <Button
-            variant="ghost"
-            size="sm"
-            aria-label={`Edit ${task!.title}`}
-          >
+          <Button variant="ghost" size="sm" aria-label={`Edit ${task!.title}`}>
             <Pencil className="size-4" aria-hidden />
           </Button>
         ) : (
@@ -137,7 +151,9 @@ export function TaskDialog({
 
       <DialogContent className="max-h-[90dvh] overflow-y-auto sm:max-w-lg">
         <DialogHeader>
-          <DialogTitle>{editing ? "Edit Tugas" : "Tambah Tugas Baru"}</DialogTitle>
+          <DialogTitle>
+            {editing ? "Edit Tugas" : "Tambah Tugas Baru"}
+          </DialogTitle>
           <DialogDescription>
             Tugas melekat pada musim yang sedang dipilih di navbar.
           </DialogDescription>
@@ -180,7 +196,10 @@ export function TaskDialog({
               type="hidden"
               name="materials"
               value={JSON.stringify(
-                used.map(({ materialId, amount }) => ({ materialId, amount }))
+                used.map(({ materialId, amount }) => ({
+                  materialId,
+                  amount: parseAmount(amount),
+                })),
               )}
             />
           ) : null}
@@ -203,42 +222,69 @@ export function TaskDialog({
                 {recipe ? ` · ${formatAmount(recipe.volumeL)} liter` : null}
               </p>
 
-              <ul className="grid gap-1">
+              <ul className="grid gap-1.5">
                 {used.map((item) => (
                   <li
                     key={item.materialId}
-                    className="flex items-center justify-between gap-2 text-xs"
+                    className="flex items-center gap-2 text-xs"
                   >
-                    <span className="min-w-0 truncate">
-                      {item.name}{" "}
-                      <strong className="tabular-nums">
-                        {formatAmount(item.amount)} {item.unit}
-                      </strong>
-                    </span>
-                    {locked ? null : (
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="icon"
-                        className="size-6 shrink-0"
-                        aria-label={`Hapus ${item.name}`}
-                        onClick={() => {
-                          setUsed((current) =>
-                            current.filter(
-                              (row) => row.materialId !== item.materialId
+                    <span className="min-w-0 flex-1 truncate">{item.name}</span>
+
+                    {locked ? (
+                      <span className="tabular-nums">
+                        {item.amount} {item.unit}
+                      </span>
+                    ) : (
+                      <>
+                        <Input
+                          value={item.amount}
+                          onChange={(event) =>
+                            setUsed((current) =>
+                              current.map((row) =>
+                                row.materialId === item.materialId
+                                  ? { ...row, amount: event.target.value }
+                                  : row,
+                              ),
                             )
-                          );
-                          // The label only means anything while its lines are
-                          // still here.
-                          if (recipe && used.length === 1) setRecipe(null);
-                        }}
-                      >
-                        <X className="size-3" aria-hidden />
-                      </Button>
+                          }
+                          inputMode="decimal"
+                          className="h-7 w-20 text-xs"
+                          aria-label={`Jumlah ${item.name}`}
+                          aria-invalid={!isPositive(item.amount)}
+                        />
+                        <span className="text-muted-foreground w-12 shrink-0">
+                          {item.unit}
+                        </span>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="icon"
+                          className="size-6 shrink-0"
+                          aria-label={`Hapus ${item.name}`}
+                          onClick={() => {
+                            setUsed((current) =>
+                              current.filter(
+                                (row) => row.materialId !== item.materialId,
+                              ),
+                            );
+                            // The label only means anything while its lines
+                            // are still here.
+                            if (recipe && used.length === 1) setRecipe(null);
+                          }}
+                        >
+                          <X className="size-3" aria-hidden />
+                        </Button>
+                      </>
                     )}
                   </li>
                 ))}
               </ul>
+
+              {errors.materials ? (
+                <p className="text-destructive text-xs" role="alert">
+                  {errors.materials}
+                </p>
+              ) : null}
 
               <p className="text-muted-foreground text-xs">
                 {locked
@@ -257,13 +303,16 @@ export function TaskDialog({
                   onApply={(picked) => {
                     setRecipe({ id: picked.recipeId, volumeL: picked.volumeL });
                     setUsed((current) => {
-                      const fromRecipe = picked.materials.map((item) => ({
-                        ...item,
-                        ...(lookup(recipes, picked.recipeId, item.materialId) ?? {
-                          name: item.materialId,
-                          unit: "",
+                      const fromRecipe = picked.materials.map((item) =>
+                        toRow({
+                          ...item,
+                          ...(lookup(
+                            recipes,
+                            picked.recipeId,
+                            item.materialId,
+                          ) ?? { name: item.materialId, unit: "" }),
                         }),
-                      }));
+                      );
 
                       // A recipe wins for anything already on the list: its
                       // dose is the considered number, the hand-typed one was
@@ -278,12 +327,12 @@ export function TaskDialog({
                     // typed one; the takaran belongs in the description either
                     // way.
                     setTitle((current) =>
-                      current.trim() ? current : picked.name
+                      current.trim() ? current : picked.name,
                     );
                     setDescription((current) =>
                       current.trim()
                         ? `${current.trim()}\n\n${picked.text}`
-                        : picked.text
+                        : picked.text,
                     );
                   }}
                 />
@@ -292,7 +341,9 @@ export function TaskDialog({
               <MaterialPicker
                 materials={materials}
                 exclude={used.map((item) => item.materialId)}
-                onAdd={(picked) => setUsed((current) => [...current, picked])}
+                onAdd={(picked) =>
+                  setUsed((current) => [...current, toRow(picked)])
+                }
               />
             </>
           )}
@@ -390,6 +441,31 @@ export function TaskDialog({
       </DialogContent>
     </Dialog>
   );
+}
+
+type UsedRow = {
+  materialId: string;
+  name: string;
+  unit: string;
+  /** As typed, so a cleared or half-typed box stays what the person sees. */
+  amount: string;
+};
+
+function toRow(item: {
+  materialId: string;
+  name: string;
+  unit: string;
+  amount: number;
+}): UsedRow {
+  // Deliberately not formatAmount: that groups thousands the Indonesian way,
+  // so 1000 renders as "1.000" and reads back as 1. String() never groups, and
+  // swapping the decimal point for a comma keeps it the way it would be typed.
+  return { ...item, amount: amountToInput(item.amount) };
+}
+
+function isPositive(amount: string): boolean {
+  const value = parseAmount(amount);
+  return Number.isFinite(value) && value > 0;
 }
 
 /** The picker hands back ids; the summary list needs names and units. */

@@ -20,6 +20,7 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
+import { parseAmount } from "@/lib/dose";
 import { formatRupiah, formatUnitPrice } from "@/lib/money";
 import { formatStock } from "@/lib/stock";
 import { adjustStock } from "@/server/actions/inventory";
@@ -49,15 +50,19 @@ export function AdjustStockDialog({
   const [errors, setErrors] = useState<Record<string, string>>({});
   // Watched so the unit price can be shown back while it is being typed —
   // "Rp 32/gram" is how you notice you typed an extra zero.
-  const [amount, setAmount] = useState(defaultAmount ? String(defaultAmount) : "");
+  const [amount, setAmount] = useState(
+    defaultAmount ? String(defaultAmount) : "",
+  );
   const [cost, setCost] = useState("");
-  const [reason, setReason] = useState(direction === "in" ? "PURCHASE" : "USAGE");
+  const [reason, setReason] = useState(
+    direction === "in" ? "PURCHASE" : "USAGE",
+  );
   const router = useRouter();
 
   const adding = direction === "in";
   const buying = adding && reason === "PURCHASE";
 
-  const qty = Number(amount.replace(",", "."));
+  const qty = parseAmount(amount);
   const paid = Number(cost.replace(/[^0-9]/g, ""));
   const unitPrice = qty > 0 && paid > 0 ? paid / qty : null;
 
@@ -86,7 +91,7 @@ export function AdjustStockDialog({
     setOpen(false);
     reset();
     toast.success(
-      `${material.name}: ${adding ? "+" : "−"}${formatStock(moved, material.unit)}`
+      `${material.name}: ${adding ? "+" : "−"}${formatStock(moved, material.unit)}`,
     );
     router.refresh();
   }
@@ -166,7 +171,7 @@ export function AdjustStockDialog({
                 .filter(([value]) =>
                   adding
                     ? value !== "USAGE" && value !== "LOSS"
-                    : value !== "PURCHASE"
+                    : value !== "PURCHASE",
                 )
                 .map(([value, label]) => (
                   <option key={value} value={value}>

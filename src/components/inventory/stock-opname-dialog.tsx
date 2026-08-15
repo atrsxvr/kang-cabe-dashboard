@@ -21,6 +21,7 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { parseAmount } from "@/lib/dose";
 import { formatStock, OPNAME_PREFIX } from "@/lib/stock";
 import { recordStockOpname } from "@/server/actions/inventory";
 import type { MaterialCategory, StockRow } from "@/server/queries/inventory";
@@ -59,7 +60,7 @@ export function StockOpnameDialog({
       const raw = counted[row.id];
       if (raw === undefined || raw === "") return null;
 
-      const value = Number(raw.replace(",", "."));
+      const value = parseAmount(raw);
       if (!Number.isFinite(value) || value === row.stock) return null;
 
       return { row, delta: value - row.stock };
@@ -90,7 +91,7 @@ export function StockOpnameDialog({
       (acc[row.category] ??= []).push(row);
       return acc;
     },
-    {}
+    {},
   );
 
   return (
@@ -119,78 +120,80 @@ export function StockOpnameDialog({
 
         <form action={onSubmit} className="grid gap-4">
           <div className="grid gap-4">
-            {(
-              Object.entries(groups) as [MaterialCategory, StockRow[]][]
-            ).map(([category, items]) => (
-              <fieldset key={category} className="grid gap-2">
-                <legend className="text-muted-foreground mb-1 text-xs font-medium">
-                  {materialCategoryLabels[category]}
-                </legend>
+            {(Object.entries(groups) as [MaterialCategory, StockRow[]][]).map(
+              ([category, items]) => (
+                <fieldset key={category} className="grid gap-2">
+                  <legend className="text-muted-foreground mb-1 text-xs font-medium">
+                    {materialCategoryLabels[category]}
+                  </legend>
 
-                {items.map((row) => {
-                  const raw = counted[row.id] ?? "";
-                  const value = Number(raw.replace(",", "."));
-                  const changed =
-                    raw !== "" && Number.isFinite(value) && value !== row.stock;
+                  {items.map((row) => {
+                    const raw = counted[row.id] ?? "";
+                    const value = parseAmount(raw);
+                    const changed =
+                      raw !== "" &&
+                      Number.isFinite(value) &&
+                      value !== row.stock;
 
-                  return (
-                    <div
-                      key={row.id}
-                      className="grid items-center gap-2 sm:grid-cols-[1fr_auto]"
-                    >
-                      <Label
-                        htmlFor={`opname-${row.id}`}
-                        className="text-sm font-normal"
+                    return (
+                      <div
+                        key={row.id}
+                        className="grid items-center gap-2 sm:grid-cols-[1fr_auto]"
                       >
-                        {row.name}
-                        <span className="text-muted-foreground ml-1 text-xs">
-                          tercatat {formatStock(row.stock, row.unit)}
-                        </span>
-                      </Label>
+                        <Label
+                          htmlFor={`opname-${row.id}`}
+                          className="text-sm font-normal"
+                        >
+                          {row.name}
+                          <span className="text-muted-foreground ml-1 text-xs">
+                            tercatat {formatStock(row.stock, row.unit)}
+                          </span>
+                        </Label>
 
-                      <div className="flex items-center gap-2">
-                        <Input
-                          id={`opname-${row.id}`}
-                          name={`${OPNAME_PREFIX}${row.id}`}
-                          type="number"
-                          min={0}
-                          step="any"
-                          inputMode="decimal"
-                          className="w-28"
-                          value={raw}
-                          onChange={(event) =>
-                            setCounted((current) => ({
-                              ...current,
-                              [row.id]: event.target.value,
-                            }))
-                          }
-                          placeholder="—"
-                        />
-                        <span className="text-muted-foreground w-24 text-xs">
-                          {changed ? (
-                            <span
-                              className={
-                                value > row.stock
-                                  ? "text-emerald-700 tabular-nums dark:text-emerald-400"
-                                  : "text-destructive tabular-nums"
-                              }
-                            >
-                              {value > row.stock ? "+" : "−"}
-                              {formatStock(
-                                Math.abs(value - row.stock),
-                                row.unit
-                              )}
-                            </span>
-                          ) : (
-                            row.unit
-                          )}
-                        </span>
+                        <div className="flex items-center gap-2">
+                          <Input
+                            id={`opname-${row.id}`}
+                            name={`${OPNAME_PREFIX}${row.id}`}
+                            type="number"
+                            min={0}
+                            step="any"
+                            inputMode="decimal"
+                            className="w-28"
+                            value={raw}
+                            onChange={(event) =>
+                              setCounted((current) => ({
+                                ...current,
+                                [row.id]: event.target.value,
+                              }))
+                            }
+                            placeholder="—"
+                          />
+                          <span className="text-muted-foreground w-24 text-xs">
+                            {changed ? (
+                              <span
+                                className={
+                                  value > row.stock
+                                    ? "text-emerald-700 tabular-nums dark:text-emerald-400"
+                                    : "text-destructive tabular-nums"
+                                }
+                              >
+                                {value > row.stock ? "+" : "−"}
+                                {formatStock(
+                                  Math.abs(value - row.stock),
+                                  row.unit,
+                                )}
+                              </span>
+                            ) : (
+                              row.unit
+                            )}
+                          </span>
+                        </div>
                       </div>
-                    </div>
-                  );
-                })}
-              </fieldset>
-            ))}
+                    );
+                  })}
+                </fieldset>
+              ),
+            )}
           </div>
 
           <Field id="opname-actor" label="Dihitung oleh" error={errors.actorId}>

@@ -10,6 +10,7 @@ import {
   amountForVolume,
   formatAmount,
   formatConcentration,
+  parseAmount,
 } from "@/lib/dose";
 import type { RecipeRow } from "@/server/queries/recipes";
 
@@ -21,7 +22,7 @@ import type { RecipeRow } from "@/server/queries/recipes";
 export function DoseCalculator({ recipe }: { recipe: RecipeRow }) {
   const [litres, setLitres] = useState(String(recipe.basisVolumeL));
 
-  const parsed = Number(litres.replace(",", "."));
+  const parsed = parseAmount(litres);
   const valid = Number.isFinite(parsed) && parsed > 0;
 
   return (

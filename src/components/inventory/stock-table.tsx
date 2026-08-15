@@ -168,6 +168,11 @@ export function StockTable({
                           dipakai {row.usedBy.length} racikan
                         </span>
                       ) : null}
+                      {row.notes ? (
+                        <span className="text-muted-foreground block text-xs font-normal">
+                          {row.notes}
+                        </span>
+                      ) : null}
                     </TableCell>
                     <TableCell className="text-muted-foreground text-sm">
                       {materialCategoryLabels[row.category]}
@@ -249,6 +254,11 @@ function StockCard({
                 ? ` · dipakai ${row.usedBy.length} racikan`
                 : null}
             </p>
+            {row.notes ? (
+              <p className="text-muted-foreground mt-0.5 text-xs">
+                {row.notes}
+              </p>
+            ) : null}
           </div>
           <Badge
             variant="secondary"

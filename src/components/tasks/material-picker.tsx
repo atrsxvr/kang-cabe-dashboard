@@ -8,6 +8,7 @@ import { materialCategoryLabels } from "@/components/inventory/inventory-labels"
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { parseAmount } from "@/lib/dose";
 import { formatStock } from "@/lib/stock";
 import type { StockRow } from "@/server/queries/inventory";
 
@@ -50,7 +51,7 @@ export function MaterialPicker({
   const material =
     available.find((row) => row.id === selected) ?? available[0] ?? null;
 
-  const parsed = Number(amount.replace(",", "."));
+  const parsed = parseAmount(amount);
   const valid = Number.isFinite(parsed) && parsed > 0;
 
   if (available.length === 0) return null;

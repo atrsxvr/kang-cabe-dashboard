@@ -62,7 +62,7 @@ Empat kartu ringkasan untuk musim yang dipilih:
 | --- | --- |
 | Umur Tanaman (HST) | data asli |
 | Tugas Weekend Ini | data asli |
-| Estimasi Kas | angka contoh, menunggu modul Keuangan |
+| Habis Buat Bahan | data asli, dari pemakaian yang tercatat |
 | Total Panen Sementara | angka contoh, menunggu modul Panen |
 
 "Weekend" berarti Sabtu–Minggu pada pekan berjalan menurut WIB, dan yang
@@ -97,6 +97,29 @@ hasil vs profit).
   waktu penyelesaian sebenarnya sehingga menyunting entri lama tidak mengacak
   urutannya.
 
+**Bahan yang dipakai tugas.** Satu tugas bisa membawa daftar bahan, dari dua
+jalan yang berakhir sama:
+
+- **Dari Pustaka Racikan** — memilih racikan mengisi judul (kalau masih kosong),
+  mengisi deskripsi dengan rincian takaran, dan menyalin takarannya. Volume
+  tangki bisa diubah dulu sebelum diisikan.
+- **Langsung dari gudang** — untuk ajir, mulsa, dan benih, yang nyata dibeli dan
+  habis dipakai tapi tidak bisa ditakar per liter air.
+
+Jumlah tiap baris bisa diedit di form, dan racikannya hanya jadi label; tidak
+ada yang membaca ulang racikan untuk mencari takaran.
+
+**Catat pemakaian.** Stok **tidak** berkurang saat tugas ditandai selesai.
+Tugas digeser ke "Selesai" juga untuk merapikan papan, dan racikan yang baru
+setengah diaplikasikan bukan racikan yang terpakai. Pemotongan stok adalah
+langkah terpisah dan sekali jalan, jadi tugas yang selesai lewat papan, tabel,
+atau form Edit sama-sama tertangani. Papan menampilkan berapa tugas selesai
+yang stoknya belum dikurangi.
+
+Takaran sebuah tugas terkunci begitu pemakaiannya tercatat — mengubahnya
+setelah itu akan membuat gudang lebih atau kurang sebanyak selisihnya, tanpa
+ada yang menjelaskan kenapa.
+
 **Belum ada:** tampilan kalender.
 
 ### 4.4 Kesehatan & Monitoring — sebagian jalan
@@ -120,12 +143,16 @@ dilihat; Agronomis menindaklanjuti.
 - Racikan **rutin** dikelompokkan per fase (Vegetatif, Generatif, Produksi),
   bisa menyebut interval pengulangan.
 - Racikan **penanganan** dikaitkan ke masalah tertentu, dan bisa diisikan
-  langsung ke form Diagnosa.
+  langsung ke form Diagnosa maupun ke form Tugas, dengan volume tangki yang
+  bisa disesuaikan dulu.
 - **Kalkulator dosis:** takaran disimpan per liter, jadi mengubah volume tangki
   langsung menghasilkan angka yang benar tanpa hitung manual.
 - **Masa tunggu panen** ditampilkan mencolok pada racikan pestisida.
 - Bahan yang dipakai racikan adalah baris yang sama dengan stok gudang di
   modul Inventaris, jadi daftar belanja tahu racikan mana yang terdampak.
+- Racikan hanya bisa memilih bahan yang memang bisa ditakar per liter. Ajir dan
+  mulsa juga stok, tetapi "berapa per liter" adalah pertanyaan tanpa jawaban
+  untuk keduanya.
 
 **Belum ada:** program per-HST yang otomatis menjadwalkan tugas.
 
@@ -146,6 +173,33 @@ bukan dua catatan terpisah.
 - Stok tidak bisa turun di bawah nol.
 - Satuan mengikuti satuan racikan supaya keduanya bisa dibandingkan; tampilan
   menaikkannya ke kg atau liter saat angkanya besar.
+- **Riwayat per bahan** menjawab "kenapa NPK tinggal segini": tiap pergerakan
+  dengan jumlah, alasan, tanggal, pencatat, dan rupiah untuk baris belanja.
+- Angka stok **tidak bisa diketik langsung** lewat form Edit. Ia hanya bergerak
+  lewat + / −, pemakaian tugas yang tercatat, atau opname — masing-masing
+  menulis alasannya. Stok awal saat bahan didaftarkan pun tercatat sebagai
+  saldo awal.
+- Pencarian dan saringan kategori di atas tabel.
+
+**Opname Stok.** Hitungan fisik yang direkonsiliasi dengan angka tercatat. Ini
+satu-satunya tempat angka tercatat boleh dikalahkan oleh apa yang benar-benar
+ada di rak, dan karena itu pekerjaannya milik Logistik — bukan efek samping
+menyelesaikan tugas. Yang dikosongkan berarti belum dihitung dan tidak diubah;
+hanya baris yang benar-benar selisih yang menghasilkan catatan koreksi.
+
+**Harga dan nilai gudang.** Belanja mencatat total rupiah yang dibayar, dan
+gudang menyimpan harga rata-rata bergerak per bahan.
+
+- Yang diminta **total bayar**, bukan harga satuan: di toko yang diketahui
+  "2 sak, Rp 320.000", bukan "Rp 32 per gram". Harga satuannya ditampilkan
+  balik sebagai pemeriksaan.
+- Harga **boleh dikosongkan** — berdiri di toko tanpa nota itu wajar, dan
+  memaksakannya hanya akan membuat orang tidak mencatat sama sekali. Barang
+  yang masuk tanpa harga dianggap datang di harga rata-rata yang berlaku,
+  ditandai di halaman, dan bisa dilengkapi belakangan lewat Riwayat.
+- Karena harga bisa diisi menyusul, harga rata-rata **selalu bisa dihitung
+  ulang** dari riwayat pergerakan. Angka tersimpannya cuma singgahan, bukan
+  sumber kebenaran kedua.
 
 **Belanja.** Daftar yang dibawa saat ke kota, empat bagian:
 
@@ -170,15 +224,38 @@ kehilangan satu dari tiga cangkul menyisakan dua, bukan menandai seluruh
 barisnya hilang. Riwayatnya menjawab "cangkul kita dulu tiga, sekarang kenapa
 dua".
 
+Beli alat dan ongkos servis mencatat rupiahnya. Alat **tidak disusutkan**:
+cangkul tidak habis terpakai per gram seperti pupuk, dan menyebar biayanya ke
+beberapa bulan hanya menghasilkan angka yang tidak dikenali siapa pun di tim
+ini.
+
+**Belum ada:** catatan siapa sedang memegang alat, pengingat servis berkala,
+tanggal kedaluwarsa pestisida, dan satuan beli yang berbeda dari satuan pakai
+(daftar belanja masih berkata "beli min. 5.000 gram", bukan "2 sak").
+
 ### 4.6 Panen & Penjualan — belum dibangun
 
 Input hasil panen per tanggal dengan bobot dan grading A/B/C, pencatatan
 transaksi penjualan, dan tren harga pasar lokal.
 
-### 4.7 Keuangan & Kas — belum dibangun
+### 4.7 Keuangan & Kas — sebagian jalan
 
-Pemasukan dan pengeluaran dengan foto bukti, laporan laba/rugi per musim, dan
-kalkulator bagi hasil empat anggota.
+Baru sisi pengeluaran bahan, karena sisi pemasukan menunggu modul Panen.
+
+**Belanja bukan biaya; pemakaian yang biaya.** Sekarung pupuk yang dibeli
+sekarang bisa habis di dua musim, jadi membebankannya ke musim yang kebetulan
+berjalan saat uangnya keluar akan membuat angka kedua musim salah. Uang belanja
+menempel di **nilai gudang** dulu, lalu menjadi biaya musim pada saat pemakaian
+bahannya dicatat — dengan harga yang dibekukan di momen itu, sama seperti
+takarannya. Harga naik bulan depan tidak menulis ulang biaya musim lalu.
+
+Halaman ini menampilkan total biaya bahan musim terpilih, dipecah per kategori
+dan per bahan, ditambah uang keluar untuk alat (lintas musim, karena alat
+memang lintas musim). Pemakaian yang tercatat saat bahannya belum berharga
+dilaporkan terpisah, bukan diam-diam dihitung Rp 0.
+
+**Belum ada:** pemasukan dari penjualan, upah, sewa, transport, laba/rugi per
+musim, kalkulator bagi hasil empat anggota, dan foto nota.
 
 ### 4.8 Settings & Users — belum dibangun
 
@@ -208,6 +285,16 @@ pengetahuan yang justru gunanya dipakai ulang musim berikutnya.
 ditautkan, saat racikan dipakai — merevisi racikan tidak boleh mengubah catatan
 perlakuan yang sudah terjadi. Waktu penyelesaian tugas terpisah dari waktu
 penyuntingan. Data contoh diberi label sebagai contoh.
+
+**Uang selalu rupiah bulat.** Sen tidak ada di sini, dan bilangan pecahan yang
+melenceng sepersekian rupiah menghasilkan total yang tidak bisa dijelaskan ke
+tiga orang lain. Satu-satunya pengecualian adalah harga rata-rata per satuan,
+yang memang tarif dan bukan jumlah uang.
+
+**Stok tidak pernah berkurang sebagai efek samping.** Setiap perubahan angka
+stok punya satu tindakan yang menyebabkannya dan satu catatan yang
+menjelaskannya. Tidak ada jalan pintas yang mengubah stok tanpa meninggalkan
+alasan.
 
 **Keselamatan hasil panen.** Masa tunggu panen setelah penyemprotan ditampilkan
 mencolok. Kebun panen terus-menerus, dan pelanggarannya tidak terlihat pada
@@ -252,12 +339,16 @@ autentikasi terpasang.**
 **2. Deployment.** Belum pernah dijalankan di luar localhost, sehingga belum
 pernah dipakai di kebun. Branch `main` dan `production` masih di commit awal.
 
-**3. Modul Panen dan Keuangan** — sekaligus melengkapi dua kartu Dashboard
-yang masih berisi angka contoh. Pembelian yang tercatat di Inventaris nanti
-bisa disambungkan menjadi pengeluaran.
+**3. Modul Panen & Penjualan** — sekaligus melengkapi kartu Dashboard yang
+masih berisi angka contoh, dan melengkapi Keuangan yang sekarang baru punya
+sebelah: uang keluar ada, uang masuk belum.
 
-**4. Pengujian alur di CI.** Tes yang ada mencakup logika murni; alur seperti
+**4. Sisa modul Keuangan** — pemasukan, biaya di luar gudang, laba/rugi per
+musim, bagi hasil, foto nota. Rinciannya di bagian 4.7.
+
+**5. Pengujian alur di CI.** Tes yang ada mencakup logika murni; alur seperti
 unggah foto dan penyaringan per musim baru diperiksa manual lewat browser.
 
-**5. Sisa fitur per modul** — dirinci di bagian 4: grafik panen, status cuaca,
-analitik antar musim, tampilan kalender, program nutrisi per-HST.
+**6. Sisa fitur per modul** — dirinci di bagian 4: grafik panen, status cuaca,
+analitik antar musim, tampilan kalender, program nutrisi per-HST, jejak opname
+yang semuanya cocok, kedaluwarsa bahan, dan peminjaman alat.
