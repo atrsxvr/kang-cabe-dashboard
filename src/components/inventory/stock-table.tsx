@@ -52,7 +52,7 @@ export function StockTable({
   const categories = useMemo(() => {
     const present = new Set(rows.map((row) => row.category));
     return Object.entries(materialCategoryLabels).filter(([value]) =>
-      present.has(value as StockRow["category"])
+      present.has(value as StockRow["category"]),
     );
   }, [rows]);
 
@@ -69,53 +69,54 @@ export function StockTable({
 
   return (
     <>
-      {/* Hidden until the list is long enough to need narrowing — three rows
-          with a filter above them looks like something is missing. */}
-      {rows.length > 6 ? (
-        <div className="mb-4 flex flex-wrap items-center gap-2">
-          <div className="relative min-w-48 flex-1">
-            <Search
-              className="text-muted-foreground pointer-events-none absolute top-1/2 left-2.5 size-4 -translate-y-1/2"
-              aria-hidden
-            />
-            <Input
-              value={query}
-              onChange={(event) => setQuery(event.target.value)}
-              placeholder="Cari bahan"
-              aria-label="Cari bahan"
-              className="pl-8"
-            />
-          </div>
-
-          <NativeSelect
-            aria-label="Saring berdasarkan kategori"
-            value={category}
-            onChange={(event) => setCategory(event.target.value)}
-            className="w-44"
-          >
-            <option value="">Semua kategori</option>
-            {categories.map(([value, label]) => (
-              <option key={value} value={value}>
-                {label}
-              </option>
-            ))}
-          </NativeSelect>
-
-          {category || query ? (
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => {
-                setCategory("");
-                setQuery("");
-              }}
-            >
-              <X className="size-4" aria-hidden />
-              Bersihkan
-            </Button>
-          ) : null}
+      {/* Always here, even over three rows. It was hidden below seven at
+          first, on the theory that a filter over a short list looks like
+          something is missing — but the first person to go looking for it
+          could not find it, and a control that vanishes is worse than one
+          that is briefly redundant. */}
+      <div className="mb-4 flex flex-wrap items-center gap-2">
+        <div className="relative min-w-48 flex-1">
+          <Search
+            className="text-muted-foreground pointer-events-none absolute top-1/2 left-2.5 size-4 -translate-y-1/2"
+            aria-hidden
+          />
+          <Input
+            value={query}
+            onChange={(event) => setQuery(event.target.value)}
+            placeholder="Cari bahan"
+            aria-label="Cari bahan"
+            className="pl-8"
+          />
         </div>
-      ) : null}
+
+        <NativeSelect
+          aria-label="Saring berdasarkan kategori"
+          value={category}
+          onChange={(event) => setCategory(event.target.value)}
+          className="w-44"
+        >
+          <option value="">Semua kategori</option>
+          {categories.map(([value, label]) => (
+            <option key={value} value={value}>
+              {label}
+            </option>
+          ))}
+        </NativeSelect>
+
+        {category || query ? (
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => {
+              setCategory("");
+              setQuery("");
+            }}
+          >
+            <X className="size-4" aria-hidden />
+            Bersihkan
+          </Button>
+        ) : null}
+      </div>
 
       {visible.length === 0 ? (
         <Card>
@@ -139,7 +140,7 @@ export function StockTable({
       <Card
         className={cn(
           "hidden overflow-hidden py-0",
-          visible.length > 0 && "md:block"
+          visible.length > 0 && "md:block",
         )}
       >
         <div className="overflow-x-auto">
@@ -182,7 +183,7 @@ export function StockTable({
                         variant="secondary"
                         className={cn(
                           "w-full justify-center border-transparent",
-                          stockStatusTones[status]
+                          stockStatusTones[status],
                         )}
                       >
                         {stockStatusLabels[status]}
@@ -251,7 +252,10 @@ function StockCard({
           </div>
           <Badge
             variant="secondary"
-            className={cn("shrink-0 border-transparent", stockStatusTones[status])}
+            className={cn(
+              "shrink-0 border-transparent",
+              stockStatusTones[status],
+            )}
           >
             {stockStatusLabels[status]}
           </Badge>
@@ -273,7 +277,11 @@ function StockCard({
               members={members}
               direction="out"
             />
-            <AdjustStockDialog material={row} members={members} direction="in" />
+            <AdjustStockDialog
+              material={row}
+              members={members}
+              direction="in"
+            />
             <StockHistoryDialog material={row} compact />
             <MaterialDialog material={row} compact />
             <ConfirmDelete
