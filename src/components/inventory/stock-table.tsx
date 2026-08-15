@@ -1,4 +1,7 @@
-import { Package } from "lucide-react";
+"use client";
+
+import { useMemo, useState } from "react";
+import { Package, Search, X } from "lucide-react";
 
 import { ConfirmDelete } from "@/components/common/confirm-delete";
 import { AdjustStockDialog } from "@/components/inventory/adjust-stock-dialog";
@@ -9,8 +12,11 @@ import {
 } from "@/components/inventory/inventory-labels";
 import { MaterialDialog } from "@/components/inventory/material-dialog";
 import { StockHistoryDialog } from "@/components/inventory/stock-history-dialog";
+import { NativeSelect } from "@/components/common/native-select";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
 import {
   Table,
   TableBody,
@@ -25,6 +31,12 @@ import { deleteMaterial } from "@/server/actions/recipes";
 import type { StockRow } from "@/server/queries/inventory";
 import type { MemberOption } from "@/server/queries/users";
 
+/**
+ * Filtered on the client, like the recipe library and unlike the findings
+ * list: the shed is small and already on the page, and narrowing it down is
+ * something you do while standing in front of the shelves, not something you
+ * send to anyone.
+ */
 export function StockTable({
   rows,
   members,
@@ -32,19 +44,104 @@ export function StockTable({
   rows: StockRow[];
   members: MemberOption[];
 }) {
+  const [category, setCategory] = useState("");
+  const [query, setQuery] = useState("");
+
+  // Only categories that actually have something in them. A dropdown listing
+  // six empty options is a dropdown that wastes a tap every time.
+  const categories = useMemo(() => {
+    const present = new Set(rows.map((row) => row.category));
+    return Object.entries(materialCategoryLabels).filter(([value]) =>
+      present.has(value as StockRow["category"])
+    );
+  }, [rows]);
+
+  const visible = useMemo(() => {
+    const needle = query.trim().toLowerCase();
+
+    return rows.filter((row) => {
+      if (category && row.category !== category) return false;
+      return !needle || row.name.toLowerCase().includes(needle);
+    });
+  }, [rows, category, query]);
+
   if (rows.length === 0) return <EmptyStock />;
 
   return (
     <>
+      {/* Hidden until the list is long enough to need narrowing — three rows
+          with a filter above them looks like something is missing. */}
+      {rows.length > 6 ? (
+        <div className="mb-4 flex flex-wrap items-center gap-2">
+          <div className="relative min-w-48 flex-1">
+            <Search
+              className="text-muted-foreground pointer-events-none absolute top-1/2 left-2.5 size-4 -translate-y-1/2"
+              aria-hidden
+            />
+            <Input
+              value={query}
+              onChange={(event) => setQuery(event.target.value)}
+              placeholder="Cari bahan"
+              aria-label="Cari bahan"
+              className="pl-8"
+            />
+          </div>
+
+          <NativeSelect
+            aria-label="Saring berdasarkan kategori"
+            value={category}
+            onChange={(event) => setCategory(event.target.value)}
+            className="w-44"
+          >
+            <option value="">Semua kategori</option>
+            {categories.map(([value, label]) => (
+              <option key={value} value={value}>
+                {label}
+              </option>
+            ))}
+          </NativeSelect>
+
+          {category || query ? (
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => {
+                setCategory("");
+                setQuery("");
+              }}
+            >
+              <X className="size-4" aria-hidden />
+              Bersihkan
+            </Button>
+          ) : null}
+        </div>
+      ) : null}
+
+      {visible.length === 0 ? (
+        <Card>
+          <CardContent className="py-10 text-center">
+            <p className="text-muted-foreground text-sm">
+              Nggak ada bahan yang cocok. Coba ganti kata kunci atau
+              kategorinya.
+            </p>
+          </CardContent>
+        </Card>
+      ) : null}
+
       {/* Below md the table is unreadable even scrolling, so the same rows
           become cards — the shed is checked from a phone. */}
       <div className="grid gap-3 md:hidden">
-        {rows.map((row) => (
+        {visible.map((row) => (
           <StockCard key={row.id} row={row} members={members} />
         ))}
       </div>
 
-      <Card className="hidden overflow-hidden py-0 md:block">
+      <Card
+        className={cn(
+          "hidden overflow-hidden py-0",
+          visible.length > 0 && "md:block"
+        )}
+      >
         <div className="overflow-x-auto">
           <Table>
             <TableHeader>
@@ -58,7 +155,7 @@ export function StockTable({
               </TableRow>
             </TableHeader>
             <TableBody>
-              {rows.map((row) => {
+              {visible.map((row) => {
                 const status = stockStatus(row.stock, row.minStock);
 
                 return (

@@ -9,6 +9,7 @@ import { dateInputValue, Field } from "@/components/common/form-field";
 import { NativeSelect } from "@/components/common/native-select";
 import { SubmitButton } from "@/components/common/submit-button";
 import { RecipePicker } from "@/components/health/recipe-picker";
+import { MaterialPicker } from "@/components/tasks/material-picker";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
@@ -24,6 +25,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { formatAmount } from "@/lib/dose";
 import { createTask, updateTask } from "@/server/actions/tasks";
+import type { StockRow } from "@/server/queries/inventory";
 import type { RecipeRow } from "@/server/queries/recipes";
 import type { TaskMaterialView, TaskRow } from "@/server/queries/tasks";
 import type { MemberOption } from "@/server/queries/users";
@@ -40,12 +42,14 @@ export function TaskDialog({
   members,
   currentHst,
   recipes,
+  materials,
   task,
 }: {
   seasonId: string;
   members: MemberOption[];
   currentHst: number;
   recipes: RecipeRow[];
+  materials: StockRow[];
   task?: TaskRow;
 }) {
   const editing = Boolean(task);
@@ -57,19 +61,16 @@ export function TaskDialog({
   const [title, setTitle] = useState(task?.title ?? "");
   const [description, setDescription] = useState(task?.description ?? "");
 
-  // The amounts a recipe was written at, carried as a snapshot rather than a
-  // live lookup: the shed is deducted against exactly what the form said.
-  const [mix, setMix] = useState<{
-    recipeId: string;
-    volumeL: number;
-    materials: TaskMaterialView[];
-  } | null>(
+  // One list, whether a line came from a recipe or straight off the shelf.
+  // Carried as a snapshot rather than a live lookup: the shed is deducted
+  // against exactly what the form said.
+  const [used, setUsed] = useState<TaskMaterialView[]>(task?.materials ?? []);
+
+  // Only a label for where some of those lines came from. Nothing reads the
+  // recipe back to work out amounts.
+  const [recipe, setRecipe] = useState<{ id: string; volumeL: number } | null>(
     task?.recipeId
-      ? {
-          recipeId: task.recipeId,
-          volumeL: task.recipeVolumeL ?? 0,
-          materials: task.materials,
-        }
+      ? { id: task.recipeId, volumeL: task.recipeVolumeL ?? 0 }
       : null
   );
 
@@ -84,13 +85,10 @@ export function TaskDialog({
     setErrors({});
     setTitle(task?.title ?? "");
     setDescription(task?.description ?? "");
-    setMix(
+    setUsed(task?.materials ?? []);
+    setRecipe(
       task?.recipeId
-        ? {
-            recipeId: task.recipeId,
-            volumeL: task.recipeVolumeL ?? 0,
-            materials: task.materials,
-          }
+        ? { id: task.recipeId, volumeL: task.recipeVolumeL ?? 0 }
         : null
     );
   };
@@ -171,91 +169,132 @@ export function TaskDialog({
             <Textarea
               id="description"
               name="description"
-              rows={mix ? 6 : 2}
+              rows={recipe ? 6 : 2}
               value={description}
               onChange={(event) => setDescription(event.target.value)}
             />
           </Field>
 
-          {mix ? (
+          {used.length > 0 ? (
+            <input
+              type="hidden"
+              name="materials"
+              value={JSON.stringify(
+                used.map(({ materialId, amount }) => ({ materialId, amount }))
+              )}
+            />
+          ) : null}
+
+          {recipe ? (
             <>
-              <input type="hidden" name="recipeId" value={mix.recipeId} />
+              <input type="hidden" name="recipeId" value={recipe.id} />
               <input
                 type="hidden"
                 name="recipeVolumeL"
-                value={mix.volumeL}
-              />
-              <input
-                type="hidden"
-                name="materials"
-                value={JSON.stringify(
-                  mix.materials.map(({ materialId, amount }) => ({
-                    materialId,
-                    amount,
-                  }))
-                )}
+                value={recipe.volumeL}
               />
             </>
           ) : null}
 
-          {mix ? (
+          {used.length > 0 ? (
             <div className="bg-muted/40 grid gap-2 rounded-md border p-3">
-              <div className="flex items-start justify-between gap-2">
-                <p className="text-sm font-medium">
-                  Bahan yang dipakai · {formatAmount(mix.volumeL)} liter
-                </p>
-                {locked ? null : (
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => setMix(null)}
+              <p className="text-sm font-medium">
+                Bahan yang dipakai
+                {recipe ? ` · ${formatAmount(recipe.volumeL)} liter` : null}
+              </p>
+
+              <ul className="grid gap-1">
+                {used.map((item) => (
+                  <li
+                    key={item.materialId}
+                    className="flex items-center justify-between gap-2 text-xs"
                   >
-                    <X className="size-4" aria-hidden />
-                    Lepas
-                  </Button>
-                )}
-              </div>
-              <ul className="text-muted-foreground grid gap-0.5 text-xs">
-                {mix.materials.map((item) => (
-                  <li key={item.materialId} className="tabular-nums">
-                    {item.name}{" "}
-                    <strong className="text-foreground">
-                      {formatAmount(item.amount)} {item.unit}
-                    </strong>
+                    <span className="min-w-0 truncate">
+                      {item.name}{" "}
+                      <strong className="tabular-nums">
+                        {formatAmount(item.amount)} {item.unit}
+                      </strong>
+                    </span>
+                    {locked ? null : (
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        className="size-6 shrink-0"
+                        aria-label={`Hapus ${item.name}`}
+                        onClick={() => {
+                          setUsed((current) =>
+                            current.filter(
+                              (row) => row.materialId !== item.materialId
+                            )
+                          );
+                          // The label only means anything while its lines are
+                          // still here.
+                          if (recipe && used.length === 1) setRecipe(null);
+                        }}
+                      >
+                        <X className="size-3" aria-hidden />
+                      </Button>
+                    )}
                   </li>
                 ))}
               </ul>
+
               <p className="text-muted-foreground text-xs">
                 {locked
                   ? "Pemakaian sudah tercatat, jadi takarannya dikunci."
-                  : "Stok baru berkurang setelah tugas ini ditandai selesai."}
+                  : "Stok baru berkurang kalau tugas ini ditandai selesai lalu ditekan Catat pemakaian."}
               </p>
             </div>
-          ) : (
-            <RecipePicker
-              recipes={recipes}
-              label="Pakai racikan dari Pustaka (opsional)"
-              onApply={(picked) => {
-                setMix({
-                  recipeId: picked.recipeId,
-                  volumeL: picked.volumeL,
-                  materials: picked.materials.map((item) => ({
-                    ...item,
-                    ...(lookup(recipes, picked.recipeId, item.materialId) ?? {
-                      name: item.materialId,
-                      unit: "",
-                    }),
-                  })),
-                });
-                // The title is the person's own wording if they already typed
-                // one; the takaran belongs in the description either way.
-                setTitle((current) => (current.trim() ? current : picked.name));
-                setDescription((current) =>
-                  current.trim() ? `${current.trim()}\n\n${picked.text}` : picked.text
-                );
-              }}
-            />
+          ) : null}
+
+          {locked ? null : (
+            <>
+              {recipe ? null : (
+                <RecipePicker
+                  recipes={recipes}
+                  label="Pakai racikan dari Pustaka (opsional)"
+                  onApply={(picked) => {
+                    setRecipe({ id: picked.recipeId, volumeL: picked.volumeL });
+                    setUsed((current) => {
+                      const fromRecipe = picked.materials.map((item) => ({
+                        ...item,
+                        ...(lookup(recipes, picked.recipeId, item.materialId) ?? {
+                          name: item.materialId,
+                          unit: "",
+                        }),
+                      }));
+
+                      // A recipe wins for anything already on the list: its
+                      // dose is the considered number, the hand-typed one was
+                      // a guess.
+                      const ids = new Set(fromRecipe.map((i) => i.materialId));
+                      return [
+                        ...current.filter((row) => !ids.has(row.materialId)),
+                        ...fromRecipe,
+                      ];
+                    });
+                    // The title is the person's own wording if they already
+                    // typed one; the takaran belongs in the description either
+                    // way.
+                    setTitle((current) =>
+                      current.trim() ? current : picked.name
+                    );
+                    setDescription((current) =>
+                      current.trim()
+                        ? `${current.trim()}\n\n${picked.text}`
+                        : picked.text
+                    );
+                  }}
+                />
+              )}
+
+              <MaterialPicker
+                materials={materials}
+                exclude={used.map((item) => item.materialId)}
+                onAdd={(picked) => setUsed((current) => [...current, picked])}
+              />
+            </>
           )}
 
           <div className="grid gap-4 sm:grid-cols-2">

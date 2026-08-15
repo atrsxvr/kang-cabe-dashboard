@@ -1,5 +1,6 @@
 import { TaskCard } from "@/components/tasks/task-card";
 import type { TaskRow } from "@/server/queries/tasks";
+import type { StockRow } from "@/server/queries/inventory";
 import type { RecipeRow } from "@/server/queries/recipes";
 import type { MemberOption } from "@/server/queries/users";
 import { taskStatuses } from "@/server/actions/schemas";
@@ -16,12 +17,14 @@ export function TaskBoard({
   currentHst,
   members,
   recipes,
+  materials,
 }: {
   tasks: TaskRow[];
   seasonId: string;
   currentHst: number;
   members: MemberOption[];
   recipes: RecipeRow[];
+  materials: StockRow[];
 }) {
   return (
     // Three columns do not fit a phone. Scrolling horizontally keeps the board
@@ -54,6 +57,7 @@ export function TaskBoard({
                       currentHst={currentHst}
                       members={members}
                       recipes={recipes}
+                      materials={materials}
                     />
                   ))
                 )}

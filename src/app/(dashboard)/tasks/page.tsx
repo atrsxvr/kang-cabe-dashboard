@@ -13,6 +13,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { calculateHst, formatDate } from "@/lib/hst";
 import { readSeasonParam } from "@/lib/season-param";
+import { listStock } from "@/server/queries/inventory";
 import { listRecipes } from "@/server/queries/recipes";
 import { resolveSeason } from "@/server/queries/seasons";
 import {
@@ -32,11 +33,12 @@ export default async function TasksPage(props: PageProps<"/tasks">) {
 
   if (!season) return <NoSeason />;
 
-  const [tasks, completed, members, recipes] = await Promise.all([
+  const [tasks, completed, members, recipes, materials] = await Promise.all([
     listTasksBySeason(season.id),
     listCompletedTasksBySeason(season.id),
     listActiveMembers(),
     listRecipes(),
+    listStock(),
   ]);
 
   const currentHst = calculateHst(season.startDate);
@@ -62,6 +64,7 @@ export default async function TasksPage(props: PageProps<"/tasks">) {
           members={members}
           currentHst={currentHst}
           recipes={recipes}
+          materials={materials}
         />
       </div>
 
@@ -98,6 +101,7 @@ export default async function TasksPage(props: PageProps<"/tasks">) {
             currentHst={currentHst}
             members={members}
             recipes={recipes}
+            materials={materials}
           />
         }
         table={
@@ -107,6 +111,7 @@ export default async function TasksPage(props: PageProps<"/tasks">) {
             currentHst={currentHst}
             members={members}
             recipes={recipes}
+            materials={materials}
           />
         }
         logbook={

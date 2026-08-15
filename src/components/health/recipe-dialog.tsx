@@ -27,6 +27,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { DEFAULT_TANK_LITRES } from "@/lib/dose";
+import { isDosable } from "@/lib/stock";
 import { createRecipe, updateRecipe } from "@/server/actions/recipes";
 import type { RecipeRow } from "@/server/queries/recipes";
 import type { StockRow } from "@/server/queries/inventory";
@@ -76,9 +77,17 @@ export function RecipeDialog({
     reset();
   };
 
-  if (materials.length === 0) {
+  // Only what can be measured into a tank. Ajir and mulsa are stock too, but
+  // "berapa per liter" is a question with no answer for them.
+  const dosable = materials.filter((material) => isDosable(material.category));
+
+  if (dosable.length === 0) {
     return (
-      <Button size="sm" disabled title="Tambahkan bahan terlebih dahulu">
+      <Button
+        size="sm"
+        disabled
+        title="Daftarkan dulu bahan yang bisa ditakar per liter"
+      >
         <Plus className="size-4" aria-hidden />
         Tambah Racikan
       </Button>
@@ -272,7 +281,7 @@ export function RecipeDialog({
                       name="materialId"
                       defaultValue={recipe?.items[index]?.material.id}
                     >
-                      {materials.map((material) => (
+                      {dosable.map((material) => (
                         <option key={material.id} value={material.id}>
                           {material.name} ({material.unit})
                         </option>

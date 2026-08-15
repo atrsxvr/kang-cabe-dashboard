@@ -10,6 +10,7 @@ import { daysUntil, formatDate } from "@/lib/hst";
 import { cn } from "@/lib/utils";
 import { deleteTask } from "@/server/actions/tasks";
 import type { TaskRow } from "@/server/queries/tasks";
+import type { StockRow } from "@/server/queries/inventory";
 import type { RecipeRow } from "@/server/queries/recipes";
 import type { MemberOption } from "@/server/queries/users";
 
@@ -19,6 +20,7 @@ export function TaskCard({
   currentHst,
   members,
   recipes,
+  materials,
   showStatus = false,
 }: {
   task: TaskRow;
@@ -27,6 +29,7 @@ export function TaskCard({
   currentHst: number;
   members: MemberOption[];
   recipes: RecipeRow[];
+  materials: StockRow[];
   showStatus?: boolean;
 }) {
   const remaining = daysUntil(task.dueDate);
@@ -94,6 +97,7 @@ export function TaskCard({
             seasonId={seasonId}
             members={members}
             recipes={recipes}
+            materials={materials}
             currentHst={currentHst}
             task={task}
           />

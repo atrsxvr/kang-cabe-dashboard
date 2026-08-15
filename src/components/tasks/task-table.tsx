@@ -17,6 +17,7 @@ import { daysUntil, formatDate } from "@/lib/hst";
 import { cn } from "@/lib/utils";
 import { deleteTask } from "@/server/actions/tasks";
 import type { TaskRow } from "@/server/queries/tasks";
+import type { StockRow } from "@/server/queries/inventory";
 import type { RecipeRow } from "@/server/queries/recipes";
 import type { MemberOption } from "@/server/queries/users";
 
@@ -26,12 +27,14 @@ export function TaskTable({
   currentHst,
   members,
   recipes,
+  materials,
 }: {
   tasks: TaskRow[];
   seasonId: string;
   currentHst: number;
   members: MemberOption[];
   recipes: RecipeRow[];
+  materials: StockRow[];
 }) {
   if (tasks.length === 0) {
     return (
@@ -54,6 +57,7 @@ export function TaskTable({
             currentHst={currentHst}
             members={members}
             recipes={recipes}
+            materials={materials}
             showStatus
           />
         ))}
@@ -136,6 +140,7 @@ export function TaskTable({
                           seasonId={seasonId}
                           members={members}
                           recipes={recipes}
+                          materials={materials}
                           currentHst={currentHst}
                           task={task}
                         />

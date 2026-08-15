@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 
 import { prisma } from "@/lib/prisma";
+import { isDosable } from "@/lib/stock";
 import { invalidForm, type ActionResult } from "@/server/actions/result";
 import {
   createMaterialSchema,
@@ -10,6 +11,27 @@ import {
   updateMaterialSchema,
   updateRecipeSchema,
 } from "@/server/actions/schemas";
+
+
+/**
+ * The form only offers materials a tank can take, but the form is not the only
+ * way in. A recipe line for bamboo stakes would be a dose per litre of
+ * something that does not dissolve, and nothing downstream could catch it.
+ */
+async function rejectUndosable(
+  items: { materialId: string }[]
+): Promise<string | null> {
+  const materials = await prisma.material.findMany({
+    where: { id: { in: items.map((item) => item.materialId) } },
+    select: { name: true, category: true },
+  });
+
+  const bad = materials.find((material) => !isDosable(material.category));
+
+  return bad
+    ? `${bad.name} tidak bisa ditakar per liter, jadi tidak bisa masuk racikan.`
+    : null;
+}
 
 export async function createMaterial(
   formData: FormData
@@ -118,6 +140,9 @@ export async function createRecipe(formData: FormData): Promise<ActionResult> {
     ...rest
   } = parsed.data;
 
+  const undosable = await rejectUndosable(parsedItems);
+  if (undosable) return { ok: false, message: undosable };
+
   await prisma.recipe.create({
     data: {
       ...rest,
@@ -191,6 +216,9 @@ export async function updateRecipe(formData: FormData): Promise<ActionResult> {
   });
 
   if (!existing) return { ok: false, message: "Racikan tidak ditemukan." };
+
+  const undosable = await rejectUndosable(parsedItems);
+  if (undosable) return { ok: false, message: undosable };
 
   await prisma.$transaction([
     prisma.recipe.update({

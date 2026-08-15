@@ -50,3 +50,26 @@ export function describeShortfall(
 
 /** Field-name prefix for one material's counted amount in an opname form. */
 export const OPNAME_PREFIX = "count:";
+
+/**
+ * Categories a recipe can actually dose.
+ *
+ * A recipe item is an amount per litre of water. Bamboo stakes, mulch film and
+ * seed are all real stock, bought and used up, but none of them dissolves in a
+ * tank — offering them where a dose is expected invites a number that means
+ * nothing and cannot be caught later.
+ *
+ * OTHER stays in: it is the escape hatch for something real that has no
+ * category yet, and closing it would be worse than the odd wrong pick.
+ */
+const DOSABLE = new Set([
+  "FERTILIZER",
+  "PESTICIDE",
+  "FUNGICIDE",
+  "GROWTH_REGULATOR",
+  "OTHER",
+]);
+
+export function isDosable(category: string): boolean {
+  return DOSABLE.has(category);
+}
