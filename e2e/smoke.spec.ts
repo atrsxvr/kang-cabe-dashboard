@@ -136,6 +136,23 @@ test.describe("layar 360px", () => {
   });
 
   /**
+   * Section navigation is drawn by a layout so it survives moving between its
+   * pages. A page that draws its own as well gets two rows and nothing
+   * complains — the duplicate renders perfectly.
+   */
+  test("navigasi bagian cuma muncul sekali", async ({ page }) => {
+    for (const path of ["/health", "/health/racikan", "/health/populasi"]) {
+      await page.goto(path);
+
+      const rows = await page
+        .getByRole("navigation", { name: "Bagian Kesehatan & Monitoring" })
+        .count();
+
+      expect(rows, `tab bagian dobel di ${path}`).toBe(1);
+    }
+  });
+
+  /**
    * The other half of the same mistake, and the one that got made: a labelled
    * button squeezed into a square. Enlarging tap targets by reaching for the
    * `icon` size works only where there is no text — forced onto a button that

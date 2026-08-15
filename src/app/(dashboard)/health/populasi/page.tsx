@@ -4,7 +4,6 @@ import { Skull, Sprout } from "lucide-react";
 
 import { ConfirmDelete } from "@/components/common/confirm-delete";
 import { PageHeader } from "@/components/common/page-header";
-import { HealthTabs } from "@/components/health/health-tabs";
 import { PlantEventDialog } from "@/components/health/plant-event-dialog";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -51,8 +50,6 @@ export default async function PopulationPage(
           findings={findings}
         />
       </div>
-
-      <HealthTabs />
 
       <div className="mb-6 grid grid-cols-2 gap-2 sm:gap-3 lg:grid-cols-4">
         <Tile
@@ -217,7 +214,6 @@ function NoSeason() {
   return (
     <>
       <PageHeader title="Kesehatan & Monitoring" />
-      <HealthTabs />
       <Card>
         <CardContent className="flex flex-col items-center gap-3 py-14 text-center">
           <div className="bg-muted rounded-lg p-3">

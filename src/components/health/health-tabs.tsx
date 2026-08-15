@@ -32,7 +32,7 @@ export function HealthTabs() {
     <div
       role="navigation"
       aria-label="Bagian Kesehatan & Monitoring"
-      className="bg-muted mb-6 flex max-w-full justify-start gap-1 overflow-x-auto rounded-lg p-1"
+      className="bg-muted mb-6 inline-flex max-w-full justify-start gap-1 overflow-x-auto rounded-lg p-1"
     >
       {tabs.map(({ href, label, icon: Icon }) => {
         const active = pathname === href;
