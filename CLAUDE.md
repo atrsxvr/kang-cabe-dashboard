@@ -80,6 +80,9 @@ e2e/                        # Playwright; cleans up after itself by "E2E" prefix
   for a buyer, so what goes out is drawn from the heap. Unsold stock is derived
   — harvested less sold, per grade — and is allowed to go negative, because the
   two sides are recorded days apart and in either order.
+- **A sale's payable total is rounded up to Rp 500** (`roundUpToCash`), once,
+  on the transaction rather than per line — a buyer hands over one amount for
+  the whole load. Always up: the difference is the seller's.
 - **Totals are never stored beside their parts.** A harvest keeps its grades
   and a sale keeps its lines; both totals are computed. The stored total is
   always the one that stops being updated.

@@ -272,6 +272,15 @@ rusak yang perlu ditolak.
 Bagus ke restoran dan afkir ke pengepul hampir selalu beda harga dan sering
 terangkut bersamaan; satu harga per transaksi tidak bisa menuliskannya.
 
+**Total transaksi dibulatkan naik ke kelipatan Rp 500**, karena tidak ada
+pecahan di bawah itu yang beredar di sini — Rp 13.250 bukan angka yang
+berpindah tangan, Rp 13.500 iya. Selalu naik, tidak pernah turun; selisihnya
+milik penjual, dan membulatkan tagihan ke bawah berarti menyunat sedikit uang
+di tiap muatan. Yang dibulatkan **totalnya**, bukan tiap baris mutu: pembeli
+menyerahkan satu angka untuk seluruh muatan, jadi hanya di situ pembulatannya
+nyata. Selisihnya ditampilkan apa adanya supaya barisnya tetap terlihat
+menjumlah.
+
 **Pembeli diketik bebas**, dengan saran dari nama yang pernah dipakai. Pengepul
 yang itu-itu saja jadi cepat, tapi restoran yang sekali beli tidak perlu
 didaftarkan dulu.

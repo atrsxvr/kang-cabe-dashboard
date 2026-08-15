@@ -105,3 +105,22 @@ export function rebuildAvgCost(movements: CostMovement[]): number {
 
   return avgCost;
 }
+
+/** Pecahan terkecil yang benar-benar beredar di transaksi kebun ini. */
+export const CASH_STEP = 500;
+
+/**
+ * Rounds a payable amount up to the smallest note anyone actually carries.
+ *
+ * Rp 13.250 is not a sum that changes hands here; Rp 13.500 is. Always up,
+ * never down — the difference is the seller's, and rounding a bill down would
+ * quietly shave money off every load.
+ *
+ * Applied to the transaction total rather than to each grade line. A buyer
+ * hands over one amount for the whole load, so that is the only place the
+ * rounding is real; doing it per line would produce a figure nobody ever paid.
+ */
+export function roundUpToCash(value: number, step: number = CASH_STEP): number {
+  if (step <= 0) return Math.round(value);
+  return Math.ceil(value / step) * step;
+}

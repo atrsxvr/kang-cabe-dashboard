@@ -121,9 +121,11 @@ test.describe.serial("panen, jual, tagih", () => {
     await page.getByLabel("Bobot Bagus").fill("0,25");
     await page.getByLabel("Harga Bagus per kg").fill("45000");
 
-    // Not 0,3 kg, and not Rp 13.500 — a quarter kilo is a real sale.
+    // Not 0,3 kg — a quarter kilo is a real sale. And 11.250 is not a sum
+    // that changes hands, so it is lifted to the nearest five hundred.
     await expect(page.getByText("0,25 kg").first()).toBeVisible();
-    await expect(page.getByText("Rp 11.250").first()).toBeVisible();
+    await expect(page.getByText("Rp 11.500").first()).toBeVisible();
+    await expect(page.getByText(/dibulatkan naik/)).toBeVisible();
 
     await page.getByRole("button", { name: "Simpan Penjualan" }).click();
 
@@ -135,8 +137,8 @@ test.describe.serial("panen, jual, tagih", () => {
     await page.goto(`/finance?season=${seasonId}`);
 
     await expect(page.getByText("Masuk dari jualan")).toBeVisible();
-    // 750.000 from the first load plus 11.250 for the quarter kilo.
-    await expect(page.getByText("Rp 761.250").first()).toBeVisible();
+    // 750.000 from the first load plus 11.500 for the rounded quarter kilo.
+    await expect(page.getByText("Rp 761.500").first()).toBeVisible();
 
     // Named honestly: labour, rent and transport are still unrecorded.
     await expect(page.getByText(/bukan/).first()).toBeVisible();

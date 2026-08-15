@@ -30,7 +30,7 @@ import {
   type ChiliGradeValue,
 } from "@/lib/harvest";
 import { parseAmount } from "@/lib/dose";
-import { formatRupiah } from "@/lib/money";
+import { formatRupiah, roundUpToCash } from "@/lib/money";
 import { createSale, updateSale } from "@/server/actions/harvest";
 import type { SaleRow } from "@/server/queries/harvest";
 import type { MemberOption } from "@/server/queries/users";
@@ -86,10 +86,13 @@ export function SaleDialog({
   })).filter((line) => line.weightKg > 0 && line.pricePerKg > 0);
 
   const totalKg = filled.reduce((sum, line) => sum + line.weightKg, 0);
-  const totalAmount = filled.reduce(
+  const subtotal = filled.reduce(
     (sum, line) => sum + lineTotal(line.weightKg, line.pricePerKg),
     0
   );
+  // What actually changes hands: nobody here carries anything smaller than a
+  // five-hundred note.
+  const totalAmount = roundUpToCash(subtotal);
 
   const reset = () => {
     setErrors({});
@@ -246,11 +249,21 @@ export function SaleDialog({
             ) : null}
           </fieldset>
 
-          <p className="text-sm">
-            Total{" "}
-            <strong className="tabular-nums">{formatKg(totalKg)}</strong> ·{" "}
-            <strong className="tabular-nums">{formatRupiah(totalAmount)}</strong>
-          </p>
+          <div className="grid gap-0.5 text-sm">
+            <p>
+              Total{" "}
+              <strong className="tabular-nums">{formatKg(totalKg)}</strong> ·{" "}
+              <strong className="tabular-nums">
+                {formatRupiah(totalAmount)}
+              </strong>
+            </p>
+            {totalAmount !== subtotal ? (
+              <p className="text-muted-foreground text-xs tabular-nums">
+                Hitungannya {formatRupiah(subtotal)}, dibulatkan naik{" "}
+                {formatRupiah(totalAmount - subtotal)}
+              </p>
+            ) : null}
+          </div>
 
           <label className="hover:bg-accent flex items-center gap-2 rounded-md border px-3 py-2 text-sm">
             <Checkbox name="isPaid" defaultChecked={sale?.isPaid ?? false} />

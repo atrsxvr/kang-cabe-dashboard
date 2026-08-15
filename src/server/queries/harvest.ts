@@ -1,6 +1,7 @@
 import "server-only";
 
 import { prisma } from "@/lib/prisma";
+import { roundUpToCash } from "@/lib/money";
 import {
   averagePrice,
   emptyWeights,
@@ -64,6 +65,11 @@ export type SaleRow = {
   recordedBy: { id: string; name: string } | null;
   items: SaleItemRow[];
   totalKg: number;
+  /** Jumlah persis dari barisnya, sebelum dibulatkan. */
+  subtotal: number;
+  /** Selisih pembulatan ke kelipatan 500. Nol kalau kebetulan sudah pas. */
+  rounding: number;
+  /** Yang benar-benar dibayar. Ini yang dipakai semua laporan. */
   totalAmount: number;
 };
 
@@ -91,11 +97,16 @@ export async function listSales(seasonId: string): Promise<SaleRow[]> {
       total: lineTotal(item.weightKg, item.pricePerKg),
     }));
 
+    const subtotal = items.reduce((sum, item) => sum + item.total, 0);
+    const totalAmount = roundUpToCash(subtotal);
+
     return {
       ...row,
       items,
       totalKg: items.reduce((sum, item) => sum + item.weightKg, 0),
-      totalAmount: items.reduce((sum, item) => sum + item.total, 0),
+      subtotal,
+      rounding: totalAmount - subtotal,
+      totalAmount,
     };
   });
 }

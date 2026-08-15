@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import {
   formatRupiah,
+  roundUpToCash,
   formatUnitPrice,
   nextAvgCost,
   rebuildAvgCost,
@@ -111,5 +112,27 @@ describe("rebuildAvgCost", () => {
 
   it("is zero for a material nothing was ever paid for", () => {
     expect(rebuildAvgCost([buy(1000, null), use(-100)])).toBe(0);
+  });
+});
+
+describe("roundUpToCash", () => {
+  it("lifts an awkward total to the nearest 500", () => {
+    expect(roundUpToCash(13250)).toBe(13500);
+    expect(roundUpToCash(11250)).toBe(11500);
+  });
+
+  it("leaves a total that already lands on 500 alone", () => {
+    expect(roundUpToCash(13500)).toBe(13500);
+    expect(roundUpToCash(13000)).toBe(13000);
+  });
+
+  /** Always up: the difference is the seller's, not the buyer's. */
+  it("never rounds down, even one rupiah short", () => {
+    expect(roundUpToCash(13501)).toBe(14000);
+    expect(roundUpToCash(1)).toBe(500);
+  });
+
+  it("leaves nothing as nothing", () => {
+    expect(roundUpToCash(0)).toBe(0);
   });
 });

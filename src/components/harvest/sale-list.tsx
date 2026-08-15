@@ -59,6 +59,11 @@ export function SaleList({
                 <p className="text-muted-foreground text-xs tabular-nums">
                   {formatKg(sale.totalKg)}
                 </p>
+                {sale.rounding > 0 ? (
+                  <p className="text-muted-foreground text-[11px] tabular-nums">
+                    {formatRupiah(sale.subtotal)} + {formatRupiah(sale.rounding)}
+                  </p>
+                ) : null}
               </div>
             </div>
 
