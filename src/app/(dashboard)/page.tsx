@@ -80,7 +80,8 @@ export default async function DashboardPage(props: PageProps<"/">) {
         <SummaryCard
           title="Total Panen Sementara"
           value={harvest.totalHarvestedKg.toLocaleString("id-ID", {
-            maximumFractionDigits: 1,
+            minimumFractionDigits: 2,
+            maximumFractionDigits: 2,
           })}
           unit="kg"
           hint={

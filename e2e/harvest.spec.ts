@@ -46,6 +46,8 @@ test.describe.serial("panen, jual, tagih", () => {
     await expect(page.getByText("25,5 kg")).toBeVisible();
     await page.getByRole("button", { name: "Simpan Panen" }).click();
 
+    // The running total carries both decimals; the row itself drops the zero.
+    await expect(page.getByText("25,50 kg").first()).toBeVisible();
     await expect(page.getByText("25,5 kg").first()).toBeVisible();
   });
 
@@ -110,11 +112,31 @@ test.describe.serial("panen, jual, tagih", () => {
     await expect(page.getByText(/^Lunas/).first()).toBeVisible();
   });
 
+  test("seperempat kilo tetap seperempat kilo", async ({ page }) => {
+    await harvestPage(page);
+    await page.getByRole("button", { name: "Catat Penjualan" }).click();
+
+    await page.getByLabel("Tanggal Jual", { exact: true }).fill("2026-06-03");
+    await page.getByLabel("Pembeli", { exact: true }).fill(`${BUYER} kecil`);
+    await page.getByLabel("Bobot Bagus").fill("0,25");
+    await page.getByLabel("Harga Bagus per kg").fill("45000");
+
+    // Not 0,3 kg, and not Rp 13.500 — a quarter kilo is a real sale.
+    await expect(page.getByText("0,25 kg").first()).toBeVisible();
+    await expect(page.getByText("Rp 11.250").first()).toBeVisible();
+
+    await page.getByRole("button", { name: "Simpan Penjualan" }).click();
+
+    await page.getByRole("tab", { name: /Penjualan/ }).click();
+    await expect(page.getByText("0,25 kg").first()).toBeVisible();
+  });
+
   test("pemasukannya sampai ke Keuangan", async ({ page }) => {
     await page.goto(`/finance?season=${seasonId}`);
 
     await expect(page.getByText("Masuk dari jualan")).toBeVisible();
-    await expect(page.getByText("Rp 750.000").first()).toBeVisible();
+    // 750.000 from the first load plus 11.250 for the quarter kilo.
+    await expect(page.getByText("Rp 761.250").first()).toBeVisible();
 
     // Named honestly: labour, rent and transport are still unrecorded.
     await expect(page.getByText(/bukan/).first()).toBeVisible();
@@ -124,6 +146,6 @@ test.describe.serial("panen, jual, tagih", () => {
     await page.goto(`/?season=${seasonId}`);
 
     await expect(page.getByText("Total Panen Sementara")).toBeVisible();
-    await expect(page.getByText("25,5").first()).toBeVisible();
+    await expect(page.getByText("25,50").first()).toBeVisible();
   });
 });

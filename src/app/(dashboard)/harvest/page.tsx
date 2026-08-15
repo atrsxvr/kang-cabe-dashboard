@@ -11,7 +11,7 @@ import { SaleDialog } from "@/components/harvest/sale-dialog";
 import { SaleList } from "@/components/harvest/sale-list";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { formatKg, gradeLabels } from "@/lib/harvest";
+import { formatKg, formatKgPrecise, gradeLabels } from "@/lib/harvest";
 import { formatDate } from "@/lib/hst";
 import { formatRupiah } from "@/lib/money";
 import { readSeasonParam } from "@/lib/season-param";
@@ -71,12 +71,12 @@ export default async function HarvestPage(props: PageProps<"/harvest">) {
 
       <div className="mb-6 grid grid-cols-2 gap-2 sm:gap-3 lg:grid-cols-4">
         <Tile
-          value={formatKg(summary.totalHarvestedKg)}
+          value={formatKgPrecise(summary.totalHarvestedKg)}
           label="Total panen"
           hint={`${gradeLabels.GOOD} ${formatKg(summary.harvested.GOOD)} · ${gradeLabels.REJECT} ${formatKg(summary.harvested.REJECT)}`}
         />
         <Tile
-          value={formatKg(summary.totalSoldKg)}
+          value={formatKgPrecise(summary.totalSoldKg)}
           label="Sudah terjual"
           hint={
             summary.averagePricePerKg > 0

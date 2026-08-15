@@ -19,9 +19,29 @@ export const gradeTones: Record<ChiliGradeValue, string> = {
   REJECT: "bg-amber-500/15 text-amber-700 dark:text-amber-400",
 };
 
-/** "12,5 kg" — weights are read off a hanging scale, so one decimal is plenty. */
+/**
+ * "12,5 kg", "0,25 kg" — up to two decimals, trailing zeros dropped.
+ *
+ * Two, not one: a quarter kilo is a real sale, and rounding 0,25 to 0,3 both
+ * overstates what left and quietly disagrees with the money the buyer handed
+ * over.
+ */
 export function formatKg(value: number): string {
-  return `${value.toLocaleString("id-ID", { maximumFractionDigits: 1 })} kg`;
+  return `${value.toLocaleString("id-ID", { maximumFractionDigits: 2 })} kg`;
+}
+
+/**
+ * The same, but always showing both decimals: "25,50 kg".
+ *
+ * For the running totals, where a column of figures is easier to compare when
+ * the decimal point sits in the same place on every line — and where a
+ * disappearing "0" would look like the quarter kilos had been dropped.
+ */
+export function formatKgPrecise(value: number): string {
+  return `${value.toLocaleString("id-ID", {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  })} kg`;
 }
 
 export type GradeWeights = Record<ChiliGradeValue, number>;

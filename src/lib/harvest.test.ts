@@ -3,18 +3,38 @@ import { describe, expect, it } from "vitest";
 import {
   averagePrice,
   formatKg,
+  formatKgPrecise,
   lineTotal,
   totalOf,
   unsoldBalance,
 } from "@/lib/harvest";
 
 describe("formatKg", () => {
-  it("keeps one decimal, which is what a hanging scale reads to", () => {
+  it("keeps a decimal the scale actually reads", () => {
     expect(formatKg(12.5)).toBe("12,5 kg");
+  });
+
+  /**
+   * A quarter kilo is a real sale. Rounding it to 0,3 would overstate what
+   * left and disagree with the money the buyer handed over.
+   */
+  it("keeps a quarter kilo whole instead of rounding it up", () => {
+    expect(formatKg(0.25)).toBe("0,25 kg");
   });
 
   it("does not print a decimal that is not there", () => {
     expect(formatKg(20)).toBe("20 kg");
+  });
+});
+
+describe("formatKgPrecise", () => {
+  it("always shows both decimals, so a column of totals lines up", () => {
+    expect(formatKgPrecise(25.5)).toBe("25,50 kg");
+    expect(formatKgPrecise(20)).toBe("20,00 kg");
+  });
+
+  it("still keeps the quarter", () => {
+    expect(formatKgPrecise(0.25)).toBe("0,25 kg");
   });
 });
 
