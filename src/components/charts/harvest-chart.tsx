@@ -74,6 +74,9 @@ export function HarvestChart({ points }: { points: HarvestPoint[] }) {
             width={44}
           />
           <Tooltip
+            // Same hardcoded `#ccc` as the bar chart's cursor, drawn here as a
+            // crosshair line instead of a band. Themed for the same reason.
+            cursor={{ className: "stroke-muted-foreground/50" }}
             contentStyle={{
               borderRadius: 8,
               border: "1px solid var(--color-border)",

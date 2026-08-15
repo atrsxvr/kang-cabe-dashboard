@@ -67,6 +67,14 @@ export function SeasonCompareChart({ seasons }: { seasons: SeasonBar[] }) {
             }}
           />
           <Tooltip
+            // Recharts highlights the hovered band with a rectangle filled
+            // `#ccc` — hardcoded, full plot height, and as wide as one season's
+            // slot. On a phone a tap latches it, so it reads as the card's
+            // background turning grey rather than as "this is the bar you
+            // picked". A class beats the presentation attribute, so this both
+            // softens it and lets it follow the theme instead of staying a
+            // light-mode grey slab on a dark card.
+            cursor={{ className: "fill-foreground/5" }}
             contentStyle={{
               borderRadius: 8,
               border: "1px solid var(--color-border)",
