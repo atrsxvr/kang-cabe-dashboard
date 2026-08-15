@@ -304,11 +304,14 @@ export default async function FinancePage(props: PageProps<"/finance">) {
 
             <Card>
               <CardContent className="grid gap-2 py-5">
-                <h2 className="text-sm font-medium">Diukur per satuan</h2>
+                <h2 className="text-sm font-medium">
+                  Sisa per kilo &amp; hasil per pohon
+                </h2>
                 <p className="text-muted-foreground text-xs">
-                  Musim yang jalan lebih lama atau punya pohon lebih banyak
-                  otomatis dapat angka total lebih besar tanpa berarti lebih
-                  bagus. Dua angka ini yang adil dibandingkan.
+                  Total musim nggak bisa diadu langsung: musim yang jalan lebih
+                  lama atau pohonnya lebih banyak otomatis dapat angka lebih
+                  gede tanpa berarti lebih bagus. Dibagi dulu per kilo dan per
+                  pohon, baru setara.
                 </p>
                 <ul className="mt-2 grid gap-2">
                   {seasons.map((row) => (
@@ -326,6 +329,9 @@ export default async function FinancePage(props: PageProps<"/finance">) {
                               : ""}
                           </span>
                         </span>
+                        {/* Named, because "Rp …/kg" appears twice on this page
+                            with opposite meanings: HPP per kg up top is what a
+                            kilo cost, this is what a kilo left over. */}
                         <strong
                           className={
                             row.perKg < 0
@@ -334,6 +340,9 @@ export default async function FinancePage(props: PageProps<"/finance">) {
                           }
                         >
                           {formatRupiah(row.perKg)}/kg
+                          <span className="text-muted-foreground ml-1 text-xs font-normal">
+                            sisa
+                          </span>
                         </strong>
                       </div>
                       <p className="text-muted-foreground text-xs tabular-nums">
