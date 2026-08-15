@@ -12,7 +12,7 @@ import { materialCategoryLabels } from "@/components/inventory/inventory-labels"
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { formatKg, formatPerPlant } from "@/lib/harvest";
+import { formatKg, formatPercent, formatPerPlant } from "@/lib/harvest";
 import { formatRupiah } from "@/lib/money";
 import { readSeasonParam } from "@/lib/season-param";
 import {
@@ -96,6 +96,49 @@ export default async function FinancePage(props: PageProps<"/finance">) {
               kebesaran.
             </p>
           </div>
+
+          {/* Four figures a spreadsheet would carry, all derived from what is
+              already recorded. HPP divides by kilos picked, not kilos sold:
+              per sold it would pile the whole season's cost onto whatever
+              happens to have gone out, and swing about as stock waits. */}
+          <div className="grid grid-cols-2 gap-3 border-t pt-4 text-center sm:grid-cols-4">
+            <div>
+              <p className="text-base font-semibold tabular-nums sm:text-lg">
+                {result.hppPerKg !== null
+                  ? formatRupiah(result.hppPerKg)
+                  : "—"}
+              </p>
+              <p className="text-muted-foreground text-xs">HPP per kg</p>
+            </div>
+            <div>
+              <p className="text-base font-semibold tabular-nums sm:text-lg">
+                {formatPercent(result.roi, 1)}
+              </p>
+              <p className="text-muted-foreground text-xs">ROI</p>
+            </div>
+            <div>
+              <p className="text-base font-semibold tabular-nums sm:text-lg">
+                {formatPercent(result.grossMarginRate, 1)}
+              </p>
+              <p className="text-muted-foreground text-xs">Margin kotor</p>
+            </div>
+            <div>
+              <p className="text-base font-semibold tabular-nums sm:text-lg">
+                {formatRupiah(result.unsoldValue)}
+              </p>
+              <p className="text-muted-foreground text-xs">Nilai sisa stok</p>
+            </div>
+          </div>
+
+          {result.unsoldValue > 0 ? (
+            // Deliberately outside the margin: you cannot split chillies that
+            // have not sold, and the profit share is computed from the margin.
+            <p className="text-muted-foreground text-center text-xs">
+              {formatRupiah(result.unsoldValue)} masih nyangkut di cabai yang
+              belum laku. Belum masuk sisa musim di atas, dan belum bisa dibagi
+              — baru jadi uang kalau terjual.
+            </p>
+          ) : null}
 
           <div className="grid grid-cols-2 gap-3 border-t pt-4 text-center">
             <div>
@@ -294,7 +337,13 @@ export default async function FinancePage(props: PageProps<"/finance">) {
                         </strong>
                       </div>
                       <p className="text-muted-foreground text-xs tabular-nums">
-                        Hasil {formatPerPlant(row.harvestedKg, row.plantCount)}
+                        {formatPerPlant(row.harvestedKg, row.plantCount)} layak
+                        {row.perPlantTotalGrams !== null
+                          ? ` dari ${formatPerPlant((row.perPlantTotalGrams * row.plantCount) / 1000, row.plantCount)} total`
+                          : ""}
+                        {row.gradeOutRate !== null
+                          ? ` · ${formatPercent(row.gradeOutRate)} lolos sortir`
+                          : ""}
                       </p>
                     </li>
                   ))}

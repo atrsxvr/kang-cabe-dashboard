@@ -222,6 +222,24 @@ export type SeasonResult = {
   /** Pemasukan dikurangi seluruh biaya yang tercatat. */
   margin: number;
   costByCategory: CostLine[];
+
+  /**
+   * Harga pokok per kilo, dihitung terhadap kilo **dipanen**, bukan terjual.
+   *
+   * Membagi dengan kilo terjual akan menumpuk seluruh ongkos musim ke bagian
+   * yang kebetulan sudah laku, dan angkanya berubah-ubah cuma karena ada stok
+   * menunggu pembeli. Per kilo panen ia mengukur efisiensi budidaya, dan bisa
+   * disandingkan dengan harga jual rata-rata untuk melihat marginnya.
+   *
+   * Penyebutnya cuma Bagus — afkir belum pernah terbukti punya nilai.
+   */
+  hppPerKg: number | null;
+  /** Nilai stok Bagus yang belum terjual, pada harga pokok. */
+  unsoldValue: number;
+  /** Sisa dibagi seluruh biaya. */
+  roi: number | null;
+  /** Sisa dibagi pemasukan. */
+  grossMarginRate: number | null;
 };
 
 /**
@@ -262,6 +280,12 @@ export async function seasonResult(seasonId: string): Promise<SeasonResult> {
 
   const income = summary.income + otherIncome;
   const totalCost = cost.total + otherCost;
+  const margin = income - totalCost;
+
+  const hppPerKg =
+    summary.sellableHarvestedKg > 0
+      ? Math.round(totalCost / summary.sellableHarvestedKg)
+      : null;
 
   return {
     income,
@@ -272,7 +296,18 @@ export async function seasonResult(seasonId: string): Promise<SeasonResult> {
     materialCost: cost.total,
     otherCost,
     totalCost,
-    margin: income - totalCost,
+    margin,
+    hppPerKg,
+    // Only Bagus is valued. Afkir's kilos are reported, its rupiah are not —
+    // nothing has ever sold, so pricing it would invent an asset.
+    unsoldValue:
+      hppPerKg !== null
+        ? Math.round(Math.max(0, summary.sellableUnsoldKg) * hppPerKg)
+        : 0,
+    // Both measured on realised margin. Counting unsold stock into either
+    // would report a return on chillies still sitting in a crate.
+    roi: totalCost > 0 ? margin / totalCost : null,
+    grossMarginRate: income > 0 ? margin / income : null,
     costByCategory: [
       ...(cost.total > 0
         ? [
@@ -360,8 +395,12 @@ export type SeasonComparison = {
   plantCount: number;
   /** Rupiah per kilo panen — satu-satunya angka yang adil membandingkan musim. */
   perKg: number;
-  /** Hasil per pohon, gram. Null kalau populasinya belum diisi. */
+  /** Hasil layak jual per pohon, gram. Null kalau populasinya belum diisi. */
   perPlantGrams: number | null;
+  /** Seluruh hasil per pohon, termasuk afkir. */
+  perPlantTotalGrams: number | null;
+  /** Porsi panen yang lolos sortir. */
+  gradeOutRate: number | null;
 };
 
 /**
@@ -392,16 +431,21 @@ export async function seasonComparison(): Promise<SeasonComparison[]> {
         income: result.income,
         cost: result.totalCost,
         margin: result.margin,
-        harvestedKg: summary.totalHarvestedKg,
-        plantCount: summary.plantCount,
+        harvestedKg: summary.sellableHarvestedKg,
+        plantCount: summary.actualPlantCount,
         perKg:
-          summary.totalHarvestedKg > 0
-            ? Math.round(result.margin / summary.totalHarvestedKg)
+          summary.sellableHarvestedKg > 0
+            ? Math.round(result.margin / summary.sellableHarvestedKg)
             : 0,
         perPlantGrams: perPlantGrams(
-          summary.totalHarvestedKg,
-          summary.plantCount
+          summary.sellableHarvestedKg,
+          summary.actualPlantCount
         ),
+        perPlantTotalGrams: perPlantGrams(
+          summary.totalHarvestedKg,
+          summary.actualPlantCount
+        ),
+        gradeOutRate: summary.gradeOutRate,
       };
     })
   );

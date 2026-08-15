@@ -12,6 +12,7 @@ const pages = [
   { path: "/seasons", heading: "Manajemen Musim" },
   { path: "/tasks", heading: "Jadwal & Tugas" },
   { path: "/health", heading: "Kesehatan" },
+  { path: "/health/populasi", heading: "Kesehatan" },
   { path: "/inventory", heading: "Inventaris & Alat" },
   { path: "/finance", heading: "Keuangan & Kas" },
   { path: "/harvest", heading: "Panen" },

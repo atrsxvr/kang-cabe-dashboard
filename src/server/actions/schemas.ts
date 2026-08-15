@@ -595,3 +595,46 @@ export const updateContributionSchema = z.object({
   ...contributionBase,
   contributionId: z.string().min(1),
 });
+
+export const plantEventTypes = ["DIED", "REPLANTED"] as const;
+
+const plantEventBase = {
+  seasonId: z.string().min(1),
+  eventDate: z.coerce.date("Tanggal tidak valid"),
+  type: z.enum(plantEventTypes),
+  count: z.coerce
+    .number("Isi jumlah pokok")
+    .int("Pokok dihitung utuh, tidak bisa setengah")
+    .positive("Harus lebih dari 0")
+    .max(1_000_000),
+  cause: z.string().trim().max(200).optional().or(z.literal("")),
+  findingId: z.string().optional().or(z.literal("")),
+  note: z.string().trim().max(300).optional().or(z.literal("")),
+  recordedById: z.string().optional().or(z.literal("")),
+};
+
+export const createPlantEventSchema = z.object(plantEventBase);
+
+export const updatePlantEventSchema = z.object({
+  ...plantEventBase,
+  eventId: z.string().min(1),
+});
+
+const harvestLossBase = {
+  seasonId: z.string().min(1),
+  lostAt: z.coerce.date("Tanggal tidak valid"),
+  grade: z.enum(chiliGrades),
+  weightKg: z.preprocess(
+    (value) =>
+      typeof value === "string" ? value.trim().replace(",", ".") : value,
+    z.coerce
+      .number("Isi bobot dalam angka")
+      .positive("Harus lebih dari 0")
+      .max(100_000)
+  ),
+  reason: z.string().trim().max(200).optional().or(z.literal("")),
+  note: z.string().trim().max(300).optional().or(z.literal("")),
+  recordedById: z.string().optional().or(z.literal("")),
+};
+
+export const createHarvestLossSchema = z.object(harvestLossBase);

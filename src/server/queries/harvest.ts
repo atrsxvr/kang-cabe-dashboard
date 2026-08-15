@@ -4,8 +4,11 @@ import { prisma } from "@/lib/prisma";
 import { calculateHst, formatDate } from "@/lib/hst";
 import { roundUpToCash } from "@/lib/money";
 import {
+  actualPlantCount,
   averagePrice,
   emptyWeights,
+  gradeOutRate,
+  mortalityRate,
   lineTotal,
   totalOf,
   unsoldBalance,
@@ -115,28 +118,57 @@ export async function listSales(seasonId: string): Promise<SaleRow[]> {
 export type HarvestSummary = {
   harvested: GradeWeights;
   sold: GradeWeights;
+  /** Busuk atau tercecer setelah dipetik. */
+  lost: GradeWeights;
+  /** Dipetik, dikurangi terjual dan susut. */
   unsold: GradeWeights;
   totalHarvestedKg: number;
   totalSoldKg: number;
+
+  /**
+   * Angka "layak jual" — hanya mutu Bagus.
+   *
+   * Afkir sampai sekarang belum pernah terjual, jadi menilainya di harga pokok
+   * yang sama akan menaruh rupiah pada sesuatu yang belum terbukti punya
+   * nilai. Kilonya tetap dilaporkan; nilainya tidak.
+   */
+  sellableHarvestedKg: number;
+  sellableSoldKg: number;
+  sellableUnsoldKg: number;
+  /** Porsi panen yang lolos sortir. */
+  gradeOutRate: number | null;
+
   income: number;
+  /** Dari mutu Bagus — ini yang dipakai menghitung harga jual rata-rata. */
+  sellableIncome: number;
+  /** Dari Afkir. Bonus, bukan target. */
+  rejectIncome: number;
   /** Yang sudah masuk kantong, terpisah dari yang masih ditagih. */
   received: number;
   outstanding: number;
   outstandingCount: number;
+  /** Rupiah per kilo Bagus yang terjual. */
   averagePricePerKg: number;
   lastHarvestAt: Date | null;
+
+  /** Populasi tanam awal. */
+  plantedCount: number;
+  diedCount: number;
+  replantedCount: number;
+  actualPlantCount: number;
+  mortalityRate: number | null;
   /** Berapa kali petik tercatat, bukan berapa kilo. */
   sessionCount: number;
   /** Rata-rata bobot sekali petik. */
   averagePerSessionKg: number;
-  /** Populasi musim ini, buat menghitung hasil per pohon. */
+  /** Sama dengan actualPlantCount; nama lama, dipertahankan buat pemanggil. */
   plantCount: number;
 };
 
 export async function harvestSummary(
   seasonId: string
 ): Promise<HarvestSummary> {
-  const [harvests, sales, season] = await Promise.all([
+  const [harvests, sales, season, losses, plantEvents] = await Promise.all([
     prisma.harvestLog.aggregate({
       where: { seasonId },
       _sum: { goodKg: true, rejectKg: true },
@@ -148,6 +180,16 @@ export async function harvestSummary(
       where: { id: seasonId },
       select: { plantCount: true },
     }),
+    prisma.harvestLoss.groupBy({
+      by: ["grade"],
+      where: { seasonId },
+      _sum: { weightKg: true },
+    }),
+    prisma.plantEvent.groupBy({
+      by: ["type"],
+      where: { seasonId },
+      _sum: { count: true },
+    }),
   ]);
 
   const harvested: GradeWeights = {
@@ -155,14 +197,23 @@ export async function harvestSummary(
     REJECT: harvests._sum.rejectKg ?? 0,
   };
 
+  const lost = emptyWeights();
+  for (const row of losses) lost[row.grade] += row._sum.weightKg ?? 0;
+
   const sold = emptyWeights();
   let income = 0;
+  let sellableIncome = 0;
+  let rejectIncome = 0;
   let received = 0;
   let outstanding = 0;
   let outstandingCount = 0;
 
   for (const sale of sales) {
-    for (const item of sale.items) sold[item.grade] += item.weightKg;
+    for (const item of sale.items) {
+      sold[item.grade] += item.weightKg;
+      if (item.grade === "GOOD") sellableIncome += item.total;
+      else rejectIncome += item.total;
+    }
 
     income += sale.totalAmount;
 
@@ -174,25 +225,53 @@ export async function harvestSummary(
     }
   }
 
+  const died =
+    plantEvents.find((row) => row.type === "DIED")?._sum.count ?? 0;
+  const replanted =
+    plantEvents.find((row) => row.type === "REPLANTED")?._sum.count ?? 0;
+  const planted = season?.plantCount ?? 0;
+  const standing = actualPlantCount(planted, died, replanted);
+
   const totalSoldKg = totalOf(sold);
   const totalHarvestedKg = totalOf(harvested);
   const sessionCount = harvests._count._all;
+
+  // Gone as well as sold: chillies that rotted are not sitting in a crate
+  // waiting for a buyer.
+  const unsold = {
+    GOOD: unsoldBalance(harvested, sold).GOOD - lost.GOOD,
+    REJECT: unsoldBalance(harvested, sold).REJECT - lost.REJECT,
+  };
 
   return {
     sessionCount,
     averagePerSessionKg:
       sessionCount > 0 ? totalHarvestedKg / sessionCount : 0,
-    plantCount: season?.plantCount ?? 0,
+    plantedCount: planted,
+    diedCount: died,
+    replantedCount: replanted,
+    actualPlantCount: standing,
+    mortalityRate: mortalityRate(planted, standing),
+    plantCount: standing,
     harvested,
     sold,
-    unsold: unsoldBalance(harvested, sold),
+    lost,
+    unsold,
     totalHarvestedKg,
     totalSoldKg,
+    sellableHarvestedKg: harvested.GOOD,
+    sellableSoldKg: sold.GOOD,
+    sellableUnsoldKg: unsold.GOOD,
+    gradeOutRate: gradeOutRate(harvested),
     income,
+    sellableIncome,
+    rejectIncome,
     received,
     outstanding,
     outstandingCount,
-    averagePricePerKg: averagePrice(income, totalSoldKg),
+    // Bagus only: mixing in afkir would drag the figure down with a grade that
+    // is a bonus, not a target.
+    averagePricePerKg: averagePrice(sellableIncome, sold.GOOD),
     lastHarvestAt: harvests._max.harvestDate,
   };
 }
@@ -258,4 +337,62 @@ export async function harvestCurve(
   }
 
   return [...byHst.values()].sort((a, b) => a.hst - b.hst);
+}
+
+export type PlantEventRow = {
+  id: string;
+  eventDate: Date;
+  type: "DIED" | "REPLANTED";
+  count: number;
+  cause: string | null;
+  note: string | null;
+  finding: { id: string; symptoms: string } | null;
+  recordedBy: { id: string; name: string } | null;
+};
+
+export async function listPlantEvents(
+  seasonId: string
+): Promise<PlantEventRow[]> {
+  return prisma.plantEvent.findMany({
+    where: { seasonId },
+    orderBy: [{ eventDate: "desc" }, { createdAt: "desc" }],
+    select: {
+      id: true,
+      eventDate: true,
+      type: true,
+      count: true,
+      cause: true,
+      note: true,
+      finding: { select: { id: true, symptoms: true } },
+      recordedBy: { select: { id: true, name: true } },
+    },
+  });
+}
+
+export type HarvestLossRow = {
+  id: string;
+  lostAt: Date;
+  grade: ChiliGradeValue;
+  weightKg: number;
+  reason: string | null;
+  note: string | null;
+  recordedBy: { id: string; name: string } | null;
+};
+
+export async function listHarvestLosses(
+  seasonId: string
+): Promise<HarvestLossRow[]> {
+  return prisma.harvestLoss.findMany({
+    where: { seasonId },
+    orderBy: [{ lostAt: "desc" }, { createdAt: "desc" }],
+    select: {
+      id: true,
+      lostAt: true,
+      grade: true,
+      weightKg: true,
+      reason: true,
+      note: true,
+      recordedBy: { select: { id: true, name: true } },
+    },
+  });
 }

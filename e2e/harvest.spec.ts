@@ -46,8 +46,9 @@ test.describe.serial("panen, jual, tagih", () => {
     await expect(page.getByText("25,5 kg")).toBeVisible();
     await page.getByRole("button", { name: "Simpan Panen" }).click();
 
-    // The running total carries both decimals; the row itself drops the zero.
-    await expect(page.getByText("25,50 kg").first()).toBeVisible();
+    // The headline is Bagus only now, so it reads 20 of the 25,5 kg picked.
+    await expect(page.getByText("20,00 kg").first()).toBeVisible();
+    // The picking row still shows what actually came off the plants.
     await expect(page.getByText("25,5 kg").first()).toBeVisible();
   });
 
@@ -56,9 +57,10 @@ test.describe.serial("panen, jual, tagih", () => {
   }) => {
     await harvestPage(page);
 
-    const unsold = page.getByText("Sisa belum terjual").locator("..");
-    await expect(unsold).toContainText("20 kg");
-    await expect(unsold).toContainText("5,5 kg");
+    const main = page.getByRole("main");
+    await expect(main.getByText("Sisa Bagus — stok yang bisa dijual")).toBeVisible();
+    await expect(main.getByText("20 kg").first()).toBeVisible();
+    await expect(main.getByText("Afkir — dilaporkan saja")).toBeVisible();
   });
 
   test("menghitung sesi petik dan hasil per pohon", async ({ page }) => {
@@ -69,9 +71,26 @@ test.describe.serial("panen, jual, tagih", () => {
     await expect(main.getByText("Sesi petik")).toBeVisible();
     await expect(main.getByText("rata-rata 25,5 kg sekali petik")).toBeVisible();
 
-    // 25,5 kg from the 100 plants this season was created with.
-    await expect(main.getByText("Hasil per pohon")).toBeVisible();
-    await expect(main.getByText("255 g/pohon")).toBeVisible();
+    // Bagus only: 20 kg over the 100 plants this season was created with.
+    await expect(main.getByText("Hasil layak per pohon")).toBeVisible();
+    await expect(main.getByText("200 g/pohon")).toBeVisible();
+    // 20 of 25,5 kg passed the sort.
+    await expect(main.getByText("Panen layak jual")).toBeVisible();
+    await expect(main.getByText(/78% dari 25,5 kg total/)).toBeVisible();
+  });
+
+  test("mencatat susut, dan sisanya ikut berkurang", async ({ page }) => {
+    await harvestPage(page);
+    await page.getByRole("button", { name: "Catat Susut" }).click();
+
+    await page.getByLabel("Mutu", { exact: true }).selectOption("GOOD");
+    await page.getByLabel("Bobot (kg)", { exact: true }).fill("2");
+    await page.getByRole("button", { name: "Simpan", exact: true }).click();
+
+    // 20 kg picked, none sold yet, 2 kg gone.
+    const main = page.getByRole("main");
+    await expect(main.getByText("18 kg").first()).toBeVisible();
+    await expect(main.getByText(/2 kg susut/)).toBeVisible();
   });
 
   test("menjual dua mutu sekaligus dengan harga berbeda", async ({ page }) => {
@@ -100,12 +119,12 @@ test.describe.serial("panen, jual, tagih", () => {
   }) => {
     await harvestPage(page);
 
-    const unsold = page.getByText("Sisa belum terjual").locator("..");
-    await expect(unsold).toContainText("5 kg");
-    await expect(unsold).toContainText("0,5 kg");
+    const main = page.getByRole("main");
+    // 18 kg left after spoilage, less the 15 kg that went out.
+    await expect(main.getByText("3 kg").first()).toBeVisible();
 
     // Left unpaid on purpose, so it shows as money still owed.
-    await expect(page.getByText("Rp 750.000").first()).toBeVisible();
+    await expect(main.getByText("Rp 750.000").first()).toBeVisible();
   });
 
   test("tagihan yang belum dibayar punya tabnya sendiri", async ({ page }) => {

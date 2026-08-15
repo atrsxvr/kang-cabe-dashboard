@@ -86,6 +86,18 @@ e2e/                        # Playwright; cleans up after itself by "E2E" prefix
 - **Profit shares are not normalised to 100%.** A gap in what four people
   agreed is a conversation they need to have; inflating everyone's slice to
   hide it would settle it on their behalf.
+- **Bagus is the harvest; afkir is a bonus.** Every headline figure — yield,
+  HPP, average price, unsold value — counts Bagus only. Afkir's kilos are
+  reported and its income is real, but none has ever sold, so pricing it would
+  invent an asset.
+- **HPP divides by kilos picked, never kilos sold.** Per sold it piles the
+  whole season's cost onto whatever happens to have gone out, and swings about
+  as stock waits for a buyer.
+- **Unsold stock is valued but stays out of the margin.** The profit share
+  divides the margin, and nobody can be handed a share of chillies in a crate.
+- **Population is derived from `PlantEvent`**, never stored. `Season.plantCount`
+  is what went into the ground; a column for "how many now" would lose when
+  they died and why.
 - **A sale belongs to a season, not to a picking.** Chillies pile up waiting
   for a buyer, so what goes out is drawn from the heap. Unsold stock is derived
   — harvested less sold, per grade — and is allowed to go negative, because the

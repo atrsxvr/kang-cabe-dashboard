@@ -4,7 +4,11 @@ import {
   averagePrice,
   formatKg,
   formatKgPrecise,
+  actualPlantCount,
+  formatPercent,
   formatPerPlant,
+  gradeOutRate,
+  mortalityRate,
   perPlantGrams,
   lineTotal,
   totalOf,
@@ -118,5 +122,57 @@ describe("formatPerPlant", () => {
 
   it("shows a dash rather than a misleading zero", () => {
     expect(formatPerPlant(100, 0)).toBe("—");
+  });
+});
+
+describe("gradeOutRate", () => {
+  it("is the share of the pick that was fit to sell", () => {
+    expect(gradeOutRate({ GOOD: 87, REJECT: 13 })).toBeCloseTo(0.87, 5);
+  });
+
+  /** A ratio of nothing is not zero percent. */
+  it("has no answer before anything is picked", () => {
+    expect(gradeOutRate({ GOOD: 0, REJECT: 0 })).toBeNull();
+  });
+
+  it("is zero when the whole pick was rejected", () => {
+    expect(gradeOutRate({ GOOD: 0, REJECT: 12 })).toBe(0);
+  });
+});
+
+describe("actualPlantCount", () => {
+  it("counts what is standing, not what went in", () => {
+    expect(actualPlantCount(238, 12, 4)).toBe(230);
+  });
+
+  it("never goes below nothing, however the log reads", () => {
+    expect(actualPlantCount(100, 500, 0)).toBe(0);
+  });
+});
+
+describe("mortalityRate", () => {
+  it("measures the loss against what was planted", () => {
+    // 238 planted, 230 standing
+    expect(mortalityRate(238, 230)).toBeCloseTo(0.0336, 4);
+  });
+
+  it("has no answer without a planting to measure against", () => {
+    expect(mortalityRate(0, 0)).toBeNull();
+  });
+
+  /** Replanting past the original count is luck, not negative mortality. */
+  it("does not go negative when replanting overshot", () => {
+    expect(mortalityRate(100, 110)).toBe(0);
+  });
+});
+
+describe("formatPercent", () => {
+  it("writes a share the way it is read aloud", () => {
+    expect(formatPercent(0.87)).toBe("87%");
+    expect(formatPercent(0.0336, 1)).toBe("3,4%");
+  });
+
+  it("shows a dash rather than a misleading zero", () => {
+    expect(formatPercent(null)).toBe("—");
   });
 });

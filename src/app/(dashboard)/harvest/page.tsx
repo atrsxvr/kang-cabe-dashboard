@@ -12,9 +12,11 @@ import { SaleDialog } from "@/components/harvest/sale-dialog";
 import { SaleList } from "@/components/harvest/sale-list";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+import { LossDialog } from "@/components/harvest/loss-dialog";
 import {
   formatKg,
   formatKgPrecise,
+  formatPercent,
   formatPerPlant,
   gradeLabels,
 } from "@/lib/harvest";
@@ -64,6 +66,7 @@ export default async function HarvestPage(props: PageProps<"/harvest">) {
           }`}
         />
         <div className="flex flex-wrap gap-2">
+          <LossDialog seasonId={season.id} members={members} />
           <SaleDialog
             seasonId={season.id}
             members={members}
@@ -78,13 +81,15 @@ export default async function HarvestPage(props: PageProps<"/harvest">) {
       </div>
 
       <div className="mb-6 grid grid-cols-2 gap-2 sm:gap-3 lg:grid-cols-3">
+        {/* Bagus only. Afkir has never sold, so counting it into the headline
+            would inflate a figure the money side cannot back. */}
         <Tile
-          value={formatKgPrecise(summary.totalHarvestedKg)}
-          label="Total panen"
-          hint={`${gradeLabels.GOOD} ${formatKg(summary.harvested.GOOD)} · ${gradeLabels.REJECT} ${formatKg(summary.harvested.REJECT)}`}
+          value={formatKgPrecise(summary.sellableHarvestedKg)}
+          label="Panen layak jual"
+          hint={`${formatPercent(summary.gradeOutRate)} dari ${formatKg(summary.totalHarvestedKg)} total`}
         />
         <Tile
-          value={formatKgPrecise(summary.totalSoldKg)}
+          value={formatKgPrecise(summary.sellableSoldKg)}
           label="Sudah terjual"
           hint={
             summary.averagePricePerKg > 0
@@ -122,52 +127,67 @@ export default async function HarvestPage(props: PageProps<"/harvest">) {
             twice the population will out-yield another without being better at
             anything. */}
         <Tile
-          value={formatPerPlant(summary.totalHarvestedKg, summary.plantCount)}
-          label="Hasil per pohon"
+          value={formatPerPlant(
+            summary.sellableHarvestedKg,
+            summary.actualPlantCount
+          )}
+          label="Hasil layak per pohon"
           hint={
-            summary.plantCount > 0
-              ? `dari ${summary.plantCount.toLocaleString("id-ID")} pohon`
+            summary.actualPlantCount > 0
+              ? `dari ${formatPerPlant(summary.totalHarvestedKg, summary.actualPlantCount)} total · ${summary.actualPlantCount.toLocaleString("id-ID")} pohon`
               : "populasi musim ini belum diisi"
           }
         />
       </div>
 
-      {/* What is picked but not yet gone. Negative means a picking has not
-          been written down, which is worth saying out loud rather than
-          hiding behind a zero. */}
-      <div className="mb-6 rounded-lg border px-3 py-2 text-sm">
-        <p className="text-muted-foreground mb-1 text-xs font-medium">
-          Sisa belum terjual
-        </p>
-        <p className="flex flex-wrap gap-x-4 gap-y-1 tabular-nums">
-          <span>
-            {gradeLabels.GOOD}{" "}
-            <strong
-              className={
-                summary.unsold.GOOD < 0 ? "text-destructive" : undefined
-              }
-            >
-              {formatKg(summary.unsold.GOOD)}
-            </strong>
-          </span>
-          <span>
-            {gradeLabels.REJECT}{" "}
-            <strong
-              className={
-                summary.unsold.REJECT < 0 ? "text-destructive" : undefined
-              }
-            >
-              {formatKg(summary.unsold.REJECT)}
-            </strong>
-          </span>
-        </p>
-        {summary.unsold.GOOD < 0 || summary.unsold.REJECT < 0 ? (
-          <p className="text-destructive mt-1 text-xs">
-            Tercatat terjual lebih banyak dari yang dipanen — kayaknya ada
-            panen yang belum sempat dicatat.
+      {/* Bagus is stock with a price on it. Afkir is reported in kilos and
+          left at zero: none has ever sold, so pricing it would invent an
+          asset. If the sambal plan works, the numbers move on their own. */}
+      <div className="mb-6 grid gap-3 sm:grid-cols-2">
+        <div className="rounded-lg border px-3 py-2 text-sm">
+          <p className="text-muted-foreground mb-1 text-xs font-medium">
+            Sisa {gradeLabels.GOOD} — stok yang bisa dijual
           </p>
-        ) : null}
+          <p className="text-lg font-semibold tabular-nums">
+            <span
+              className={
+                summary.sellableUnsoldKg < 0 ? "text-destructive" : undefined
+              }
+            >
+              {formatKg(summary.sellableUnsoldKg)}
+            </span>
+          </p>
+          <p className="text-muted-foreground text-xs">
+            {formatKg(summary.harvested.GOOD)} dipetik ·{" "}
+            {formatKg(summary.sold.GOOD)} terjual
+            {summary.lost.GOOD > 0
+              ? ` · ${formatKg(summary.lost.GOOD)} susut`
+              : ""}
+          </p>
+        </div>
+
+        <div className="rounded-lg border px-3 py-2 text-sm">
+          <p className="text-muted-foreground mb-1 text-xs font-medium">
+            {gradeLabels.REJECT} — dilaporkan saja
+          </p>
+          <p className="text-lg font-semibold tabular-nums">
+            {formatKg(summary.unsold.REJECT)}
+          </p>
+          <p className="text-muted-foreground text-xs">
+            {formatKg(summary.harvested.REJECT)} dipetik ·{" "}
+            {summary.rejectIncome > 0
+              ? `${formatRupiah(summary.rejectIncome)} masuk sebagai bonus`
+              : "belum ada yang terjual"}
+          </p>
+        </div>
       </div>
+
+      {summary.sellableUnsoldKg < 0 || summary.unsold.REJECT < 0 ? (
+        <p className="text-destructive mb-6 text-xs">
+          Tercatat keluar lebih banyak dari yang dipanen — kayaknya ada petikan
+          yang belum sempat dicatat.
+        </p>
+      ) : null}
 
       <HarvestViews
         unpaidCount={unpaid.length}

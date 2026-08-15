@@ -175,6 +175,24 @@ dilihat; Agronomis menindaklanjuti.
 - Foto bisa diperbesar untuk memeriksa detail daun.
 - Saring daftar berdasarkan tahap.
 
+**Populasi Tanaman — jalan.** Buku catatan berapa pokok yang masih berdiri.
+
+Mati dan sulam dicatat sebagai kejadian, dan **populasi sekarang dihitung**
+dari situ: populasi tanam dikurangi yang mati, ditambah yang disulam. Kolom
+"populasi sekarang" akan menghapus bagian yang justru berguna — kapan matinya
+dan kenapa.
+
+Kematian bisa **ditautkan ke temuan** yang menjelaskannya. Itulah alasan
+catatan ini tinggal di modul Kesehatan dan bukan menu sendiri: penyebab pokok
+mati hampir selalu sudah jadi urusan modul ini, dan agronomis yang paling
+berkepentingan sudah bekerja di halaman ini.
+
+Menyulam hanya masuk akal selagi tanaman masih kecil — sulaman yang telat tidak
+akan mengejar yang lain. Setelah jendela itu lewat, pokok yang mati
+meninggalkan lubang kosong sampai musim berakhir, dan justru itu yang membuat
+catatannya berarti. Menyulam tidak menambah biaya: bibitnya sudah dibeli
+berlebih di awal musim, jadi mencatatnya lagi akan menghitung dua kali.
+
 **Pustaka Racikan — jalan.** SOP nutrisi dan dosis, berlaku lintas musim.
 
 - Racikan **rutin** dikelompokkan per fase (Vegetatif, Generatif, Produksi),
@@ -295,12 +313,31 @@ diperlakukan sebagai barang buangan.
 tidak disimpan. HST tiap petikan muncul sendiri dari tanggal tanam, jadi
 terlihat di umur berapa hasilnya naik atau turun.
 
-Dua angka ringkasan yang tidak bisa dibaca dari total: **berapa kali petik**
-(dengan rata-rata bobot sekali petik) dan **hasil per pohon**. Yang kedua
-dihitung dari populasi musim, dan ditulis dalam gram di bawah satu kilo —
-5.000 tanaman yang menghasilkan 500 kg itu 100 g per pohon, dan menuliskannya
-"0,1 kg" membuang justru angka yang mau dibaca. Musim tanpa populasi
-tercatat menampilkan tanda hubung, bukan nol yang terbaca seperti panen gagal.
+**Panen real adalah Bagus saja.** Afkir sampai sekarang belum pernah terjual,
+jadi menghitungnya ke dalam angka utama akan menggelembungkan sesuatu yang
+tidak bisa didukung sisi uangnya. Kilonya tetap dilaporkan — kalau nanti laku
+lewat skema sambal atau chilli oil, itu **bonus**, dan angkanya bergerak
+sendiri karena datanya yang bicara.
+
+Karena itu **harga jual rata-rata** juga dihitung dari Bagus saja; mencampur
+afkir akan menariknya turun dengan mutu yang memang bukan target.
+
+Tiga angka ringkasan yang tidak bisa dibaca dari total: **berapa kali petik**,
+**hasil per pohon**, dan **porsi lolos sortir**.
+
+Yang terakhir paling diagnostik, karena memisahkan dua masalah yang obatnya
+berbeda sama sekali. Hasil turun tapi lolos sortir tetap → pohonnya kurang
+berbuah, urusan nutrisi dan air. Hasil tetap tapi lolos sortir turun → buahnya
+banyak yang gagal sortir, biasanya penyakit buah atau kelewat matang waktu
+dipetik. Angka total tidak bisa membedakan keduanya.
+
+Hasil per pohon dibagi **populasi aktual**, dan ditulis dalam gram di bawah
+satu kilo — 5.000 tanaman yang menghasilkan 500 kg itu 100 g per pohon, dan
+menuliskannya "0,1 kg" membuang justru angka yang mau dibaca.
+
+**Susut** dicatat terpisah: cabai yang sudah dipetik tapi busuk atau tercecer.
+Tanpa itu, sisa belum terjual dihitung dari panen dikurangi penjualan saja, dan
+terus melar tiap kali ada yang membusuk.
 
 **Penjualan tidak menempel pada satu hari panen.** Cabai menumpuk dulu sebelum
 ada yang mengangkut, jadi yang dijual berasal dari tumpukan — bisa gabungan
@@ -347,6 +384,18 @@ Lima tab: Rincian, Catatan, Modal, Bagi Hasil, dan Antar Musim.
 
 Angka besar di atas halaman disebut **sisa musim ini**, dan keterangannya
 menyebut batasnya terang-terangan: seakurat apa yang benar-benar dicatat.
+
+Di bawahnya empat angka yang biasa ada di lembar kerja petani: **HPP per kg**,
+**ROI**, **margin kotor**, dan **nilai sisa stok**.
+
+HPP dibagi kilo **dipanen**, bukan kilo terjual. Per kilo terjual ia menumpuk
+seluruh ongkos musim ke bagian yang kebetulan sudah laku, dan angkanya
+berubah-ubah cuma karena ada stok menunggu pembeli. Per kilo panen ia mengukur
+efisiensi budidaya, dan bisa disandingkan langsung dengan harga jual rata-rata.
+
+**Nilai sisa stok sengaja di luar sisa musim.** Bagi hasil membagi angka sisa
+musim, dan tidak ada yang bisa dibagikan dari cabai yang masih di keranjang.
+Hanya Bagus yang dinilai; afkir dilaporkan kilonya dan tidak diberi rupiah.
 Selama masih ada upah yang belum diketik, angka itu kebesaran — dan empat orang
 yang membagi angka yang menyanjung diri sendiri persis kegagalan yang perlu
 dihindari.
@@ -512,6 +561,16 @@ pernah dipakai di kebun. Branch `main` dan `production` masih di commit awal.
 luar butuh masukan manual rutin, dan biasanya berhenti diisi setelah dua
 minggu.
 
-**4. Pemakaian bahan kecil di luar tugas** yang sampai ke laporan musim —
+**4. Penyusutan alat.** Sengaja tidak dihitung — cangkul melayani beberapa
+musim. Konsekuensinya perlu disadari: tangki semprot yang habis dalam tiga
+musim tidak pernah muncul sebagai biaya di mana pun, jadi sisa musim sedikit
+lebih optimis dari kenyataannya.
+
+**5. Upah untuk diri sendiri.** Kalau berempat mengerjakan tanpa dibayar,
+sebagian "sisa" yang dibagi sebenarnya upah mereka sendiri yang menyamar.
+Bukan kesalahan pencatatan, tapi perlu diingat sebelum angkanya dipakai
+mengambil keputusan.
+
+**6. Pemakaian bahan kecil di luar tugas** yang sampai ke laporan musim —
 mengambil dua puluh ajir mengganti yang patah masih tidak terhitung. Sengaja:
 membuat tugas untuk itu berlebihan, dan uangnya kecil.

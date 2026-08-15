@@ -143,6 +143,8 @@ model User {
   harvestsRecorded  HarvestLog[]    @relation("RecordedHarvests")
   salesRecorded     SaleTransaction[] @relation("RecordedSales")
   contributions     CapitalContribution[] @relation("Contributions")
+  plantEventsLogged PlantEvent[]    @relation("RecordedPlantEvents")
+  lossesLogged      HarvestLoss[]   @relation("RecordedLosses")
 
   @@index([deletedAt])
 }
@@ -202,7 +204,9 @@ model Season {
   id         String       @id @default(uuid())
   name       String // Contoh: "Musim Tanam 1 - Rawit Ori 212"
   variety    String // Varietas benih
-  plantCount Int // Jumlah populasi tanaman
+  /// Populasi **tanam awal**, bukan yang berdiri hari ini. Yang sekarang
+  /// dihitung dari PlantEvent — lihat catatan di sana.
+  plantCount Int
   startDate  DateTime // Tanggal tanam (HST 0)
   endDate    DateTime? // Tanggal selesai musim
   status     SeasonStatus @default(PLANNING)
@@ -213,6 +217,8 @@ model Season {
   tasks               Task[]
   healthLogs          HealthLog[]
   harvestLogs         HarvestLog[]
+  harvestLosses       HarvestLoss[]
+  plantEvents         PlantEvent[]
   sales               SaleTransaction[]
   financeTransactions FinanceTransaction[]
   stockMovements      StockMovement[]
@@ -318,6 +324,7 @@ model HealthLog {
   // deletedAt, bukan dihapus, supaya riwayat temuan tetap bisa ditelusuri.
   reportedBy  User?  @relation("ReportedFindings", fields: [reportedById], references: [id], onDelete: Restrict)
   diagnosedBy User?  @relation("DiagnosedFindings", fields: [diagnosedById], references: [id], onDelete: Restrict)
+  plantEvents PlantEvent[]
 
   @@index([seasonId])
   @@index([seasonId, status]) // Antrean temuan per tahap
@@ -566,6 +573,78 @@ model RecipeItem {
 
 /// Sekali petik. Kebun ini panen terus-menerus, jadi barisnya banyak dan
 /// pendek-pendek, bukan satu peristiwa besar di akhir musim.
+/// Kenapa jumlah pokok berubah. Mati atau disulam.
+enum PlantEventType {
+  DIED // mati
+  REPLANTED // disulam
+}
+
+/// Buku catatan perubahan jumlah pokok, bukan angka yang ditimpa.
+///
+/// Populasi aktual dihitung dari sini: populasi tanam dikurangi yang mati,
+/// ditambah yang disulam. Menyimpan "populasi sekarang" sebagai kolom akan
+/// menghapus riwayat yang justru paling berguna — kapan matinya, dan kenapa.
+///
+/// Menyulam hanya masuk akal selagi tanaman masih kecil; sulaman yang telat
+/// tidak akan pernah mengejar yang lain. Setelah jendela itu lewat, pokok
+/// yang mati meninggalkan lubang kosong sampai musim berakhir — dan justru
+/// itu yang membuat catatan ini berarti.
+model PlantEvent {
+  id        String         @id @default(uuid())
+  seasonId  String
+  eventDate DateTime
+  type      PlantEventType
+  /// Berapa pokok yang terdampak.
+  count     Int
+
+  /// Sebab kematian, kalau diketahui. Teks bebas: yang menuliskannya sedang
+  /// berdiri di kebun, bukan memilih dari daftar.
+  cause     String?
+  /// Temuan lapangan yang menjelaskannya, kalau ada. Inilah alasan catatan ini
+  /// tinggal di modul Kesehatan: "20 pokok mati karena antraknosa yang
+  /// dilaporkan tanggal sekian" hanya bisa dirangkai kalau keduanya sekamar.
+  findingId String?
+
+  note         String?
+  recordedById String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  season     Season     @relation(fields: [seasonId], references: [id], onDelete: Cascade)
+  finding    HealthLog? @relation(fields: [findingId], references: [id], onDelete: SetNull)
+  recordedBy User?      @relation("RecordedPlantEvents", fields: [recordedById], references: [id], onDelete: Restrict)
+
+  @@index([seasonId])
+  @@index([seasonId, eventDate])
+  @@index([findingId])
+  @@index([recordedById])
+}
+
+/// Cabai yang sudah dipetik tapi hilang sebelum terjual — busuk, tercecer.
+///
+/// Tanpa ini, sisa belum terjual dihitung dari panen dikurangi penjualan saja,
+/// dan terus melar tiap kali ada yang membusuk. Angkanya akan makin jauh dari
+/// tumpukan yang benar-benar ada.
+model HarvestLoss {
+  id       String     @id @default(uuid())
+  seasonId String
+  lostAt   DateTime
+  grade    ChiliGrade
+  weightKg Float
+  reason   String?
+
+  note         String?
+  recordedById String?
+  createdAt    DateTime @default(now())
+
+  season     Season @relation(fields: [seasonId], references: [id], onDelete: Cascade)
+  recordedBy User?  @relation("RecordedLosses", fields: [recordedById], references: [id], onDelete: Restrict)
+
+  @@index([seasonId])
+  @@index([seasonId, lostAt])
+  @@index([recordedById])
+}
+
 model HarvestLog {
   id          String   @id @default(uuid())
   seasonId    String

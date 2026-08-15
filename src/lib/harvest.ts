@@ -118,3 +118,55 @@ export function formatPerPlant(
     maximumFractionDigits: grams >= 100 ? 0 : 1,
   })} g/pohon`;
 }
+
+/**
+ * Share of the harvest that was fit to sell.
+ *
+ * The single most diagnostic number on this page, because it separates two
+ * problems whose cures have nothing in common. A season where total yield
+ * falls but this holds steady has a plant that bore less — nutrition, water,
+ * weather. A season where yield holds but this drops has a plant that bore
+ * plenty and much of it failed the sort — fruit disease, picking too late,
+ * handling. The totals alone cannot tell those apart.
+ *
+ * Null when nothing was picked; a ratio of nothing is not zero percent.
+ */
+export function gradeOutRate(weights: GradeWeights): number | null {
+  const total = totalOf(weights);
+  return total > 0 ? weights.GOOD / total : null;
+}
+
+/**
+ * Population standing today.
+ *
+ * Derived, never stored: `Season.plantCount` is what went into the ground, and
+ * a column holding "how many now" would lose the part worth keeping — when
+ * they died, and why.
+ */
+export function actualPlantCount(
+  planted: number,
+  died: number,
+  replanted: number
+): number {
+  return Math.max(0, planted + replanted - died);
+}
+
+/**
+ * Net mortality against what was planted.
+ *
+ * Net, because replanting genuinely puts the population back — but only early
+ * on. Once the crop is grown a gap stays a gap, which is exactly why the rate
+ * keeps climbing through the season and is worth watching.
+ */
+export function mortalityRate(planted: number, actual: number): number | null {
+  if (planted <= 0) return null;
+  return Math.max(0, (planted - actual) / planted);
+}
+
+/** "87%" — a share written the way it is read aloud. */
+export function formatPercent(value: number | null, digits = 0): string {
+  if (value === null) return "—";
+  return `${(value * 100).toLocaleString("id-ID", {
+    maximumFractionDigits: digits,
+  })}%`;
+}
