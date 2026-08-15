@@ -53,7 +53,7 @@ export default async function SeasonsPage() {
                   <TableHead className="text-right">HST</TableHead>
                   <TableHead className="text-right">Tugas</TableHead>
                   <TableHead>Status</TableHead>
-                  <TableHead className="w-32 text-right">Aksi</TableHead>
+                  <TableHead className="w-48 text-right">Aksi</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -86,7 +86,7 @@ export default async function SeasonsPage() {
                       <StatusBadge status={season.status} kind="season" />
                     </TableCell>
                     <TableCell className="text-right">
-                      <div className="flex justify-end gap-1">
+                      <div className="flex items-center justify-end gap-1">
                         <SeasonStatusAction
                           seasonId={season.id}
                           status={season.status}

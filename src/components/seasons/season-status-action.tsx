@@ -30,7 +30,9 @@ export function SeasonStatusAction({
   const next = nextSeasonStatus(status);
 
   if (!next) {
-    return <span className="text-muted-foreground text-xs">Tahap akhir</span>;
+    return status === "COMPLETED" ? (
+      <span className="text-muted-foreground text-xs">Tahap akhir</span>
+    ) : null;
   }
 
   async function onSubmit(formData: FormData) {
@@ -48,19 +50,19 @@ export function SeasonStatusAction({
   return (
     <form action={onSubmit}>
       <input type="hidden" name="seasonId" value={seasonId} />
-      {/* Icon-only, like its neighbours. The arrow alone cannot say which
-          stage comes next, so the label it used to carry lives in the tooltip
-          and the accessible name instead — and the toast afterwards names the
-          stage it moved to. */}
+      {/* The only one of the three that keeps its word. Edit and Arsipkan are
+          guessable from a pencil and a box; "move to the next stage" is not,
+          because the stage it moves to changes with the row — and on a phone
+          there is no hover to ask. */}
       <SubmitButton
-        size="icon"
+        size="sm"
         variant="secondary"
-        className="size-8"
-        pendingLabel=""
-        aria-label={`Ubah status ke ${labels[next]}`}
+        className="h-8"
+        pendingLabel="Mengubah…"
         title={`Ubah status ke ${labels[next]}`}
       >
-        <ArrowRight className="size-4" aria-hidden />
+        <ArrowRight className="size-3.5" aria-hidden />
+        {labels[next]}
       </SubmitButton>
     </form>
   );
