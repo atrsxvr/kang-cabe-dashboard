@@ -276,6 +276,13 @@ diperlakukan sebagai barang buangan.
 tidak disimpan. HST tiap petikan muncul sendiri dari tanggal tanam, jadi
 terlihat di umur berapa hasilnya naik atau turun.
 
+Dua angka ringkasan yang tidak bisa dibaca dari total: **berapa kali petik**
+(dengan rata-rata bobot sekali petik) dan **hasil per pohon**. Yang kedua
+dihitung dari populasi musim, dan ditulis dalam gram di bawah satu kilo —
+5.000 tanaman yang menghasilkan 500 kg itu 100 g per pohon, dan menuliskannya
+"0,1 kg" membuang justru angka yang mau dibaca. Musim tanpa populasi
+tercatat menampilkan tanda hubung, bukan nol yang terbaca seperti panen gagal.
+
 **Penjualan tidak menempel pada satu hari panen.** Cabai menumpuk dulu sebelum
 ada yang mengangkut, jadi yang dijual berasal dari tumpukan — bisa gabungan
 beberapa hari, bisa sebagian saja dari satu hari. Penjualan melekat ke musim,
@@ -363,8 +370,9 @@ orang — yang tidak wajar adalah tidak ada yang menyadarinya.
 belum genap 100%, sisanya ditampilkan sebagai belum ada yang punya.
 
 **Antar musim** membandingkan uang masuk dan keluar tiap musim, lalu
-menambahkan **sisa per kilo panen** — karena musim yang berjalan lebih lama
-otomatis mengumpulkan angka lebih besar tanpa berarti lebih baik.
+menambahkan dua angka yang adil dibandingkan: **sisa per kilo panen** dan
+**hasil per pohon**. Musim yang berjalan lebih lama atau berpopulasi lebih
+banyak otomatis mengumpulkan angka total lebih besar tanpa berarti lebih baik.
 
 **Belum ada:** apa-apa lagi selain yang menunggu autentikasi.
 

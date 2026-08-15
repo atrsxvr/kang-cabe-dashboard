@@ -125,18 +125,29 @@ export type HarvestSummary = {
   outstandingCount: number;
   averagePricePerKg: number;
   lastHarvestAt: Date | null;
+  /** Berapa kali petik tercatat, bukan berapa kilo. */
+  sessionCount: number;
+  /** Rata-rata bobot sekali petik. */
+  averagePerSessionKg: number;
+  /** Populasi musim ini, buat menghitung hasil per pohon. */
+  plantCount: number;
 };
 
 export async function harvestSummary(
   seasonId: string
 ): Promise<HarvestSummary> {
-  const [harvests, sales] = await Promise.all([
+  const [harvests, sales, season] = await Promise.all([
     prisma.harvestLog.aggregate({
       where: { seasonId },
       _sum: { goodKg: true, rejectKg: true },
       _max: { harvestDate: true },
+      _count: { _all: true },
     }),
     listSales(seasonId),
+    prisma.season.findUnique({
+      where: { id: seasonId },
+      select: { plantCount: true },
+    }),
   ]);
 
   const harvested: GradeWeights = {
@@ -164,12 +175,18 @@ export async function harvestSummary(
   }
 
   const totalSoldKg = totalOf(sold);
+  const totalHarvestedKg = totalOf(harvested);
+  const sessionCount = harvests._count._all;
 
   return {
+    sessionCount,
+    averagePerSessionKg:
+      sessionCount > 0 ? totalHarvestedKg / sessionCount : 0,
+    plantCount: season?.plantCount ?? 0,
     harvested,
     sold,
     unsold: unsoldBalance(harvested, sold),
-    totalHarvestedKg: totalOf(harvested),
+    totalHarvestedKg,
     totalSoldKg,
     income,
     received,

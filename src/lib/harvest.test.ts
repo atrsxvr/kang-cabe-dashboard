@@ -4,6 +4,8 @@ import {
   averagePrice,
   formatKg,
   formatKgPrecise,
+  formatPerPlant,
+  perPlantGrams,
   lineTotal,
   totalOf,
   unsoldBalance,
@@ -81,5 +83,40 @@ describe("averagePrice", () => {
 
   it("is zero rather than infinite when nothing was sold", () => {
     expect(averagePrice(0, 0)).toBe(0);
+  });
+});
+
+describe("perPlantGrams", () => {
+  it("is the yield one plant carried", () => {
+    // 100 kg over 100 plants
+    expect(perPlantGrams(100, 100)).toBe(1000);
+  });
+
+  /**
+   * A season with no population recorded should say so, not print a zero that
+   * reads like a failed harvest.
+   */
+  it("has no answer without a plant count", () => {
+    expect(perPlantGrams(100, 0)).toBeNull();
+  });
+});
+
+describe("formatPerPlant", () => {
+  it("says kilos when a plant carried more than one", () => {
+    expect(formatPerPlant(100, 100)).toBe("1 kg/pohon");
+  });
+
+  /** Where a chilli plant actually lives: 5.000 plants, 500 kg. */
+  it("drops to grams below a kilo, which is the usual case", () => {
+    expect(formatPerPlant(500, 5000)).toBe("100 g/pohon");
+  });
+
+  it("keeps a decimal when the number is small enough to need it", () => {
+    expect(formatPerPlant(1, 40)).toBe("25 g/pohon");
+    expect(formatPerPlant(0.5, 100)).toBe("5 g/pohon");
+  });
+
+  it("shows a dash rather than a misleading zero", () => {
+    expect(formatPerPlant(100, 0)).toBe("—");
   });
 });

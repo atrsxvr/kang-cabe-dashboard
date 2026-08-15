@@ -12,7 +12,12 @@ import { SaleDialog } from "@/components/harvest/sale-dialog";
 import { SaleList } from "@/components/harvest/sale-list";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { formatKg, formatKgPrecise, gradeLabels } from "@/lib/harvest";
+import {
+  formatKg,
+  formatKgPrecise,
+  formatPerPlant,
+  gradeLabels,
+} from "@/lib/harvest";
 import { formatDate } from "@/lib/hst";
 import { formatRupiah } from "@/lib/money";
 import { readSeasonParam } from "@/lib/season-param";
@@ -72,7 +77,7 @@ export default async function HarvestPage(props: PageProps<"/harvest">) {
         <StatusBadge status={season.status} kind="season" />
       </div>
 
-      <div className="mb-6 grid grid-cols-2 gap-2 sm:gap-3 lg:grid-cols-4">
+      <div className="mb-6 grid grid-cols-2 gap-2 sm:gap-3 lg:grid-cols-3">
         <Tile
           value={formatKgPrecise(summary.totalHarvestedKg)}
           label="Total panen"
@@ -101,6 +106,29 @@ export default async function HarvestPage(props: PageProps<"/harvest">) {
               : "semua lunas"
           }
           warn={summary.outstanding > 0}
+        />
+
+        <Tile
+          value={String(summary.sessionCount)}
+          label="Sesi petik"
+          hint={
+            summary.sessionCount > 0
+              ? `rata-rata ${formatKg(summary.averagePerSessionKg)} sekali petik`
+              : "belum ada petikan"
+          }
+        />
+
+        {/* The one figure that compares fairly across seasons: a planting with
+            twice the population will out-yield another without being better at
+            anything. */}
+        <Tile
+          value={formatPerPlant(summary.totalHarvestedKg, summary.plantCount)}
+          label="Hasil per pohon"
+          hint={
+            summary.plantCount > 0
+              ? `dari ${summary.plantCount.toLocaleString("id-ID")} pohon`
+              : "populasi musim ini belum diisi"
+          }
         />
       </div>
 

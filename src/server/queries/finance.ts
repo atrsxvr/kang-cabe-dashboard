@@ -1,6 +1,7 @@
 import "server-only";
 
 import { prisma } from "@/lib/prisma";
+import { perPlantGrams } from "@/lib/harvest";
 import { harvestSummary } from "@/server/queries/harvest";
 import type { MaterialCategory } from "@/generated/prisma/client";
 
@@ -356,8 +357,11 @@ export type SeasonComparison = {
   cost: number;
   margin: number;
   harvestedKg: number;
+  plantCount: number;
   /** Rupiah per kilo panen — satu-satunya angka yang adil membandingkan musim. */
   perKg: number;
+  /** Hasil per pohon, gram. Null kalau populasinya belum diisi. */
+  perPlantGrams: number | null;
 };
 
 /**
@@ -389,10 +393,15 @@ export async function seasonComparison(): Promise<SeasonComparison[]> {
         cost: result.totalCost,
         margin: result.margin,
         harvestedKg: summary.totalHarvestedKg,
+        plantCount: summary.plantCount,
         perKg:
           summary.totalHarvestedKg > 0
             ? Math.round(result.margin / summary.totalHarvestedKg)
             : 0,
+        perPlantGrams: perPlantGrams(
+          summary.totalHarvestedKg,
+          summary.plantCount
+        ),
       };
     })
   );

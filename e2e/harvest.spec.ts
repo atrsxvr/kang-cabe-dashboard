@@ -61,6 +61,19 @@ test.describe.serial("panen, jual, tagih", () => {
     await expect(unsold).toContainText("5,5 kg");
   });
 
+  test("menghitung sesi petik dan hasil per pohon", async ({ page }) => {
+    await harvestPage(page);
+
+    const main = page.getByRole("main");
+
+    await expect(main.getByText("Sesi petik")).toBeVisible();
+    await expect(main.getByText("rata-rata 25,5 kg sekali petik")).toBeVisible();
+
+    // 25,5 kg from the 100 plants this season was created with.
+    await expect(main.getByText("Hasil per pohon")).toBeVisible();
+    await expect(main.getByText("255 g/pohon")).toBeVisible();
+  });
+
   test("menjual dua mutu sekaligus dengan harga berbeda", async ({ page }) => {
     await harvestPage(page);
     await page.getByRole("button", { name: "Catat Penjualan" }).click();

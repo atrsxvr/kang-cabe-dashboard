@@ -81,3 +81,40 @@ export function lineTotal(weightKg: number, pricePerKg: number): number {
 export function averagePrice(totalAmount: number, totalKg: number): number {
   return totalKg > 0 ? Math.round(totalAmount / totalKg) : 0;
 }
+
+/**
+ * Yield per plant.
+ *
+ * Reported in grams below a kilo, because that is where a chilli plant
+ * actually lives: 5.000 tanaman yang menghasilkan 500 kg itu 100 g per pohon,
+ * dan menuliskannya "0,1 kg" membuang justru angka yang mau dibaca.
+ *
+ * Returns null when there is nothing to divide by — a season with no plant
+ * count recorded should say so rather than print a zero that looks like a
+ * failed harvest.
+ */
+export function perPlantGrams(
+  totalKg: number,
+  plantCount: number
+): number | null {
+  if (plantCount <= 0) return null;
+  return (totalKg * 1000) / plantCount;
+}
+
+export function formatPerPlant(
+  totalKg: number,
+  plantCount: number
+): string {
+  const grams = perPlantGrams(totalKg, plantCount);
+  if (grams === null) return "—";
+
+  if (grams >= 1000) {
+    return `${(grams / 1000).toLocaleString("id-ID", {
+      maximumFractionDigits: 2,
+    })} kg/pohon`;
+  }
+
+  return `${grams.toLocaleString("id-ID", {
+    maximumFractionDigits: grams >= 100 ? 0 : 1,
+  })} g/pohon`;
+}

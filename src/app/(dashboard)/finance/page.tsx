@@ -12,7 +12,7 @@ import { materialCategoryLabels } from "@/components/inventory/inventory-labels"
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { formatKg } from "@/lib/harvest";
+import { formatKg, formatPerPlant } from "@/lib/harvest";
 import { formatRupiah } from "@/lib/money";
 import { readSeasonParam } from "@/lib/season-param";
 import {
@@ -261,33 +261,41 @@ export default async function FinancePage(props: PageProps<"/finance">) {
 
             <Card>
               <CardContent className="grid gap-2 py-5">
-                <h2 className="text-sm font-medium">Per kilo panen</h2>
+                <h2 className="text-sm font-medium">Diukur per satuan</h2>
                 <p className="text-muted-foreground text-xs">
-                  Musim yang jalan lebih lama otomatis dapat angka lebih besar,
-                  jadi angka total nggak adil dibandingkan. Sisa per kilo panen
-                  yang bisa.
+                  Musim yang jalan lebih lama atau punya pohon lebih banyak
+                  otomatis dapat angka total lebih besar tanpa berarti lebih
+                  bagus. Dua angka ini yang adil dibandingkan.
                 </p>
                 <ul className="mt-2 grid gap-2">
                   {seasons.map((row) => (
                     <li
                       key={row.id}
-                      className="flex flex-wrap items-center justify-between gap-2 rounded-md border px-3 py-2 text-sm"
+                      className="grid gap-1 rounded-md border px-3 py-2 text-sm"
                     >
-                      <span className="min-w-0">
-                        {row.name}
-                        <span className="text-muted-foreground ml-2 text-xs">
-                          {formatKg(row.harvestedKg)}
+                      <div className="flex flex-wrap items-center justify-between gap-2">
+                        <span className="min-w-0">
+                          {row.name}
+                          <span className="text-muted-foreground ml-2 text-xs">
+                            {formatKg(row.harvestedKg)}
+                            {row.plantCount > 0
+                              ? ` · ${row.plantCount.toLocaleString("id-ID")} pohon`
+                              : ""}
+                          </span>
                         </span>
-                      </span>
-                      <strong
-                        className={
-                          row.perKg < 0
-                            ? "text-destructive tabular-nums"
-                            : "tabular-nums"
-                        }
-                      >
-                        {formatRupiah(row.perKg)}/kg
-                      </strong>
+                        <strong
+                          className={
+                            row.perKg < 0
+                              ? "text-destructive tabular-nums"
+                              : "tabular-nums"
+                          }
+                        >
+                          {formatRupiah(row.perKg)}/kg
+                        </strong>
+                      </div>
+                      <p className="text-muted-foreground text-xs tabular-nums">
+                        Hasil {formatPerPlant(row.harvestedKg, row.plantCount)}
+                      </p>
                     </li>
                   ))}
                 </ul>
