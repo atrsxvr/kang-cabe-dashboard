@@ -20,6 +20,7 @@ import {
 } from "@/lib/harvest";
 import { formatRupiah } from "@/lib/money";
 import { readSeasonParam } from "@/lib/season-param";
+import { canCompareSeasons, comparableSeasons } from "@/lib/season-compare";
 import {
   listFinanceEntries,
   profitSharing,
@@ -28,7 +29,7 @@ import {
   seasonResult,
   toolSpend,
 } from "@/server/queries/finance";
-import type { CostLine } from "@/server/queries/finance";
+import type { CostLine, SeasonComparison } from "@/server/queries/finance";
 import { capitalSummary, listContributions } from "@/server/queries/capital";
 import { listSeasons, resolveSeason } from "@/server/queries/seasons";
 import { listActiveMembers } from "@/server/queries/users";
@@ -318,6 +319,9 @@ export default async function FinancePage(props: PageProps<"/finance">) {
                   gede tanpa berarti lebih bagus. Dibagi dulu per kilo dan per
                   pohon, baru setara.
                 </p>
+
+                <NotEnoughSeasons rows={seasons} />
+
                 <ul className="mt-2 grid gap-2">
                   {seasons.map((row) => (
                     <li
@@ -354,8 +358,12 @@ export default async function FinancePage(props: PageProps<"/finance">) {
                       {/* The sum spelled out. Without it the card shows only a
                           quotient, and nothing else on screen carries the two
                           numbers it came from — so an odd figure can only be
-                          taken on faith or ignored. */}
-                      {row.harvestedKg > 0 ? (
+                          taken on faith or ignored.
+
+                          Suppressed before any money moves: "(Rp 0 − Rp 0) ÷
+                          30 kg" explains a zero nobody was puzzled by, and this
+                          line exists to answer puzzlement. */}
+                      {row.harvestedKg > 0 && (row.income > 0 || row.cost > 0) ? (
                         <p className="text-muted-foreground text-xs tabular-nums">
                           ({formatRupiah(row.income)} &minus;{" "}
                           {formatRupiah(row.cost)}) &divide;{" "}
@@ -388,6 +396,33 @@ export default async function FinancePage(props: PageProps<"/finance">) {
         }
       />
     </>
+  );
+}
+
+/**
+ * Admits when the comparison has nothing to compare.
+ *
+ * The per-kilo figure has one job — putting seasons of different sizes on the
+ * same footing — and with a single season that job is not happening. The figure
+ * is still true, so it stays; what was missing was any hint that its whole
+ * point is off screen, which is what made it read as arithmetic nobody could
+ * account for. Saying so is cheaper than removing a number that becomes the
+ * most useful one on the card the moment a second planting closes.
+ */
+function NotEnoughSeasons({ rows }: { rows: SeasonComparison[] }) {
+  if (canCompareSeasons(rows)) return null;
+
+  const picked = comparableSeasons(rows);
+
+  return (
+    <p className="text-muted-foreground rounded-md border border-dashed px-3 py-2 text-xs">
+      {picked === 0
+        ? "Belum ada musim yang panennya tercatat, jadi belum ada yang bisa diadu."
+        : "Baru satu musim yang panennya tercatat, jadi angka per kilo di bawah belum ada lawannya."}{" "}
+      Angka ini baru kepakai pas musim kedua jalan: yang pohonnya lebih banyak
+      otomatis dapat total lebih gede, dan cuma hitungan per kilo yang bisa
+      bilang apakah untungnya ikut naik sebanding.
+    </p>
   );
 }
 
