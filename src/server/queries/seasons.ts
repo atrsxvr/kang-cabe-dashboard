@@ -22,6 +22,8 @@ export type SeasonRow = {
   name: string;
   variety: string;
   plantCount: number;
+  /** Perkiraan panen Bagus semusim. Kosong berarti panduan harga jual diam. */
+  projectedHarvestKg: number | null;
   startDate: Date;
   endDate: Date | null;
   status: SeasonStatus;

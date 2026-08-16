@@ -2,6 +2,7 @@ import "server-only";
 
 import { prisma } from "@/lib/prisma";
 import { perPlantGrams } from "@/lib/harvest";
+import { projectedBep } from "@/lib/pricing";
 import { harvestSummary } from "@/server/queries/harvest";
 import type { MaterialCategory } from "@/generated/prisma/client";
 
@@ -328,6 +329,53 @@ export async function seasonResult(seasonId: string): Promise<SeasonResult> {
         }))
         .sort((a, b) => b.amount - a.amount),
     ],
+  };
+}
+
+export type PricingGuide = {
+  /** Biaya dibagi kilo yang **sudah** terpetik. Jujur, tapi berayun. */
+  realtimeBep: number | null;
+  /** Biaya dibagi seluruh panen yang diharapkan. Ini yang dipakai buat harga. */
+  projectedBep: number | null;
+  projectedHarvestKg: number | null;
+  harvestedKg: number;
+  totalCost: number;
+  /** Rata-rata harga jual Bagus yang benar-benar terjadi. Nol berarti belum ada. */
+  averagePrice: number;
+};
+
+/**
+ * Angka-angka di balik patokan harga jual.
+ *
+ * Semuanya dihitung ulang tiap dibaca, tidak satu pun disimpan: harga lantai
+ * adalah bayangan dari biaya, dan lantai yang tersimpan akan tertinggal dari
+ * biaya yang membentuknya tanpa ada yang tahu. Susunan tier-nya sendiri hidup
+ * di `@/lib/pricing`, jauh dari database, supaya bisa diuji tanpa satu baris
+ * data pun.
+ *
+ * `projectedBep` sengaja null selama proyeksi panennya belum diisi. Menebak
+ * angkanya akan melahirkan harga lantai yang terlihat resmi padahal tidak
+ * berdasar apa pun — dan yang membacanya sedang berdiri di depan pengepul.
+ */
+export async function pricingGuide(seasonId: string): Promise<PricingGuide> {
+  const [result, summary, season] = await Promise.all([
+    seasonResult(seasonId),
+    harvestSummary(seasonId),
+    prisma.season.findUnique({
+      where: { id: seasonId },
+      select: { projectedHarvestKg: true },
+    }),
+  ]);
+
+  const projectedHarvestKg = season?.projectedHarvestKg ?? null;
+
+  return {
+    realtimeBep: result.hppPerKg,
+    projectedBep: projectedBep(result.totalCost, projectedHarvestKg),
+    projectedHarvestKg,
+    harvestedKg: summary.sellableHarvestedKg,
+    totalCost: result.totalCost,
+    averagePrice: summary.averagePricePerKg,
   };
 }
 

@@ -20,6 +20,7 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import { amountToInput } from "@/lib/dose";
 import { SEASON_PARAM } from "@/lib/season-param";
 import { createSeason, updateSeason } from "@/server/actions/seasons";
 import type { SeasonRow } from "@/server/queries/seasons";
@@ -164,6 +165,28 @@ export function SeasonDialog({ season }: { season?: SeasonRow }) {
               />
             </Field>
           </div>
+
+          {/* Kosong itu jawaban yang sah: tanpa angka ini panduan harga jual
+              memilih diam daripada mengarang lantai. */}
+          <Field
+            id="projectedHarvestKg"
+            label="Proyeksi Panen (kg)"
+            error={errors.projectedHarvestKg}
+            hint="Perkiraan total cabai bagus semusim. Dipakai buat menghitung modal per kilo, yang jadi patokan harga jual. Boleh dikosongkan."
+          >
+            <Input
+              id="projectedHarvestKg"
+              name="projectedHarvestKg"
+              inputMode="decimal"
+              defaultValue={
+                season?.projectedHarvestKg != null
+                  ? amountToInput(season.projectedHarvestKg)
+                  : ""
+              }
+              placeholder="150"
+              aria-invalid={Boolean(errors.projectedHarvestKg)}
+            />
+          </Field>
 
           <Field id="status" label="Status" error={errors.status}>
             <NativeSelect

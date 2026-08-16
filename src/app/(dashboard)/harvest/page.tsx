@@ -30,6 +30,7 @@ import {
   listHarvests,
   listSales,
 } from "@/server/queries/harvest";
+import { pricingGuide } from "@/server/queries/finance";
 import { resolveSeason } from "@/server/queries/seasons";
 import { listActiveMembers } from "@/server/queries/users";
 
@@ -43,14 +44,16 @@ export default async function HarvestPage(props: PageProps<"/harvest">) {
 
   if (!season) return <NoSeason />;
 
-  const [harvests, sales, summary, members, buyers, curve] = await Promise.all([
-    listHarvests(season.id),
-    listSales(season.id),
-    harvestSummary(season.id),
-    listActiveMembers(),
-    buyerSuggestions(),
-    harvestCurve(season.id, season.startDate),
-  ]);
+  const [harvests, sales, summary, members, buyers, curve, pricing] =
+    await Promise.all([
+      listHarvests(season.id),
+      listSales(season.id),
+      harvestSummary(season.id),
+      listActiveMembers(),
+      buyerSuggestions(),
+      harvestCurve(season.id, season.startDate),
+      pricingGuide(season.id),
+    ]);
 
   const unpaid = sales.filter((sale) => !sale.isPaid);
 
@@ -71,6 +74,7 @@ export default async function HarvestPage(props: PageProps<"/harvest">) {
             seasonId={season.id}
             members={members}
             buyers={buyers}
+            projectedBep={pricing.projectedBep}
           />
           <HarvestDialog seasonId={season.id} members={members} />
         </div>
@@ -218,6 +222,7 @@ export default async function HarvestPage(props: PageProps<"/harvest">) {
         }
         sales={
           <SaleList
+            projectedBep={pricing.projectedBep}
             sales={sales}
             seasonId={season.id}
             members={members}
@@ -227,6 +232,7 @@ export default async function HarvestPage(props: PageProps<"/harvest">) {
         }
         unpaid={
           <SaleList
+            projectedBep={pricing.projectedBep}
             sales={unpaid}
             seasonId={season.id}
             members={members}

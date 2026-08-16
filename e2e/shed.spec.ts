@@ -39,6 +39,9 @@ test.describe.serial("bahan masuk gudang lalu jadi biaya musim", () => {
     await page.getByLabel("Nama Musim", { exact: true }).fill(SHED_SEASON);
     await page.getByLabel("Varietas Benih", { exact: true }).fill("E2E Rawit");
     await page.getByLabel("Jumlah Populasi", { exact: true }).fill("100");
+    // 20 kg target atas biaya Rp 400.000 yang bakal tercatat di bawah, jadi
+    // modal proyeksinya Rp 20.000/kg — angka bulat yang tiernya bisa dieja.
+    await page.getByLabel("Proyeksi Panen (kg)", { exact: true }).fill("20");
     await page.getByLabel("Tanggal Tanam", { exact: true }).fill("2026-01-01");
     await page.getByRole("button", { name: "Simpan Musim" }).click();
 
@@ -136,6 +139,61 @@ test.describe.serial("bahan masuk gudang lalu jadi biaya musim", () => {
     // would be looking for a number nothing renders.
     await expect(page.getByText("Rp 400.000").first()).toBeVisible();
     await expect(page.getByText("Semua yang keluar")).toBeVisible();
+  });
+
+  /**
+   * Biaya yang baru saja dibebankan ke musim ini keluar lagi sebagai harga
+   * lantai. Musim ini satu-satunya di suite yang punya biaya tercatat sekaligus
+   * target panen, jadi satu-satunya tempat BEP proyeksi benar-benar ada.
+   */
+  test("biayanya jadi patokan harga jual", async ({ page }) => {
+    await page.goto(`/finance?season=${shedSeasonId}`);
+
+    const card = page
+      .locator('[data-slot="card"]')
+      .filter({ hasText: "Patokan harga jual" });
+    await expect(card).toBeVisible();
+
+    // Rp 400.000 atas target 20 kg = Rp 20.000/kg, lalu 150/135/120 persennya.
+    await expect(card).toContainText("Rp 20.000");
+    await expect(card).toContainText("Rp 30.000");
+    await expect(card).toContainText("Rp 27.000");
+    await expect(card).toContainText("Rp 24.000");
+  });
+
+  /**
+   * Dan yang paling menentukan: patokan itu ikut ke tempat harganya benar-benar
+   * diputuskan. Kartu di Keuangan dibaca sesudah semuanya terjadi; yang menolong
+   * adalah baris yang muncul saat angkanya masih setengah diketik.
+   */
+  test("harga yang diketik langsung ditakar di dialog jual", async ({
+    page,
+  }) => {
+    await page.goto(`/harvest?season=${shedSeasonId}`);
+    await page.getByRole("button", { name: "Catat Penjualan" }).click();
+
+    const price = page.getByLabel("Harga Bagus per kg");
+    // Diperiksa lewat toContainText, bukan getByText dengan regex: formatRupiah
+    // memakai spasi tak-putus sesudah "Rp", dan regex tidak menormalkan spasi.
+    const dialog = page.getByRole("dialog");
+
+    await price.fill("35000");
+    await expect(dialog).toContainText("Premium");
+
+    await price.fill("25000");
+    await expect(dialog).toContainText(
+      "Lantai Minimum · Rp 1.000 di atas lantai minimum"
+    );
+
+    // Masih di atas modal, tapi di bawah lantai yang disepakati — untung, dan
+    // tetap bukan harga yang boleh dilepas begitu saja.
+    await price.fill("23000");
+    await expect(dialog).toContainText("kurang Rp 1.000 dari lantai minimum");
+
+    // Di bawah modal bukan sekadar tier terbawah — ini rugi, dan harus dibilang
+    // begitu, bukan "untung tipis".
+    await price.fill("18000");
+    await expect(dialog).toContainText("Di bawah modal Rp 20.000/kg");
   });
 
   test("bahan diarsipkan, bukan dihapus, dan bisa dikembalikan", async ({

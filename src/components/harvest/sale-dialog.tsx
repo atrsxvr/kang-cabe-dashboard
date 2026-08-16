@@ -31,6 +31,8 @@ import {
 } from "@/lib/harvest";
 import { parseAmount } from "@/lib/dose";
 import { formatRupiah, roundUpToCash } from "@/lib/money";
+import { verdictFor } from "@/lib/pricing";
+import { cn } from "@/lib/utils";
 import { createSale, updateSale } from "@/server/actions/harvest";
 import type { SaleRow } from "@/server/queries/harvest";
 import type { MemberOption } from "@/server/queries/users";
@@ -65,12 +67,19 @@ export function SaleDialog({
   members,
   buyers,
   sale,
+  projectedBep,
 }: {
   seasonId: string;
   members: MemberOption[];
   /** Nama yang pernah dipakai, buat disarankan. */
   buyers: string[];
   sale?: SaleRow;
+  /**
+   * Modal per kilo buat menakar harga yang sedang diketik. Null kalau proyeksi
+   * panennya belum diisi — dialog ini lantas diam soal harga, karena patokan
+   * karangan justru dipakai persis di saat orangnya tidak sempat meragukannya.
+   */
+  projectedBep: number | null;
 }) {
   const editing = Boolean(sale);
   const listId = useId();
@@ -243,6 +252,14 @@ export function SaleDialog({
                         : "—"}
                     </span>
                   </div>
+
+                  {/* Bagus saja. Tier-nya dibangun dari modal per kilo Bagus,
+                      dan afkir sampai sekarang belum pernah punya harga pasar
+                      — menghakiminya dengan lantai yang sama akan menyuruh
+                      menahan barang yang memang tidak punya patokan. */}
+                  {grade === "GOOD" ? (
+                    <PriceVerdictLine price={price} bep={projectedBep} />
+                  ) : null}
                 </div>
               );
             })}
@@ -326,6 +343,46 @@ export function SaleDialog({
         </form>
       </DialogContent>
     </Dialog>
+  );
+}
+
+/**
+ * Menakar harga yang sedang diketik, sebelum tombol simpan ditekan.
+ *
+ * Di sinilah angkanya benar-benar mengubah sesuatu. Sebuah kartu di halaman
+ * Keuangan dibaca sesudah semuanya terjadi; yang menentukan adalah orang yang
+ * sedang berdiri di depan pengepul dengan angka setengah diketik — dan
+ * satu-satunya cara ia menolong adalah kalau ia muncul di situ.
+ */
+function PriceVerdictLine({
+  price,
+  bep,
+}: {
+  price: number;
+  bep: number | null;
+}) {
+  if (bep === null || price <= 0) return null;
+
+  const verdict = verdictFor(price, bep);
+  const short = verdict.againstMinimum < 0;
+
+  return (
+    <p
+      className={cn(
+        "text-xs",
+        verdict.belowCost
+          ? "text-destructive font-medium"
+          : short
+            ? "text-amber-700 dark:text-amber-400"
+            : "text-muted-foreground",
+      )}
+    >
+      {verdict.belowCost
+        ? `Di bawah modal ${formatRupiah(bep)}/kg — tiap kilo yang lepas di harga ini nombok.`
+        : short
+          ? `${verdict.tier.label} · kurang ${formatRupiah(Math.abs(verdict.againstMinimum))} dari lantai minimum.`
+          : `${verdict.tier.label} · ${formatRupiah(verdict.againstMinimum)} di atas lantai minimum.`}
+    </p>
   );
 }
 

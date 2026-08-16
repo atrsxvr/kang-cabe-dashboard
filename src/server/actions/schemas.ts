@@ -41,6 +41,29 @@ export const createSeasonSchema = z.object({
     .int("Jumlah populasi harus bilangan bulat")
     .positive("Jumlah populasi harus lebih dari 0")
     .max(10_000_000),
+  /**
+   * Kosong itu jawaban yang sah, dan itu sebabnya ia `null` dan bukan nol.
+   * Nol akan terbaca sebagai "musim ini tidak diharapkan panen apa pun" lalu
+   * dibagi ke dalam BEP; null membuat panduan harga jual memilih diam.
+   *
+   * Ditulis dengan koma di lapangan — "12,5" harus jadi 12.5, bukan NaN.
+   */
+  projectedHarvestKg: z.preprocess(
+    (value) => {
+      // Tiga bentuk "belum diisi" yang sama-sama sah: field yang tidak ada
+      // sama sekali, `formData.get` yang mengembalikan null, dan kotak yang
+      // dikosongkan. Ketiganya null, bukan NaN.
+      if (value === null || value === undefined) return null;
+      if (typeof value !== "string") return value;
+      const trimmed = value.trim().replace(",", ".");
+      return trimmed === "" ? null : trimmed;
+    },
+    z.coerce
+      .number("Isi proyeksi panen dalam angka")
+      .positive("Proyeksi panen harus lebih dari 0")
+      .max(1_000_000)
+      .nullable()
+  ),
   startDate: z.coerce.date("Tanggal tanam tidak valid"),
   status: z.enum(seasonStatuses),
   notes: z.string().trim().max(2000).optional().or(z.literal("")),

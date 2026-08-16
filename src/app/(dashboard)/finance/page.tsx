@@ -8,6 +8,7 @@ import { CapitalPanel } from "@/components/finance/capital-panel";
 import { FinanceEntryDialog } from "@/components/finance/finance-entry-dialog";
 import { FinanceEntryList } from "@/components/finance/finance-entry-list";
 import { FinanceViews } from "@/components/finance/finance-views";
+import { PricingCard } from "@/components/finance/pricing-card";
 import { materialCategoryLabels } from "@/components/inventory/inventory-labels";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -23,6 +24,7 @@ import { readSeasonParam } from "@/lib/season-param";
 import { canCompareSeasons, comparableSeasons } from "@/lib/season-compare";
 import {
   listFinanceEntries,
+  pricingGuide,
   profitSharing,
   seasonComparison,
   seasonMaterialCost,
@@ -56,6 +58,7 @@ export default async function FinancePage(props: PageProps<"/finance">) {
     contributions,
     members,
     seasonList,
+    pricing,
   ] = await Promise.all([
     seasonMaterialCost(season.id),
     toolSpend(),
@@ -67,6 +70,7 @@ export default async function FinancePage(props: PageProps<"/finance">) {
     listContributions(),
     listActiveMembers(),
     listSeasons(),
+    pricingGuide(season.id),
   ]);
 
   const photoEnabled = isPhotoUploadEnabled();
@@ -211,6 +215,8 @@ export default async function FinancePage(props: PageProps<"/finance">) {
                 empty="Belum ada pemakaian bahan tercatat."
               />
             </div>
+
+            <PricingCard guide={pricing} seasonId={season.id} />
 
             <Card>
               <CardContent className="grid gap-3 py-5">

@@ -19,12 +19,15 @@ export function SaleList({
   members,
   buyers,
   empty,
+  projectedBep,
 }: {
   sales: SaleRow[];
   seasonId: string;
   members: MemberOption[];
   buyers: string[];
   empty: string;
+  /** Diteruskan ke dialog sunting, supaya harga yang direvisi ikut ditakar. */
+  projectedBep: number | null;
 }) {
   if (sales.length === 0) {
     return (
@@ -105,6 +108,7 @@ export function SaleList({
               <SalePaidAction sale={sale} seasonId={seasonId} />
               <div className="ml-auto flex items-center gap-1">
                 <SaleDialog
+                  projectedBep={projectedBep}
                   seasonId={seasonId}
                   members={members}
                   buyers={buyers}

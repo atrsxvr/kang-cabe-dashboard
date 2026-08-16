@@ -207,6 +207,16 @@ model Season {
   /// Populasi **tanam awal**, bukan yang berdiri hari ini. Yang sekarang
   /// dihitung dari PlantEvent — lihat catatan di sana.
   plantCount Int
+  /// Perkiraan total panen **Bagus** semusim, kg. Diketik, bukan dihitung —
+  /// ini target yang disepakati orangnya, bukan kesimpulan dari data, dan
+  /// menebaknya dari kurva panen akan membuat harga lantai bergerak sendiri
+  /// tanpa ada yang memutuskan.
+  ///
+  /// Dipakai untuk BEP proyeksi: biaya dibagi seluruh panen yang diharapkan,
+  /// bukan yang sudah terpetik. Kosong berarti panduan harga jual tidak
+  /// ditampilkan — menebak angkanya akan menghasilkan harga lantai palsu, dan
+  /// harga lantai palsu lebih berbahaya daripada tidak ada panduan sama sekali.
+  projectedHarvestKg Float?
   startDate  DateTime // Tanggal tanam (HST 0)
   endDate    DateTime? // Tanggal selesai musim
   status     SeasonStatus @default(PLANNING)

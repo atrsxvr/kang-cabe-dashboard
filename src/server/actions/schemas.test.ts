@@ -27,6 +27,41 @@ describe("createSeasonSchema", () => {
     expect(parsed.startDate).toBeInstanceOf(Date);
   });
 
+  /**
+   * Proyeksi panen boleh kosong, dan kosong harus jadi null — bukan nol.
+   * Nol akan terbaca "musim ini tidak diharapkan panen apa pun" lalu dipakai
+   * sebagai penyebut BEP, yang menghasilkan harga lantai tak terhingga.
+   */
+  it("treats an untouched projection as null, not as a number", () => {
+    expect(createSeasonSchema.parse(validSeason).projectedHarvestKg).toBeNull();
+
+    expect(
+      createSeasonSchema.parse({ ...validSeason, projectedHarvestKg: "" })
+        .projectedHarvestKg
+    ).toBeNull();
+
+    expect(
+      createSeasonSchema.parse({ ...validSeason, projectedHarvestKg: null })
+        .projectedHarvestKg
+    ).toBeNull();
+  });
+
+  it("reads a projection written with a comma", () => {
+    expect(
+      createSeasonSchema.parse({ ...validSeason, projectedHarvestKg: "131,4" })
+        .projectedHarvestKg
+    ).toBe(131.4);
+  });
+
+  it("rejects a projection of zero rather than dividing by it", () => {
+    expect(
+      createSeasonSchema.safeParse({
+        ...validSeason,
+        projectedHarvestKg: "0",
+      }).success
+    ).toBe(false);
+  });
+
   it("rejects a population of zero", () => {
     const result = createSeasonSchema.safeParse({
       ...validSeason,
