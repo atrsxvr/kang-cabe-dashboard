@@ -59,7 +59,7 @@ test("overview memuat panel yang dipakai tiap hari", async ({ page }) => {
   await expect(main.getByText("Temuan nunggu didiagnosa")).toBeVisible();
   await expect(main.getByText("Pemakaian belum dicatat")).toBeVisible();
   await expect(main.getByText("Tagihan belum dibayar")).toBeVisible();
-  await expect(main.getByText("Panen 7 hari terakhir")).toBeVisible();
+  await expect(main.getByText("Panen layak jual 7 hari terakhir")).toBeVisible();
   await expect(main.getByText("Stok cukup buat berapa kali")).toBeVisible();
   await expect(main.getByText("Cuaca Kebun")).toBeVisible();
 

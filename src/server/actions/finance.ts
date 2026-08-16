@@ -1,9 +1,8 @@
 "use server";
 
-import { revalidatePath } from "next/cache";
-
 import { prisma } from "@/lib/prisma";
 import { invalidForm, type ActionResult } from "@/server/actions/result";
+import { revalidateSeasonMoney } from "@/server/actions/revalidate";
 import {
   createFinanceEntrySchema,
   updateFinanceEntrySchema,
@@ -16,10 +15,7 @@ import { deletePhoto, uploadPhoto } from "@/server/storage";
  * rather than copied here, so there is only ever one row per rupiah.
  */
 
-function revalidate() {
-  revalidatePath("/finance");
-  revalidatePath("/");
-}
+const revalidate = revalidateSeasonMoney;
 
 export async function createFinanceEntry(
   formData: FormData

@@ -7,6 +7,7 @@ import { nextAvgCost, rebuildAvgCost } from "@/lib/money";
 import { OPNAME_PREFIX } from "@/lib/stock";
 import { listMovements, type MovementRow } from "@/server/queries/inventory";
 import { invalidForm, type ActionResult } from "@/server/actions/result";
+import { revalidateSeasonMoney } from "@/server/actions/revalidate";
 import {
   adjustStockSchema,
   changesQuantity,
@@ -109,7 +110,7 @@ export async function adjustStock(formData: FormData): Promise<ActionResult> {
 
   revalidatePath("/inventory");
   revalidatePath("/health/racikan");
-  revalidatePath("/finance");
+  revalidateSeasonMoney();
   return { ok: true };
 }
 
@@ -189,7 +190,7 @@ export async function setMovementCost(
   await refreshAvgCost(movement.materialId);
 
   revalidatePath("/inventory");
-  revalidatePath("/finance");
+  revalidateSeasonMoney();
   return { ok: true };
 }
 
@@ -449,7 +450,7 @@ export async function recordToolEvent(
   ]);
 
   revalidatePath("/inventory");
-  revalidatePath("/finance");
+  revalidateSeasonMoney();
   return { ok: true };
 }
 

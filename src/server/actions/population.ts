@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 
 import { prisma } from "@/lib/prisma";
 import { invalidForm, type ActionResult } from "@/server/actions/result";
+import { revalidateSeasonMoney } from "@/server/actions/revalidate";
 import {
   createHarvestLossSchema,
   createPlantEventSchema,
@@ -21,9 +22,7 @@ import {
 
 function revalidate() {
   revalidatePath("/health");
-  revalidatePath("/harvest");
-  revalidatePath("/finance");
-  revalidatePath("/");
+  revalidateSeasonMoney();
 }
 
 export async function createPlantEvent(

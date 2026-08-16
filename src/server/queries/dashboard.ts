@@ -1,7 +1,7 @@
 import "server-only";
 
 import { prisma } from "@/lib/prisma";
-import { daysUntil, weekendRange } from "@/lib/hst";
+import { daysUntil, trailingWindows, weekendRange } from "@/lib/hst";
 
 /**
  * Outstanding tasks due on this week's Saturday or Sunday, for the given
@@ -53,8 +53,11 @@ export type MixCapacity = {
 };
 
 export type HarvestTrend = {
+  /** Bagus saja — sama dengan angka utama di halaman Panen. */
   thisWeekKg: number;
   lastWeekKg: number;
+  /** Afkir minggu ini, dilaporkan terpisah dan tidak ikut tren. */
+  thisWeekRejectKg: number;
   /** Selisih persen. Null kalau minggu lalu nol — tidak ada pembanding. */
   changePercent: number | null;
 };
@@ -83,8 +86,9 @@ export async function overview(
 ): Promise<Overview> {
   const today = startOfJakartaDay(now);
   const tomorrow = new Date(today.getTime() + 24 * 60 * 60 * 1000);
-  const weekAgo = new Date(today.getTime() - 7 * 24 * 60 * 60 * 1000);
-  const twoWeeksAgo = new Date(today.getTime() - 14 * 24 * 60 * 60 * 1000);
+  // Tujuh hari termasuk hari ini, dan tujuh hari sebelumnya — sama panjang,
+  // supaya persentasenya membandingkan hal yang sebanding.
+  const week = trailingWindows(7, now);
 
   const [
     open,
@@ -136,11 +140,17 @@ export async function overview(
       },
     }),
     prisma.harvestLog.aggregate({
-      where: { seasonId, harvestDate: { gte: weekAgo, lt: tomorrow } },
+      where: {
+        seasonId,
+        harvestDate: { gte: week.current.start, lt: week.current.end },
+      },
       _sum: { goodKg: true, rejectKg: true },
     }),
     prisma.harvestLog.aggregate({
-      where: { seasonId, harvestDate: { gte: twoWeeksAgo, lt: weekAgo } },
+      where: {
+        seasonId,
+        harvestDate: { gte: week.previous.start, lt: week.previous.end },
+      },
       _sum: { goodKg: true, rejectKg: true },
     }),
     // A spray blocks picking for a while afterwards, and the recipe is the
@@ -173,8 +183,13 @@ export async function overview(
 
   const due = open.map(toDue);
 
-  const thisWeekKg = (thisWeek._sum.goodKg ?? 0) + (thisWeek._sum.rejectKg ?? 0);
-  const lastWeekKg = (lastWeek._sum.goodKg ?? 0) + (lastWeek._sum.rejectKg ?? 0);
+  // Bagus saja, seperti setiap angka hasil panen lain di aplikasi ini. Halaman
+  // Panen memberi judul "Panen layak jual" pada Bagus dan menaruh totalnya di
+  // baris kecil; dashboard yang menjumlahkan keduanya membuat dua halaman
+  // memakai kata "panen" untuk dua bilangan berbeda tanpa satu pun menyebutnya.
+  const thisWeekKg = thisWeek._sum.goodKg ?? 0;
+  const lastWeekKg = lastWeek._sum.goodKg ?? 0;
+  const thisWeekRejectKg = thisWeek._sum.rejectKg ?? 0;
 
   return {
     dueToday: due.filter((task) => task.daysLeft === 0),
@@ -213,6 +228,7 @@ export async function overview(
     harvestTrend: {
       thisWeekKg,
       lastWeekKg,
+      thisWeekRejectKg,
       changePercent:
         lastWeekKg > 0
           ? Math.round(((thisWeekKg - lastWeekKg) / lastWeekKg) * 100)

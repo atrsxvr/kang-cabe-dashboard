@@ -1,9 +1,8 @@
 "use server";
 
-import { revalidatePath } from "next/cache";
-
 import { prisma } from "@/lib/prisma";
 import { invalidForm, type ActionResult } from "@/server/actions/result";
+import { revalidateSeasonMoney } from "@/server/actions/revalidate";
 import {
   createHarvestSchema,
   createSaleSchema,
@@ -19,9 +18,7 @@ import {
  */
 
 function revalidate() {
-  revalidatePath("/harvest");
-  revalidatePath("/finance");
-  revalidatePath("/");
+  revalidateSeasonMoney();
 }
 
 /** The picker serialises its rows into one hidden field, like task materials. */

@@ -101,6 +101,37 @@ export function weekendRange(now: Date = new Date()): {
   };
 }
 
+/**
+ * Dua jendela berurutan sepanjang `days` hari, yang sekarang dan yang sebelum
+ * itu, sebagai rentang setengah terbuka [start, end).
+ *
+ * Ada supaya keduanya dihitung dari satu tempat. Sebelumnya jendela "sekarang"
+ * dibangun sebagai [hari ini − 7, besok) — yang panjangnya **delapan** hari,
+ * karena hari ini ikut terhitung — sementara pembandingnya [hari ini − 14,
+ * hari ini − 7) panjangnya tujuh. Tren yang membandingkan delapan hari dengan
+ * tujuh naik sekitar 14% dengan sendirinya, dan kartunya memasang panah.
+ */
+export function trailingWindows(
+  days: number,
+  now: Date = new Date()
+): { current: { start: Date; end: Date }; previous: { start: Date; end: Date } } {
+  const todayMarker = startOfDayInJakarta(now);
+  const end = todayMarker + MS_PER_DAY; // besok, supaya hari ini ikut
+  const currentStart = end - days * MS_PER_DAY;
+  const previousStart = currentStart - days * MS_PER_DAY;
+
+  return {
+    current: {
+      start: jakartaMidnightAsInstant(currentStart),
+      end: jakartaMidnightAsInstant(end),
+    },
+    previous: {
+      start: jakartaMidnightAsInstant(previousStart),
+      end: jakartaMidnightAsInstant(currentStart),
+    },
+  };
+}
+
 /** "9–10 Agu" — the weekend dates, for labelling the dashboard card. */
 export function formatDateRange(from: Date, to: Date): string {
   const day = new Intl.DateTimeFormat("id-ID", {

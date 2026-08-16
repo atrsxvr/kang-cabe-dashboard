@@ -38,7 +38,7 @@ export function StockCapacityCard({
               )}
               aria-hidden
             />
-            <h2 className="text-sm font-medium">Panen 7 hari terakhir</h2>
+            <h2 className="text-sm font-medium">Panen layak jual 7 hari terakhir</h2>
           </div>
 
           <p className="text-2xl font-semibold tabular-nums">
@@ -48,6 +48,9 @@ export function StockCapacityCard({
             {trend.changePercent === null
               ? "Belum ada pembanding minggu sebelumnya."
               : `${up ? "Naik" : "Turun"} ${Math.abs(trend.changePercent)}% dari ${formatKg(trend.lastWeekKg)} minggu sebelumnya.`}
+            {trend.thisWeekRejectKg > 0
+              ? ` Plus ${formatKg(trend.thisWeekRejectKg)} afkir.`
+              : ""}
           </p>
         </div>
 

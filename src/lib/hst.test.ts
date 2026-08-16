@@ -1,6 +1,11 @@
 import { describe, expect, it } from "vitest";
 
-import { calculateHst, daysUntil, weekendRange } from "@/lib/hst";
+import {
+  calculateHst,
+  daysUntil,
+  trailingWindows,
+  weekendRange,
+} from "@/lib/hst";
 
 /** Renders an instant as its Jakarta wall-clock date, for readable assertions. */
 const inJakarta = (date: Date) =>
@@ -129,5 +134,51 @@ describe("daysUntil", () => {
     expect(
       daysUntil(new Date("2026-08-11T00:00:00Z"), new Date("2026-08-08T00:00:00Z"))
     ).toBe(3);
+  });
+});
+
+describe("trailingWindows", () => {
+  // Sabtu 15 Agustus 2026, 18:11 WIB.
+  const now = new Date("2026-08-15T11:11:00.000Z");
+
+  const dayKey = (date: Date) =>
+    new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Jakarta" }).format(date);
+
+  const spanDays = ({ start, end }: { start: Date; end: Date }) =>
+    Math.round((end.getTime() - start.getTime()) / 86_400_000);
+
+  /**
+   * Regresi yang dijaga di sini. Dashboard dulu membangun jendelanya sebagai
+   * [hari ini − 7, besok) — delapan hari, karena hari ini ikut — lalu
+   * membandingkannya dengan [hari ini − 14, hari ini − 7) yang tujuh hari.
+   * Delapan hari dibanding tujuh naik ~14% dengan sendirinya, dan kartunya
+   * memasang panah "naik" di atasnya.
+   */
+  it("gives both windows exactly the same length", () => {
+    const { current, previous } = trailingWindows(7, now);
+
+    expect(spanDays(current)).toBe(7);
+    expect(spanDays(previous)).toBe(7);
+  });
+
+  it("counts today as part of the current window", () => {
+    const { current } = trailingWindows(7, now);
+
+    expect(dayKey(current.start)).toBe("2026-08-09");
+    // Setengah terbuka: berakhir di tengah malam berikutnya, jadi hari ini utuh.
+    expect(dayKey(new Date(current.end.getTime() - 1))).toBe("2026-08-15");
+  });
+
+  it("puts the two windows back to back without a gap or an overlap", () => {
+    const { current, previous } = trailingWindows(7, now);
+
+    expect(previous.end.getTime()).toBe(current.start.getTime());
+    expect(dayKey(previous.start)).toBe("2026-08-02");
+  });
+
+  it("starts each window at midnight in Jakarta, not UTC", () => {
+    const { current } = trailingWindows(7, now);
+
+    expect(current.start.toISOString()).toBe("2026-08-08T17:00:00.000Z");
   });
 });
