@@ -81,7 +81,12 @@ di tempat lain**:
 - **Nunggu diurus** — tiga antrean yang masing-masing menunggu satu orang:
   temuan yang belum didiagnosa, pemakaian bahan yang belum dipotong dari stok,
   dan tagihan yang belum dibayar.
-- **Panen 7 hari terakhir** dibanding minggu sebelumnya.
+- **Panen layak jual 7 hari terakhir** dibanding tujuh hari sebelumnya. Bagus
+  saja, sama seperti angka utama di halaman Panen; afkirnya disebut terpisah di
+  baris kecil. Dua halaman yang memakai kata "panen" untuk dua bilangan berbeda
+  adalah cara paling mudah membuat orang berhenti mempercayai keduanya. Kedua
+  jendelanya sama-sama tujuh hari — pembanding yang panjangnya berbeda akan
+  memasang panah "naik" tanpa ada yang benar-benar naik.
 - **Stok cukup buat berapa kali** — tiap racikan rutin dihitung bisa diracik
   berapa kali lagi dengan stok sekarang, dibatasi bahan yang paling dulu habis.
   Ini panen dari keputusan satu baris `Material` dipakai bersama Pustaka
@@ -106,9 +111,23 @@ Di bawahnya ada **grafik hasil panen** musim berjalan.
 - **Arsipkan**, bukan hapus. Menghapus musim akan menghanyutkan seluruh tugas,
   temuan, panen, dan transaksi di dalamnya; arsip menyembunyikannya tanpa
   merusak apa pun dan bisa dibatalkan.
+- **Proyeksi panen (kg)** — perkiraan total cabai Bagus semusim. Boleh kosong.
 
-**Belum ada:** laporan post-mortem, analitik komparasi antar musim (modal vs
-hasil vs profit).
+Proyeksi itu **diketik, bukan dihitung**. Ia jadi penyebut modal per kilo yang
+menentukan harga lantai di bagian 4.7, dan menebaknya dari kurva panen akan
+membuat harga lantai bergerak sendiri tanpa ada yang memutuskan. Selama kosong,
+panduan harga jualnya memilih diam.
+
+Musim yang **diarsipkan tidak pernah jadi musim default**. Mengarsipkan adalah
+cara tim ini bilang "simpan dulu"; musim yang diarsipkan kemarin pernah
+mengalahkan musim yang sedang dipanen hanya karena tanggal tanamnya lebih baru,
+dan seluruh aplikasi terbuka pada halaman kosong. Urutannya sekarang: yang
+sedang berjalan, lalu yang sedang dipanen, lalu apa pun selain arsip — arsip
+tetap kebagian giliran terakhir, karena kebun yang semua musimnya sudah
+diarsipkan tetap punya riwayat untuk ditunjukkan.
+
+**Belum ada:** laporan post-mortem sebagai satu halaman tersendiri. Perbandingan
+antar musim sudah ada di Keuangan (bagian 4.7).
 
 ### 4.3 Jadwal & Tugas — jalan
 
@@ -161,7 +180,9 @@ ratusan baris adalah sekali klik yang sulit dibatalkan.
 
 ### 4.4 Kesehatan & Monitoring — sebagian jalan
 
-Dua bagian, dalam satu menu bertab.
+Tiga bagian, dalam satu menu bertab: Temuan Lapangan, Pustaka Racikan, dan
+Populasi. Tabnya digambar oleh layout, bukan oleh tiap halaman, supaya tidak
+hilang-muncul saat berpindah di antara ketiganya.
 
 **Temuan Lapangan — jalan.** Siapa pun yang keliling kebun mencatat apa yang
 dilihat; Agronomis menindaklanjuti.
@@ -363,6 +384,17 @@ menyerahkan satu angka untuk seluruh muatan, jadi hanya di situ pembulatannya
 nyata. Selisihnya ditampilkan apa adanya supaya barisnya tetap terlihat
 menjumlah.
 
+**Harga yang diketik langsung ditakar.** Begitu harga Bagus diisi, satu baris di
+bawahnya menyebut tier mana yang kena dan berapa jauh dari lantai minimum —
+atau, kalau di bawah modal, bahwa tiap kilo yang lepas di harga itu nombok.
+Patokannya dijelaskan di bagian 4.7.
+
+Di situlah angka itu benar-benar mengubah sesuatu. Kartu di halaman Keuangan
+dibaca sesudah semuanya terjadi; yang menolong adalah baris yang muncul saat
+harganya masih setengah diketik di depan pengepul. Hanya untuk Bagus — afkir
+belum pernah punya harga pasar, jadi menghakiminya dengan lantai yang sama tidak
+ada dasarnya.
+
 **Pembeli diketik bebas**, dengan saran dari nama yang pernah dipakai. Pengepul
 yang itu-itu saja jadi cepat, tapi restoran yang sekali beli tidak perlu
 didaftarkan dulu.
@@ -437,10 +469,65 @@ orang — yang tidak wajar adalah tidak ada yang menyadarinya.
 **Bagi hasil** membagi sisa musim menurut porsi tiap anggota. Kalau porsinya
 belum genap 100%, sisanya ditampilkan sebagai belum ada yang punya.
 
+### Patokan harga jual
+
+Berapa paling murah satu kilo boleh dilepas, dalam empat tingkat.
+
+Semuanya bertumpu pada satu angka — modal per kilo — dan ada **dua** versinya,
+keduanya ditampilkan berdampingan:
+
+| | Dibagi apa | Untuk apa |
+| --- | --- | --- |
+| Modal/kg sekarang | kilo yang **sudah** dipetik | jujur soal hari ini, tapi berayun keras di awal musim |
+| Modal/kg proyeksi | **seluruh** panen yang diharapkan | inilah yang menentukan harga |
+
+Yang proyeksi dipakai karena begitulah modal sebenarnya tersebar: pupuk yang
+ditebar bulan lalu ikut menghidupi buah yang dipetik bulan depan. Tapi
+pembilangnya baru berisi biaya sampai hari ini sementara penyebutnya sudah
+memasukkan panen yang belum terjadi, jadi ia akan merangkak naik sampai musim
+tutup. Yang real-time berdiri di sebelahnya persis supaya selisih itu kelihatan,
+bukan tersembunyi.
+
+Tingkatnya kelipatan dari modal proyeksi — **150%**, **135%**, **120%**, lalu
+garis merah di modal itu sendiri. Persentasenya markup di atas modal, bukan
+margin terhadap harga jual; 150% berarti untung setengah modal, yang jatuhnya
+sepertiga dari uang yang diterima. Halaman ini sudah memakai kata "margin kotor"
+untuk arti yang kedua, jadi label di tabel tiernya sengaja menghindari kata itu.
+
+Angkanya ditulis di kode, bukan disimpan sebagai pengaturan. Mengubah porsi
+untung yang disepakati adalah percakapan empat orang, bukan kolom yang digeser
+sendirian sore-sore.
+
+Lantainya **dibulatkan ke atas** ke kelipatan Rp 500. Ini batas bawah:
+membulatkan sebuah lantai ke bawah menaruhnya di bawah lantai itu sendiri, dan
+orang yang menuruti angka di layar akan melepas di bawah yang disepakati.
+
+**Diam kalau tidak bisa dihitung**, dan menyebut bagian mana yang hilang.
+Proyeksi kosong dan biaya kosong punya penyelesaian di dua halaman berbeda.
+Biaya nol khususnya berbahaya: diteruskan, seluruh tier jatuh ke Rp 0 dan musim
+yang belanjanya belum diketik akan memuji penjualan seribu rupiah sekilo.
+Patokan karangan lebih berbahaya daripada tidak ada patokan, karena ia dibaca
+justru di saat orangnya tidak sempat meragukannya.
+
 **Antar musim** membandingkan uang masuk dan keluar tiap musim, lalu
 menambahkan dua angka yang adil dibandingkan: **sisa per kilo panen** dan
 **hasil per pohon**. Musim yang berjalan lebih lama atau berpopulasi lebih
 banyak otomatis mengumpulkan angka total lebih besar tanpa berarti lebih baik.
+
+Sisa per kilo ditulis lengkap dengan **penjabarannya** — masuk dikurangi keluar,
+dibagi kilo dipetik. Kartu yang cuma memajang hasil bagi memaksa angka yang
+terasa janggal untuk dipercaya atau diabaikan, karena tak satu pun bilangan
+pembentuknya ada di layar itu.
+
+Di bawahnya disebut ke mana perginya kilo yang dipetik: berapa yang laku, berapa
+yang susut, berapa yang masih menunggu pembeli. Yang busuk bukan terjual dan
+bukan pula menunggu pembeli, dan cuma yang menunggu itu yang masih bisa
+menggerakkan angka per kilonya.
+
+Kalau baru **satu musim** yang panennya tercatat, kartunya mengatakannya
+terang-terangan. Angka per kilo punya satu tugas, dan dengan satu musim tugas
+itu tidak sedang berlangsung; tanpa ada yang menyebutkan itu, ia terbaca sebagai
+hitungan yang tidak bisa dipertanggungjawabkan.
 
 **Belum ada:** apa-apa lagi selain yang menunggu autentikasi.
 
@@ -527,10 +614,7 @@ kegagalan menampilkan pesan yang bisa ditindaklanjuti, bukan halaman kosong.
 
 **Stack:** Next.js 16 (App Router, Turbopack) · React 19 · TypeScript ·
 Tailwind CSS 4 · shadcn/ui · Prisma 7 · PostgreSQL (Supabase) · Supabase
-Storage · Lucide · Vitest · pnpm.
-
-Recharts disebut untuk grafik tetapi **belum dipasang** — ditambahkan saat
-grafik pertama dibangun.
+Storage · Lucide · Recharts · Vitest · Playwright · pnpm.
 
 **Keamanan data:** Row-level security aktif di seluruh tabel, hak akses role
 publik dicabut. Kunci layanan hanya dipakai di sisi server. Setiap tabel baru
@@ -571,6 +655,13 @@ sebagian "sisa" yang dibagi sebenarnya upah mereka sendiri yang menyamar.
 Bukan kesalahan pencatatan, tapi perlu diingat sebelum angkanya dipakai
 mengambil keputusan.
 
-**6. Pemakaian bahan kecil di luar tugas** yang sampai ke laporan musim —
-mengambil dua puluh ajir mengganti yang patah masih tidak terhitung. Sengaja:
-membuat tugas untuk itu berlebihan, dan uangnya kecil.
+**6. Harga jual afkir.** Patokan harga hanya berlaku untuk Bagus, karena afkir
+belum pernah punya harga pasar yang bisa dijadikan acuan. Begitu skema sambal
+atau chilli oil jalan dan afkirnya benar-benar laku beberapa kali, angkanya ada
+dan tiernya bisa menyusul.
+
+**7. Modal per kilo yang memakai perkiraan biaya sampai musim tutup.** Sekarang
+pembilangnya biaya sampai hari ini, jadi harga lantai di awal musim sedikit
+lebih longgar daripada yang sebenarnya. Ditunda dengan sadar: menambahkan
+tebakan kedua akan menggandakan sumber kesalahannya, dan menampilkan modal
+real-time di sebelahnya sudah membuat selisihnya terlihat.
