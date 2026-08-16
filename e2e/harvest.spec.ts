@@ -181,6 +181,32 @@ test.describe.serial("panen, jual, tagih", () => {
     await expect(page.getByText(/Seakurat apa yang kalian catat/)).toBeVisible();
   });
 
+  /**
+   * Picked, sold, spoiled and still in the crate have to add up to each other.
+   *
+   * The regression: this card worked out "belum laku" as picked less sold,
+   * which is the right sum only when nothing has ever rotted. With 2 kg lost it
+   * offered 4,75 kg to a buyer who could only ever be handed 2,75 — an invented
+   * heap, printed beside a promise that the season's margin would rise once it
+   * sold. This season is the one place in the suite where all three numbers are
+   * non-zero at once, which is exactly what makes the mistake visible.
+   */
+  test("sisa yang ditawarkan sudah dikurangi yang busuk", async ({ page }) => {
+    await page.goto(`/finance?season=${seasonId}`);
+    await page.getByRole("tab", { name: "Antar Musim" }).click();
+
+    const row = page.locator("li").filter({ hasText: SEASON });
+    await expect(row).toBeVisible();
+
+    // 20 kg picked, 15 + 0,25 sold, 2 kg spoiled — so 2,75 kg is left, not the
+    // 4,75 kg that picked-less-sold would claim.
+    await expect(row).toContainText("20,00 kg yang dipetik");
+    await expect(row).toContainText("15,25 kg laku");
+    await expect(row).toContainText("2,00 kg susut");
+    await expect(row).toContainText("2,75 kg masih nunggu pembeli");
+    await expect(row).not.toContainText("4,75 kg");
+  });
+
   test("dan ke kartu panen di Dashboard", async ({ page }) => {
     await page.goto(`/?season=${seasonId}`);
 

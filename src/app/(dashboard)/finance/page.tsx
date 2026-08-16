@@ -376,6 +376,8 @@ export default async function FinancePage(props: PageProps<"/finance">) {
                       <UnsoldCaveat
                         harvestedKg={row.harvestedKg}
                         soldKg={row.soldKg}
+                        lostKg={row.lostKg}
+                        unsoldKg={row.unsoldKg}
                       />
                     </li>
                   ))}
@@ -399,36 +401,50 @@ export default async function FinancePage(props: PageProps<"/finance">) {
  * has cleared, and a reader has no way to tell a genuinely thin season from
  * one whose sales simply have not been typed in.
  *
- * Amber below half, because at that point the number describes the crates more
- * than the farming.
+ * Every kilo is named rather than one figure quoted, because a share on its own
+ * invites the reader to subtract it from the whole and land on the wrong pile:
+ * what rotted is neither sold nor waiting for a buyer, and only the waiting
+ * part can still move the number. Spoilage is stated for the same reason it is
+ * recorded at all — it is the difference between a heap that is coming and a
+ * heap that is gone.
+ *
+ * Amber once most of the crop is still unsold, because at that point the figure
+ * describes the crates more than the farming.
  */
 function UnsoldCaveat({
   harvestedKg,
   soldKg,
+  lostKg,
+  unsoldKg,
 }: {
   harvestedKg: number;
   soldKg: number;
+  lostKg: number;
+  unsoldKg: number;
 }) {
-  const unsoldKg = harvestedKg - soldKg;
-
+  // Deliberately no arithmetic here. These three come from `harvestSummary`,
+  // which is where the one definition of "belum laku" lives; recomputing it
+  // from picked less sold is exactly how spoiled chillies got reported as
+  // stock somebody might still buy.
+  //
   // A tenth of a kilo is a rounding artefact, not a heap worth mentioning.
   // Negative happens legitimately: a sale can be recorded before the picking
   // it drew from.
   if (harvestedKg <= 0 || unsoldKg <= 0.1) return null;
 
-  const soldShare = soldKg / harvestedKg;
-
   return (
     <p
       className={
-        soldShare < 0.5
+        unsoldKg / harvestedKg > 0.5
           ? "text-amber-700 text-xs dark:text-amber-400"
           : "text-muted-foreground text-xs"
       }
     >
-      Baru {formatPercent(soldShare)} panen yang laku —{" "}
-      {formatKgPrecise(unsoldKg)} masih nunggu pembeli, jadi angka per kilo di
-      atas belum final dan bakal naik kalau sisanya kejual.
+      Dari {formatKgPrecise(harvestedKg)} yang dipetik: {formatKgPrecise(soldKg)}{" "}
+      laku
+      {lostKg > 0 ? `, ${formatKgPrecise(lostKg)} susut` : ""},{" "}
+      {formatKgPrecise(unsoldKg)} masih nunggu pembeli — angka per kilo di atas
+      bakal naik kalau sisanya kejual.
     </p>
   );
 }
