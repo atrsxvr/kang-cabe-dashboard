@@ -24,7 +24,9 @@ const day = (over: Partial<DayWindow> = {}): DayWindow => ({
   kind: "BERAWAN",
   rainMm: 0,
   storm: false,
-  slots: 4,
+  wetFromHour: null,
+  wetToHour: null,
+  slots: 8,
   ...over,
 });
 
@@ -45,11 +47,11 @@ describe("weatherKind", () => {
 
 describe("summariseDay", () => {
   /**
-   * Slot BMKG tiga jam sekali, dan yang di luar jam kerja tidak boleh ikut
-   * memutuskan. Ini kekeliruan yang pernah terjadi dengan sumber sebelumnya:
-   * gerimis jam sepuluh malam menahan penyemprotan sepanjang hari.
+   * Sehari dihitung utuh. Penjagaan jam 6–17 sudah dilepas: penyemprotan lewat
+   * pukul lima sore memang terjadi, dan menyaring jam-jam itu keluar berarti
+   * menyembunyikan hujan yang paling relevan untuk penyemprotan sore.
    */
-  it("ignores the slots outside working hours", () => {
+  it("counts every slot of the day, evening and small hours included", () => {
     const slots = [
       slot("2026-08-17 01:00:00", 3),
       slot("2026-08-17 07:00:00", 0, 1),
@@ -61,8 +63,35 @@ describe("summariseDay", () => {
 
     const summary = summariseDay("2026-08-17", slots);
 
-    expect(summary.rainMm).toBe(0);
-    expect(summary.slots).toBe(3);
+    expect(summary.rainMm).toBe(12);
+    expect(summary.slots).toBe(6);
+  });
+
+  /**
+   * Yang menggantikan penjagaan jam. Satu vonis untuk seluruh hari tidak bisa
+   * membedakan hujan subuh dari hujan sore — jadi jamnya dicatat, dan yang
+   * membaca memutuskan sendiri.
+   */
+  it("records when the wet slots actually fall", () => {
+    const slots = [
+      slot("2026-08-17 01:00:00", 3),
+      slot("2026-08-17 07:00:00", 0, 1),
+      slot("2026-08-17 19:00:00", 4),
+    ];
+
+    const summary = summariseDay("2026-08-17", slots);
+
+    expect(summary.wetFromHour).toBe(1);
+    expect(summary.wetToHour).toBe(19);
+  });
+
+  it("has no wet hours on a dry day", () => {
+    const summary = summariseDay("2026-08-17", [
+      slot("2026-08-17 13:00:00", 0, 1),
+    ]);
+
+    expect(summary.wetFromHour).toBeNull();
+    expect(summary.wetToHour).toBeNull();
   });
 
   it("keeps only the day it was asked about", () => {
@@ -76,8 +105,8 @@ describe("summariseDay", () => {
 
   /**
    * Ditotal, bukan diambil yang tertinggi. Angka nyata dari BMKG untuk kebun
-   * ini: 2,1 mm di slot 13:00 dan 2,1 mm lagi di slot 16:00 — keduanya di dalam
-   * jam kerja, jadi sorenya 4,2 mm dan bukan 2,1 mm.
+   * ini: 2,1 mm di slot 13:00 dan 2,1 mm lagi di slot 16:00 — jadi harinya
+   * 4,2 mm dan bukan 2,1 mm.
    */
   it("adds the slots up instead of taking the worst one", () => {
     const slots = [
@@ -88,7 +117,7 @@ describe("summariseDay", () => {
     expect(summariseDay("2026-08-19", slots).rainMm).toBe(4.2);
   });
 
-  it("takes the most telling sky in working hours, not across midnight", () => {
+  it("takes the most telling sky of the day", () => {
     const slots = [
       slot("2026-08-17 07:00:00", 0, 1),
       slot("2026-08-17 13:00:00", 3, 95),
@@ -101,33 +130,31 @@ describe("summariseDay", () => {
     expect(summary.storm).toBe(true);
   });
 
-  it("says it read nothing when the window has no slots", () => {
+  it("says it read nothing when the day has no slots", () => {
     expect(summariseDay("2026-08-17", []).slots).toBe(0);
   });
 });
 
 describe("nextSprayWindow", () => {
   /**
-   * Ramalan BMKG bergerak maju sepanjang hari. Dibuka pukul enam sore, hari ini
-   * sudah tidak punya jam kerja tersisa — dan bertahan pada "hari ini" akan
-   * membuat kartunya bungkam setiap malam, padahal jam enam sore pertanyaannya
-   * memang sudah bergeser ke besok.
+   * Hari terakhir yang dikirim BMKG bisa datang tanpa slot sama sekali, jadi
+   * yang dipakai dicari lewat isinya — bukan diambil elemen pertama.
    */
-  it("skips a day whose working hours have already passed", () => {
+  it("skips a day that arrived without any slots", () => {
     const today = day({ date: "2026-08-17", slots: 0 });
     const tomorrow = day({ date: "2026-08-18", slots: 4 });
 
     expect(nextSprayWindow([today, tomorrow])?.date).toBe("2026-08-18");
   });
 
-  it("stays on today while its working hours are still ahead", () => {
+  it("stays on today while today still has slots", () => {
     const today = day({ date: "2026-08-17", slots: 2 });
     const tomorrow = day({ date: "2026-08-18", slots: 4 });
 
     expect(nextSprayWindow([today, tomorrow])?.date).toBe("2026-08-17");
   });
 
-  it("returns nothing when no day has a readable window", () => {
+  it("returns nothing when no day has a readable forecast", () => {
     expect(nextSprayWindow([day({ slots: 0 })])).toBeNull();
     expect(nextSprayWindow([])).toBeNull();
   });
@@ -156,7 +183,7 @@ describe("sprayVerdict", () => {
     expect(sprayVerdict(day({ storm: true, rainMm: 0 }))).toBe("JANGAN");
   });
 
-  it("admits it cannot tell when the window is empty", () => {
+  it("admits it cannot tell when the day is empty", () => {
     expect(sprayVerdict(day({ slots: 0 }))).toBe("TIDAK_TAHU");
   });
 
@@ -176,8 +203,30 @@ describe("sprayReason", () => {
     expect(sprayReason(day({ rainMm: 4.2 }))).toContain("4,2 mm");
   });
 
+  /**
+   * Kekeliruan yang dulu ditambal penjagaan jam, sekarang ditambal ini: "jangan
+   * nyemprot" gara-gara hujan jam tiga pagi akan membatalkan penyemprotan pagi
+   * yang sebenarnya aman, kalau jamnya tidak pernah disebut.
+   */
+  it("says when the rain falls, not just how much", () => {
+    const reason = sprayReason(
+      day({ rainMm: 4.2, wetFromHour: 13, wetToHour: 16 })
+    );
+
+    expect(reason).toContain("jam 13–16");
+  });
+
+  it("names a single wet slot without pretending it is a range", () => {
+    const reason = sprayReason(
+      day({ rainMm: 3, wetFromHour: 22, wetToHour: 22 })
+    );
+
+    expect(reason).toContain("jam 22");
+    expect(reason).not.toContain("–");
+  });
+
   it("explains why a trace was waved through", () => {
-    const reason = sprayReason(day({ rainMm: 0.1 }));
+    const reason = sprayReason(day({ rainMm: 0.1, wetFromHour: 22, wetToHour: 22 }));
 
     // Koma, seperti seluruh angka lain di aplikasi ini.
     expect(reason).toContain("0,1 mm");

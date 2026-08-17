@@ -26,14 +26,26 @@ export const weatherLabels: Record<WeatherKind, string> = {
 };
 
 /**
- * Jam kerja penyemprotan, waktu setempat.
+ * **Tidak ada penjagaan jam.** Sehari dihitung utuh, dari slot pertama sampai
+ * terakhir.
  *
- * Ini ada karena kesalahan yang pernah terjadi: kartunya membaca peluang hujan
- * **tertinggi sepanjang 24 jam**, lalu menyuruh menunda penyemprotan di hari
- * yang kering total — gara-gara gerimis 0,1 mm jam sepuluh malam. Tidak ada
- * yang menyemprot jam sepuluh malam, jadi jam itu tidak boleh ikut memutuskan.
+ * Sebelumnya dibatasi jam 6–17, atas anggapan bahwa penyemprotan cuma terjadi
+ * siang. Anggapan itu salah: aplikasi lewat pukul lima sore memang dilakukan,
+ * dan menyaring jam-jam itu keluar berarti menyembunyikan hujan yang justru
+ * paling relevan untuk penyemprotan sore.
+ *
+ * Yang dulu ditambal oleh penjagaan jam sekarang ditambal oleh dua hal lain,
+ * dan keduanya lebih tepat sasaran:
+ *
+ * - **Ambang milimeter.** Gerimis 0,1 mm jam sepuluh malam — kasus yang memulai
+ *   semuanya — tetap terbaca "aman", karena 0,1 mm di bawah `RAIN_TRACE_MM`.
+ *   Dulu yang menjatuhkannya adalah membaca peluang, bukan jumlah.
+ * - **Jam hujannya disebut.** Karena sehari kini dihitung utuh, hujan jam tiga
+ *   pagi bisa membuat vonisnya berbunyi walau paginya kering. Karena itu
+ *   `sprayReason` menyebutkan hujannya jatuh sekitar jam berapa, supaya yang
+ *   membaca bisa memutuskan sendiri — bukan menuruti satu vonis untuk seluruh
+ *   hari.
  */
-export const SPRAY_HOURS = { from: 6, to: 17 } as const;
 
 /**
  * Di bawah ini hujannya tidak membilas apa pun.
@@ -65,17 +77,26 @@ export type ForecastSlot = {
 export type DayWindow = {
   /** "2026-08-17" */
   date: string;
-  /** Cuaca paling menentukan di jam kerja — bukan sepanjang hari. */
+  /** Cuaca paling menentukan sepanjang hari. */
   kind: WeatherKind;
-  /** Total milimeter yang diramalkan turun di jam kerja. */
+  /** Total milimeter yang diramalkan turun sepanjang hari. */
   rainMm: number;
-  /** Ada kode badai di jam kerja. */
+  /** Ada kode badai kapan pun hari itu. */
   storm: boolean;
   /**
-   * Berapa slot jam kerja yang datanya terbaca. Nol berarti tidak bisa
-   * disimpulkan — dan itu keadaan yang wajar terjadi, bukan kegagalan: ramalan
-   * BMKG bergerak maju sepanjang hari, jadi lewat pukul lima sore hari ini
-   * memang tidak punya jam kerja tersisa untuk diramalkan.
+   * Jam slot pertama dan terakhir yang diramalkan berhujan, waktu setempat.
+   * Null kalau tidak ada hujan sama sekali.
+   *
+   * Ada karena penjagaan jamnya dilepas: satu vonis untuk seluruh hari tidak
+   * bisa membedakan hujan subuh dari hujan sore, padahal keduanya sama sekali
+   * berbeda artinya bagi orang yang berencana menyemprot pagi.
+   */
+  wetFromHour: number | null;
+  wetToHour: number | null;
+  /**
+   * Berapa slot yang datanya terbaca untuk hari itu. Nol berarti tidak bisa
+   * disimpulkan — wajar terjadi pada hari terakhir yang diramalkan BMKG, bukan
+   * kegagalan.
    */
   slots: number;
 };
@@ -83,47 +104,45 @@ export type DayWindow = {
 const hourOf = (time: string) => Number(time.slice(11, 13));
 export const dateOf = (time: string) => time.slice(0, 10);
 
-const inSprayHours = (time: string) => {
-  const hour = hourOf(time);
-  return hour >= SPRAY_HOURS.from && hour <= SPRAY_HOURS.to;
-};
-
 /**
- * Meringkas satu hari, hanya dari jam-jam kerjanya.
+ * Meringkas satu hari, utuh.
  *
  * Jumlah milimeternya ditotal, bukan diambil yang tertinggi: gerimis tipis
  * sepanjang sore bisa membilas lebih banyak daripada sekali hujan sedang.
  */
 export function summariseDay(date: string, slots: ForecastSlot[]): DayWindow {
-  const inWindow = slots.filter(
-    (slot) => dateOf(slot.time) === date && inSprayHours(slot.time)
-  );
+  const ofDay = slots.filter((slot) => dateOf(slot.time) === date);
 
-  const worst = inWindow.reduce<number>((code, slot) => {
+  const worst = ofDay.reduce<number>((code, slot) => {
     const rank = (value: number) =>
       value >= 95 ? 4 : value >= 51 ? 3 : value >= 2 ? 2 : 1;
     return rank(slot.code) > rank(code) ? slot.code : code;
   }, 0);
+
+  const wetHours = ofDay
+    .filter((slot) => slot.mm > 0)
+    .map((slot) => hourOf(slot.time));
 
   return {
     date,
     kind: weatherKind(worst),
     // Dibulatkan ke satu desimal: milimeter dengan empat angka di belakang koma
     // memberi kesan ketepatan yang tidak dimiliki ramalan mana pun.
-    rainMm: Math.round(inWindow.reduce((sum, slot) => sum + slot.mm, 0) * 10) / 10,
-    storm: inWindow.some((slot) => slot.code >= 95),
-    slots: inWindow.length,
+    rainMm: Math.round(ofDay.reduce((sum, slot) => sum + slot.mm, 0) * 10) / 10,
+    storm: ofDay.some((slot) => slot.code >= 95),
+    wetFromHour: wetHours.length > 0 ? Math.min(...wetHours) : null,
+    wetToHour: wetHours.length > 0 ? Math.max(...wetHours) : null,
+    slots: ofDay.length,
   };
 }
 
 /**
- * Jendela nyemprot terdekat yang masih bisa diramalkan.
+ * Hari terdekat yang masih punya ramalan.
  *
- * Bukan selalu hari ini, dan itu keputusan yang lahir dari bentuk data BMKG:
- * ramalannya bergerak maju sepanjang hari, jadi dibuka pukul enam sore hari ini
- * sudah tidak punya jam kerja tersisa. Bertahan pada "hari ini" akan membuat
- * kartunya bungkam setiap malam — padahal jam enam sore pertanyaannya memang
- * sudah bergeser ke besok.
+ * Hampir selalu hari ini sejak penjagaan jamnya dilepas — BMKG masih
+ * mengembalikan slot malam untuk hari ini bahkan saat dibuka pukul sepuluh
+ * malam. Tetap dicari lewat isinya, bukan diambil elemen pertama, karena hari
+ * terakhir yang dikirim BMKG bisa datang tanpa slot sama sekali.
  */
 export function nextSprayWindow<T extends DayWindow>(days: T[]): T | null {
   return days.find((day) => day.slots > 0) ?? null;
@@ -163,24 +182,43 @@ export const sprayAdviceText: Record<SprayVerdict, string> = {
 };
 
 /**
- * Angka di balik vonisnya, supaya bisa diperiksa.
+ * Angka di balik vonisnya, **dan jam berapa hujannya**.
  *
  * Kartu yang cuma bilang "jangan nyemprot" tanpa menyebut dasarnya tidak bisa
  * dibantah waktu ia keliru — dan waktu ia keliru, yang membacanya berhenti
  * memercayainya untuk selamanya.
+ *
+ * Jamnya wajib disebut sejak penjagaan jam dilepas. Satu vonis untuk seluruh
+ * hari tidak bisa membedakan hujan subuh dari hujan sore; tanpa jamnya, "jangan
+ * nyemprot" gara-gara hujan jam tiga pagi akan membatalkan penyemprotan pagi
+ * yang sebenarnya aman — kekeliruan yang sama dengan yang sudah dibetulkan,
+ * cuma berpindah tempat.
  */
 export function sprayReason(day: DayWindow): string {
   if (day.slots === 0) return "";
 
-  const window = `jam ${SPRAY_HOURS.from}–${SPRAY_HOURS.to}`;
+  // Tanpa menyebut harinya: vonis di atasnya sudah menyebut "Hari ini" atau
+  // nama harinya, dan mengulangnya di sini justru terbaca seperti hari lain.
+  if (day.rainMm === 0) return "Nggak ada hujan diramalkan.";
 
-  if (day.rainMm === 0) return `Nggak ada hujan diramalkan ${window}.`;
+  const when = describeWetHours(day);
 
   if (day.rainMm < RAIN_TRACE_MM) {
-    return `Cuma ${formatMm(day.rainMm)} ${window} — nggak cukup buat membilas.`;
+    return `Cuma ${formatMm(day.rainMm)}${when} — nggak cukup buat membilas.`;
   }
 
-  return `Diramalkan ${formatMm(day.rainMm)} ${window}.`;
+  return `Diramalkan ${formatMm(day.rainMm)}${when}.`;
+}
+
+/** " sekitar jam 13–16", atau " sekitar jam 13" kalau cuma satu slot. */
+function describeWetHours(day: DayWindow): string {
+  if (day.wetFromHour === null || day.wetToHour === null) return "";
+
+  const pad = (hour: number) => String(hour).padStart(2, "0");
+
+  return day.wetFromHour === day.wetToHour
+    ? ` sekitar jam ${pad(day.wetFromHour)}`
+    : ` sekitar jam ${pad(day.wetFromHour)}–${pad(day.wetToHour)}`;
 }
 
 /** Koma, seperti seluruh angka lain di aplikasi ini. */

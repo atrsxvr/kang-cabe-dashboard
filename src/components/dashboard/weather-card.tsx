@@ -3,7 +3,6 @@ import { Cloud, CloudRain, CloudSun, Sun, Zap } from "lucide-react";
 
 import { Card, CardContent } from "@/components/ui/card";
 import {
-  SPRAY_HOURS,
   formatMm,
   sprayAdviceText,
   sprayReason,
@@ -193,8 +192,8 @@ export function WeatherCard({
         </div>
 
         <p className="text-muted-foreground text-[11px]">
-          Dari BMKG, dihitung jam {SPRAY_HOURS.from}–{SPRAY_HOURS.to} saja —
-          hujan tengah malam nggak menghalangi siapa pun nyemprot.
+          Dari BMKG, sehari penuh — jam hujannya disebut di atas biar bisa
+          diputuskan sendiri kapan nyemprotnya.
         </p>
 
         {off !== null ? (

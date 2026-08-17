@@ -105,11 +105,22 @@ sebelum sempat diserap, jadi yang dibaca orang adalah "aman buat nyemprot" atau
 pagi memang bisa berbarengan dengan hujan sore, dan satu warna untuk keduanya
 pernah membuat kartunya menulis "Cerah" dan "bakal keguyur" bersebelahan.
 
-Vonisnya dihitung dari **jam 6–17** dan diukur dalam **milimeter**. Keduanya
-lahir dari kekeliruan nyata: dibaca dari ringkasan harian, kartunya pernah
-menyuruh menunda penyemprotan di hari yang kering total gara-gara gerimis 0,1 mm
-jam sepuluh malam. Di bawah 0,5 mm air tidak mengalir di daun; di atas 2 mm
-racikan yang baru disemprot ikut turun.
+Vonisnya diukur dalam **milimeter**, dan dihitung dari **sehari penuh** —
+tidak ada penjagaan jam. Pernah dibatasi jam 6–17 atas anggapan penyemprotan
+cuma terjadi siang; anggapan itu salah, aplikasi lewat pukul lima sore memang
+dilakukan, dan menyaring jam-jam itu keluar berarti menyembunyikan hujan yang
+paling relevan untuk penyemprotan sore.
+
+Ambangnya milimeter: di bawah 0,5 mm air tidak mengalir di daun; di atas 2 mm
+racikan yang baru disemprot ikut turun. Kasus yang memulai semuanya — gerimis
+0,1 mm jam sepuluh malam yang membuat kartunya menyuruh menunda di hari kering
+total — tetap terbaca "aman" tanpa perlu penjagaan jam, karena yang dulu
+menjatuhkannya adalah membaca **peluang** dan bukan jumlah.
+
+Karena sehari dihitung utuh, hujan subuh bisa membuat vonisnya berbunyi walau
+paginya kering. Karena itu **jam hujannya disebut**: "Diramalkan 4,2 mm sekitar
+jam 13–16". Satu vonis untuk seluruh hari tidak bisa membedakan hujan subuh dari
+hujan sore, dan yang membaca lebih tahu kapan ia berencana menyemprot.
 
 BMKG tidak menerbitkan peluang hujan, hanya jumlahnya — dan itu memang yang
 lebih menentukan. Yang hilang adalah kemampuan membedakan "banyak tapi belum
