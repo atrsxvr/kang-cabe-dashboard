@@ -22,6 +22,8 @@ export function TaskCard({
   recipes,
   materials,
   showStatus = false,
+  canWriteTasks,
+  canRecordUsage,
 }: {
   task: TaskRow;
   seasonId: string;
@@ -31,6 +33,16 @@ export function TaskCard({
   recipes: RecipeRow[];
   materials: StockRow[];
   showStatus?: boolean;
+  /** Boleh menyunting, menghapus, dan menggeser status tugas. */
+  canWriteTasks: boolean;
+  /**
+   * Boleh menekan "Catat pemakaian". Izin yang berbeda, dan sengaja.
+   *
+   * Tombolnya duduk di kartu tugas, tapi yang dikerjakannya memotong stok
+   * gudang — pekerjaan Logistik. Menggabungkannya dengan izin menyunting tugas
+   * berarti Logistik tidak bisa memotong stok untuk tugas yang sudah selesai.
+   */
+  canRecordUsage: boolean;
 }) {
   const remaining = daysUntil(task.dueDate);
   const overdue = task.status !== "DONE" && remaining < 0;
@@ -86,7 +98,7 @@ export function TaskCard({
           </p>
         ) : null}
 
-        {task.materials.length > 0 ? (
+        {task.materials.length > 0 && canRecordUsage ? (
           <div className="flex flex-wrap items-center gap-2 border-t pt-2">
             <TaskUsageAction
               task={task}
@@ -96,6 +108,7 @@ export function TaskCard({
           </div>
         ) : null}
 
+        {canWriteTasks ? (
         <div className="flex items-center gap-1 border-t pt-2">
           <TaskDialog
             seasonId={seasonId}
@@ -121,6 +134,7 @@ export function TaskCard({
             />
           </div>
         </div>
+        ) : null}
       </CardContent>
     </Card>
   );

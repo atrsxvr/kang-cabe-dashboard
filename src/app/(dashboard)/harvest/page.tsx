@@ -71,7 +71,7 @@ export default async function HarvestPage(props: PageProps<"/harvest">) {
           }`}
         />
         <div className="flex flex-wrap gap-2">
-          <CanWrite area="harvest">
+          <CanWrite area="losses">
             <LossDialog seasonId={season.id} members={members} />
           </CanWrite>
           <CanWrite area="harvest">

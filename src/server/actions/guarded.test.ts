@@ -34,6 +34,11 @@ const WRITE_ACTION =
 
 type Found = { file: string; name: string; head: string };
 
+/** Membuang komentar blok dan komentar baris, tanpa menyentuh yang lain. */
+function stripComments(source: string): string {
+  return source.replace(/\/\*[\s\S]*?\*\//g, "").replace(/\/\/[^\n]*/g, "");
+}
+
 function writeActions(): Found[] {
   const found: Found[] = [];
 
@@ -44,9 +49,14 @@ function writeActions(): Found[] {
       found.push({
         file,
         name: match[1],
-        // Cukup untuk memuat penjaga kalau ia baris pertama, dan tidak cukup
-        // untuk memuat penjaga milik aksi berikutnya.
-        head: source.slice(match.index + match[0].length, match.index + match[0].length + 220),
+        // Komentar dibuang lebih dulu. Basis kode ini menjelaskan alasan di
+        // tempat keputusannya diambil, jadi satu penjaga bisa didahului
+        // paragraf penuh — dan jendela berbasis jumlah karakter akan menyatakan
+        // aksi yang dijaga rapi sebagai tidak dijaga, semata karena penjaganya
+        // dijelaskan dengan baik. Itu pernah terjadi.
+        head: stripComments(
+          source.slice(match.index + match[0].length)
+        ).slice(0, 220),
       });
     }
   }

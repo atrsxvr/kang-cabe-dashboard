@@ -3,6 +3,8 @@ import Link from "next/link";
 import { PackageMinus, Sprout } from "lucide-react";
 
 import { CanWrite } from "@/components/auth/can-write";
+import { canWrite } from "@/lib/permissions";
+import { currentActor } from "@/server/auth/guard";
 import { PageHeader } from "@/components/common/page-header";
 import { StatusBadge } from "@/components/common/status-badge";
 import { TaskDialog } from "@/components/tasks/task-dialog";
@@ -46,6 +48,12 @@ export default async function TasksPage(props: PageProps<"/tasks">) {
       listStock(),
       getGardenProfile(),
     ]);
+
+  // Dua izin berbeda di satu halaman: menyunting tugas milik Admin, sementara
+  // "Catat pemakaian" memotong stok dan karena itu milik gudang.
+  const actor = await currentActor();
+  const canWriteTasks = actor ? canWrite(actor.role, "tasks") : false;
+  const canRecordUsage = actor ? canWrite(actor.role, "inventory") : false;
 
   const currentHst = calculateHst(season.startDate);
 
@@ -115,6 +123,8 @@ export default async function TasksPage(props: PageProps<"/tasks">) {
         logbookCount={completed.length}
         board={
           <TaskBoard
+            canWriteTasks={canWriteTasks}
+            canRecordUsage={canRecordUsage}
             tasks={tasks}
             seasonId={season.id}
             currentHst={currentHst}
@@ -125,6 +135,8 @@ export default async function TasksPage(props: PageProps<"/tasks">) {
         }
         table={
           <TaskTable
+            canWriteTasks={canWriteTasks}
+            canRecordUsage={canRecordUsage}
             tasks={tasks}
             seasonId={season.id}
             currentHst={currentHst}

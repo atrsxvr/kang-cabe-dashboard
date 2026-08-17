@@ -29,9 +29,12 @@ import type { MemberOption } from "@/server/queries/users";
 export function ToolList({
   tools,
   members,
+  canWrite,
 }: {
   tools: ToolRow[];
   members: MemberOption[];
+  /** Boleh mengubah alat. Kerapian saja — yang menahan ada di Server Action. */
+  canWrite: boolean;
 }) {
   if (tools.length === 0) return <EmptyTools />;
 
@@ -75,7 +78,11 @@ export function ToolList({
                 <p className="text-muted-foreground text-xs">{tool.notes}</p>
               ) : null}
 
-              <div className="flex items-center gap-1 border-t pt-2">
+              <div
+                className={
+                  canWrite ? "flex items-center gap-1 border-t pt-2" : "hidden"
+                }
+              >
                 <ToolEventDialog tool={tool} members={members} />
                 <ToolDialog tool={tool} />
                 <ConfirmDelete
@@ -102,7 +109,9 @@ export function ToolList({
                 <TableHead>Dipegang</TableHead>
                 <TableHead>Servis</TableHead>
                 <TableHead>Catatan</TableHead>
-                <TableHead className="w-32 text-right">Aksi</TableHead>
+                {canWrite ? (
+                  <TableHead className="w-32 text-right">Aksi</TableHead>
+                ) : null}
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -138,6 +147,7 @@ export function ToolList({
                   <TableCell className="text-muted-foreground max-w-64 truncate text-sm">
                     {tool.notes ?? "—"}
                   </TableCell>
+                  {canWrite ? (
                   <TableCell className="w-32">
                     <div className="flex items-center justify-end gap-1">
                       <ToolEventDialog tool={tool} members={members} />
@@ -151,6 +161,7 @@ export function ToolList({
                       />
                     </div>
                   </TableCell>
+                  ) : null}
                 </TableRow>
               ))}
             </TableBody>

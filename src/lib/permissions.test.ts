@@ -37,6 +37,45 @@ describe("canWrite", () => {
   });
 
   /**
+   * Menyusun jadwal adalah membagi pekerjaan orang lain, dan itu keputusan satu
+   * orang setelah berunding — bukan sesuatu yang diubah masing-masing sendiri di
+   * lapangan. Agronomis sempat punya izin ini sampai dikoreksi.
+   */
+  it("leaves the schedule to Admin alone", () => {
+    for (const role of ROLES) {
+      expect(canWrite(role, "tasks")).toBe(role === "ADMIN");
+    }
+  });
+
+  /**
+   * Tapi susut dibuka untuk semua, dan itu bukan kelonggaran yang lupa
+   * ditutup. Yang menemukan tumpukan membusuk bisa Agronomis yang lewat atau
+   * Logistik yang menata gudang — dan susut yang tidak tercatat membuat sisa
+   * stok terus melar sampai angkanya jauh dari tumpukan yang benar-benar ada.
+   *
+   * Mencatat kehilangan juga tidak bisa dipakai menguntungkan diri sendiri.
+   */
+  it("lets anyone record what rotted", () => {
+    for (const role of ROLES) {
+      expect(canWrite(role, "losses"), `${role} nggak bisa catat susut`).toBe(
+        true
+      );
+    }
+  });
+
+  /**
+   * Dan susut terpisah dari penjualan, yang tetap milik Sales. Kalau keduanya
+   * satu wilayah, membuka susut ikut membuka penjualan.
+   */
+  it("does not let recording losses become permission to sell", () => {
+    expect(canWrite("LOGISTICS", "losses")).toBe(true);
+    expect(canWrite("LOGISTICS", "harvest")).toBe(false);
+
+    expect(canWrite("AGRONOMIST", "losses")).toBe(true);
+    expect(canWrite("AGRONOMIST", "harvest")).toBe(false);
+  });
+
+  /**
    * Siapa pun yang keliling kebun boleh melaporkan apa yang dilihat. Menutup
    * ini berarti temuan yang dilihat Logistik tidak pernah sampai ke Agronomis —
    * dan seluruh alur Kesehatan dibangun atas anggapan sebaliknya.

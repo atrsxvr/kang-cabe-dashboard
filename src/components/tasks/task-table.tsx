@@ -28,6 +28,8 @@ export function TaskTable({
   members,
   recipes,
   materials,
+  canWriteTasks,
+  canRecordUsage,
 }: {
   tasks: TaskRow[];
   seasonId: string;
@@ -35,6 +37,10 @@ export function TaskTable({
   members: MemberOption[];
   recipes: RecipeRow[];
   materials: StockRow[];
+  /** Boleh menyunting, menghapus, dan menggeser status tugas. */
+  canWriteTasks: boolean;
+  /** Boleh menekan "Catat pemakaian" — izin gudang, bukan izin tugas. */
+  canRecordUsage: boolean;
 }) {
   if (tasks.length === 0) {
     return (
@@ -51,6 +57,8 @@ export function TaskTable({
       <div className="grid gap-3 md:hidden">
         {tasks.map((task) => (
           <TaskCard
+              canWriteTasks={canWriteTasks}
+              canRecordUsage={canRecordUsage}
             key={task.id}
             task={task}
             seasonId={seasonId}
@@ -75,7 +83,9 @@ export function TaskTable({
                 {/* Pinned: their content changes with status, and an auto-sized
                     column would re-measure and shift the row on every update. */}
                 <TableHead className="w-40">Status</TableHead>
-                <TableHead className="w-64">Aksi</TableHead>
+                {canWriteTasks ? (
+                  <TableHead className="w-64">Aksi</TableHead>
+                ) : null}
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -95,7 +105,7 @@ export function TaskTable({
                       {/* Sits with the task rather than in Aksi: that column
                           is pinned to a fixed width so the row never
                           re-measures on a status change. */}
-                      {task.materials.length > 0 ? (
+                      {task.materials.length > 0 && canRecordUsage ? (
                         <div className="mt-1 font-normal">
                           <TaskUsageAction
                             task={task}
@@ -129,6 +139,7 @@ export function TaskTable({
                     <TableCell className="w-40">
                       <StatusBadge status={task.status} kind="task" block />
                     </TableCell>
+                    {canWriteTasks ? (
                     <TableCell className="w-64">
                       <div className="flex items-center gap-1">
                         <TaskStatusButtons
@@ -153,6 +164,7 @@ export function TaskTable({
                         />
                       </div>
                     </TableCell>
+                    ) : null}
                   </TableRow>
                 );
               })}

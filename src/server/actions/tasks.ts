@@ -240,7 +240,15 @@ export async function updateTask(formData: FormData): Promise<ActionResult> {
 export async function recordTaskUsage(
   formData: FormData
 ): Promise<ActionResult> {
-  const allowed = await guardWrite("tasks");
+  /**
+   * `inventory`, bukan `tasks` — dan itu keputusan yang perlu disebut.
+   *
+   * Tombolnya duduk di papan tugas, tapi yang dikerjakannya adalah memotong stok
+   * gudang dan membekukan harganya. Yang mengurus gudang Logistik. Mengunci ini
+   * ke `tasks`, yang cuma Admin, berarti Logistik tidak bisa memotong stok untuk
+   * tugas yang sudah selesai — padahal itu pekerjaannya sehari-hari.
+   */
+  const allowed = await guardWrite("inventory");
   if (!allowed.ok) return allowed;
 
   const parsed = recordTaskUsageSchema.safeParse({

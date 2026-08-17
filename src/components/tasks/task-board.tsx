@@ -18,6 +18,8 @@ export function TaskBoard({
   members,
   recipes,
   materials,
+  canWriteTasks,
+  canRecordUsage,
 }: {
   tasks: TaskRow[];
   seasonId: string;
@@ -25,6 +27,10 @@ export function TaskBoard({
   members: MemberOption[];
   recipes: RecipeRow[];
   materials: StockRow[];
+  /** Boleh menyunting, menghapus, dan menggeser status tugas. */
+  canWriteTasks: boolean;
+  /** Boleh menekan "Catat pemakaian" — izin gudang, bukan izin tugas. */
+  canRecordUsage: boolean;
 }) {
   return (
     // Three columns do not fit a phone. Scrolling horizontally keeps the board
@@ -51,6 +57,8 @@ export function TaskBoard({
                 ) : (
                   column.map((task) => (
                     <TaskCard
+              canWriteTasks={canWriteTasks}
+              canRecordUsage={canRecordUsage}
                       key={task.id}
                       task={task}
                       seasonId={seasonId}

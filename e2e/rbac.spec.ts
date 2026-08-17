@@ -59,6 +59,41 @@ test.describe("yang belum masuk", () => {
   });
 
   /**
+   * Cookie yang ada tapi palsu melewati `proxy.ts` — ia cuma memeriksa nama
+   * cookie, bukan isinya. Jadi jalur ini berakhir di `unauthorized()`, dan itu
+   * butuh `experimental.authInterrupts` menyala di `next.config.ts`.
+   *
+   * Pernah tidak menyala, dan gejalanya cuma muncul di sini: yang belum masuk
+   * sama sekali tetap dialihkan dengan rapi, tesnya hijau, dan cuma cookie
+   * kedaluwarsa atau anggota yang baru dinonaktifkan yang menemukan galatnya.
+   * Jalur yang jarang dilewati justru yang paling perlu dijaga tes, karena tidak
+   * ada yang menemukannya saat mencoba-coba.
+   */
+  test("cookie palsu dapat 401 yang bisa dibaca, bukan galat", async ({
+    browser,
+  }) => {
+    const context = await browser.newContext({ storageState: undefined });
+    await context.addCookies([
+      {
+        name: "better-auth.session_token",
+        value: "palsu",
+        domain: "localhost",
+        path: "/",
+      },
+    ]);
+
+    const page = await context.newPage();
+    const response = await page.goto("/");
+
+    expect(response?.status()).toBe(401);
+    await expect(
+      page.getByRole("heading", { name: "Belum bisa masuk sini" })
+    ).toBeVisible();
+
+    await context.close();
+  });
+
+  /**
    * Server Action punya URL dan bisa dipanggil tanpa pernah membuka halamannya.
    * Ini yang membuat penjagaan di `proxy.ts` saja tidak cukup — dan tes ini
    * memanggilnya persis seperti penyerang akan memanggilnya.

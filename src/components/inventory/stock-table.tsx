@@ -43,12 +43,23 @@ export function StockTable({
   members,
   seasons,
   currentSeasonId,
+  canWrite,
 }: {
   rows: StockRow[];
   archived?: StockRow[];
   members: MemberOption[];
   seasons?: { id: string; name: string }[];
   currentSeasonId?: string;
+  /**
+   * Boleh mengubah gudang.
+   *
+   * Prop, bukan `<CanWrite>`: berkas ini komponen klien, dan `CanWrite`
+   * menanyakan sesi di server. Diputuskan sekali di halamannya, lalu diturunkan.
+   *
+   * **Bukan penjagaan.** Kolom yang hilang cuma kerapian; yang menahan
+   * perubahan data tetap `guardWrite` di Server Action-nya.
+   */
+  canWrite: boolean;
 }) {
   const [category, setCategory] = useState("");
   const [query, setQuery] = useState("");
@@ -158,6 +169,7 @@ export function StockTable({
             members={members}
             seasons={seasons}
             currentSeasonId={currentSeasonId}
+            canWrite={canWrite}
           />
         ))}
       </div>
@@ -177,7 +189,9 @@ export function StockTable({
                 <TableHead className="text-right">Stok</TableHead>
                 <TableHead className="text-right">Minimum</TableHead>
                 <TableHead className="w-28">Status</TableHead>
-                <TableHead className="w-48 text-right">Aksi</TableHead>
+                {canWrite ? (
+                  <TableHead className="w-48 text-right">Aksi</TableHead>
+                ) : null}
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -220,25 +234,27 @@ export function StockTable({
                         {stockStatusLabels[status]}
                       </Badge>
                     </TableCell>
-                    <TableCell className="w-48">
-                      <div className="flex items-center justify-end gap-1">
-                        <AdjustStockDialog
-                          material={row}
-                          members={members}
-                          direction="out"
-                          seasons={seasons}
-                          currentSeasonId={currentSeasonId}
-                        />
-                        <AdjustStockDialog
-                          material={row}
-                          members={members}
-                          direction="in"
-                        />
-                        <StockHistoryDialog material={row} compact />
-                        <MaterialDialog material={row} compact />
-                        <MaterialArchiveAction material={row} compact />
-                      </div>
-                    </TableCell>
+                    {canWrite ? (
+                      <TableCell className="w-48">
+                        <div className="flex items-center justify-end gap-1">
+                          <AdjustStockDialog
+                            material={row}
+                            members={members}
+                            direction="out"
+                            seasons={seasons}
+                            currentSeasonId={currentSeasonId}
+                          />
+                          <AdjustStockDialog
+                            material={row}
+                            members={members}
+                            direction="in"
+                          />
+                          <StockHistoryDialog material={row} compact />
+                          <MaterialDialog material={row} compact />
+                          <MaterialArchiveAction material={row} compact />
+                        </div>
+                      </TableCell>
+                    ) : null}
                   </TableRow>
                 );
               })}
@@ -255,11 +271,13 @@ function StockCard({
   members,
   seasons,
   currentSeasonId,
+  canWrite,
 }: {
   row: StockRow;
   members: MemberOption[];
   seasons?: { id: string; name: string }[];
   currentSeasonId?: string;
+  canWrite: boolean;
 }) {
   const status = stockStatus(row.stock, row.minStock);
 
@@ -303,7 +321,7 @@ function StockCard({
               / min {formatStock(row.minStock, row.unit)}
             </span>
           </p>
-          <div className="flex items-center gap-1">
+          <div className={canWrite ? "flex items-center gap-1" : "hidden"}>
             <AdjustStockDialog
               material={row}
               members={members}

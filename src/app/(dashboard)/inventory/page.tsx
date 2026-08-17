@@ -3,6 +3,8 @@ import { connection } from "next/server";
 import { CalendarClock, Receipt } from "lucide-react";
 
 import { CanWrite } from "@/components/auth/can-write";
+import { canWrite } from "@/lib/permissions";
+import { currentActor } from "@/server/auth/guard";
 import { PageHeader } from "@/components/common/page-header";
 import { InventoryViews } from "@/components/inventory/inventory-views";
 import { MaterialDialog } from "@/components/inventory/material-dialog";
@@ -48,6 +50,11 @@ export default async function InventoryPage() {
       listSeasons(),
     ]);
 
+  // Diputuskan sekali di sini lalu diturunkan: tabel dan kartunya komponen
+  // klien, dan `CanWrite` menanyakan sesi di server.
+  const actor = await currentActor();
+  const mayWrite = actor ? canWrite(actor.role, "inventory") : false;
+
   const restock = selectRestock(rows);
   const { replace, service } = selectToolNeeds(tools);
   const outstandingNotes = notes.filter((note) => !note.done).length;
@@ -71,7 +78,7 @@ export default async function InventoryPage() {
           <CanWrite area="inventory">
             <ToolDialog />
           </CanWrite>
-          <CanWrite area="materials">
+          <CanWrite area="inventory">
             <MaterialDialog />
           </CanWrite>
         </div>
@@ -129,6 +136,7 @@ export default async function InventoryPage() {
         attentionCount={attention}
         stock={
           <StockTable
+            canWrite={mayWrite}
             rows={rows}
             archived={archived}
             members={members}
@@ -144,7 +152,7 @@ export default async function InventoryPage() {
             members={members}
           />
         }
-        tools={<ToolList tools={tools} members={members} />}
+        tools={<ToolList tools={tools} members={members} canWrite={mayWrite} />}
       />
     </>
   );

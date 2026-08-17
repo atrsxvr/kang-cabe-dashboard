@@ -56,7 +56,13 @@ export default async function SeasonsPage() {
                   <TableHead className="text-right">HST</TableHead>
                   <TableHead className="text-right">Tugas</TableHead>
                   <TableHead>Status</TableHead>
-                  <TableHead className="w-48 text-right">Aksi</TableHead>
+                  {/* Kolomnya sendiri yang hilang, bukan isinya. Kolom kosong
+                      di tabel yang bisa digeser di ponsel berarti satu kolom
+                      lebar tanpa guna, dan orang akan menggesernya berkali-kali
+                      mencari yang tidak ada. */}
+                  <CanWrite area="seasons">
+                    <TableHead className="w-48 text-right">Aksi</TableHead>
+                  </CanWrite>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -88,24 +94,24 @@ export default async function SeasonsPage() {
                     <TableCell>
                       <StatusBadge status={season.status} kind="season" />
                     </TableCell>
-                    <TableCell className="text-right">
-                      <div className="flex items-center justify-end gap-1">
-                        <SeasonStatusAction
-                          seasonId={season.id}
-                          status={season.status}
-                        />
-                        <CanWrite area="seasons">
-                          <SeasonDialog season={season} />
-                        </CanWrite>
-                        {season.status !== "ARCHIVED" ? (
-                          <SeasonArchiveAction
+                    <CanWrite area="seasons">
+                      <TableCell className="text-right">
+                        <div className="flex items-center justify-end gap-1">
+                          <SeasonStatusAction
                             seasonId={season.id}
-                            name={season.name}
-                            taskCount={season._count.tasks}
+                            status={season.status}
                           />
-                        ) : null}
-                      </div>
-                    </TableCell>
+                          <SeasonDialog season={season} />
+                          {season.status !== "ARCHIVED" ? (
+                            <SeasonArchiveAction
+                              seasonId={season.id}
+                              name={season.name}
+                              taskCount={season._count.tasks}
+                            />
+                          ) : null}
+                        </div>
+                      </TableCell>
+                    </CanWrite>
                   </TableRow>
                 ))}
               </TableBody>

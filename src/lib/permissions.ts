@@ -56,8 +56,21 @@ export const AREAS = [
   "population",
   /** Stok, harga, opname, alat, dan daftar belanja. */
   "inventory",
-  /** Panen, susut, penjualan, dan penagihan. */
+  /** Panen, penjualan, dan penagihan. */
   "harvest",
+  /**
+   * Susut: cabai yang sudah dipetik lalu busuk atau tercecer.
+   *
+   * Wilayah tersendiri, terpisah dari `harvest`, karena **siapa pun boleh
+   * mencatatnya**. Yang menemukan tumpukan membusuk bisa Agronomis yang lewat
+   * atau Logistik yang menata gudang, bukan cuma yang mengurus penjualan — dan
+   * susut yang tidak tercatat membuat sisa stok terus melar sampai angkanya jauh
+   * dari tumpukan yang benar-benar ada.
+   *
+   * Mencatat kehilangan juga tidak bisa dipakai menguntungkan diri sendiri,
+   * jadi membukanya lebar tidak menambah risiko apa pun.
+   */
+  "losses",
   "finance",
   /** Setoran modal tiap anggota. */
   "capital",
@@ -82,7 +95,10 @@ const WRITERS: Record<Area, readonly Role[]> = {
   // Membuat dan menutup musim menentukan konteks seluruh aplikasi; salah pilih
   // di sini memindahkan tempat semua orang lain menulis.
   seasons: ["ADMIN"],
-  tasks: ["ADMIN", "AGRONOMIST"],
+  // Admin sendirian. Menyusun jadwal adalah membagi pekerjaan orang lain, dan
+  // itu keputusan satu orang setelah berunding — bukan sesuatu yang diubah
+  // masing-masing sendiri di lapangan.
+  tasks: ["ADMIN"],
   // Siapa pun yang keliling kebun. Menutup ini berarti temuan yang dilihat
   // Logistik tidak pernah sampai ke Agronomis.
   findings: ["ADMIN", "AGRONOMIST", "LOGISTICS", "SALES"],
@@ -93,6 +109,8 @@ const WRITERS: Record<Area, readonly Role[]> = {
   population: ["ADMIN", "AGRONOMIST"],
   inventory: ["ADMIN", "LOGISTICS"],
   harvest: ["ADMIN", "SALES"],
+  // Semuanya. Yang menemukan cabai membusuk bukan selalu yang menjualnya.
+  losses: ["ADMIN", "AGRONOMIST", "LOGISTICS", "SALES"],
   finance: ["ADMIN"],
   capital: ["ADMIN"],
   settings: ["ADMIN"],

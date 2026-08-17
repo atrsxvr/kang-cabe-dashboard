@@ -142,7 +142,7 @@ export async function deletePlantEvent(
 export async function createHarvestLoss(
   formData: FormData
 ): Promise<ActionResult> {
-  const allowed = await guardWrite("harvest");
+  const allowed = await guardWrite("losses");
   if (!allowed.ok) return allowed;
 
   const parsed = createHarvestLossSchema.safeParse({
@@ -183,7 +183,7 @@ export async function createHarvestLoss(
 export async function deleteHarvestLoss(
   formData: FormData
 ): Promise<ActionResult> {
-  const allowed = await guardWrite("harvest");
+  const allowed = await guardWrite("losses");
   if (!allowed.ok) return allowed;
 
   const lossId = String(formData.get("lossId") ?? "");
