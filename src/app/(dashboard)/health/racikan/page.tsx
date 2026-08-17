@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { connection } from "next/server";
 import { ScrollText } from "lucide-react";
 
+import { CanWrite } from "@/components/auth/can-write";
 import { PageHeader } from "@/components/common/page-header";
 import { MaterialArchiveAction } from "@/components/inventory/material-archive-action";
 import { MaterialDialog } from "@/components/inventory/material-dialog";
@@ -29,8 +30,12 @@ export default async function RecipeLibraryPage() {
           description="Kebutuhan tiap fase dan penanganan masalah. Berlaku untuk semua musim."
         />
         <div className="flex flex-wrap gap-2">
-          <MaterialDialog />
-          <RecipeDialog materials={materials} />
+          <CanWrite area="materials">
+            <MaterialDialog />
+          </CanWrite>
+          <CanWrite area="recipes">
+            <RecipeDialog materials={materials} />
+          </CanWrite>
         </div>
       </div>
 
@@ -58,7 +63,9 @@ export default async function RecipeLibraryPage() {
                 <span className="opacity-70">
                   {material.unit} · {materialCategoryLabels[material.category]}
                 </span>
-                <MaterialDialog material={material} compact />
+                <CanWrite area="materials">
+                  <MaterialDialog material={material} compact />
+                </CanWrite>
                 <MaterialArchiveAction material={material} compact />
               </span>
             ))}

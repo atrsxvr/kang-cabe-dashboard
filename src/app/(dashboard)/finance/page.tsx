@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { Coins, PackageMinus, Sprout, Users, Wrench } from "lucide-react";
 
+import { CanWrite } from "@/components/auth/can-write";
 import { PageHeader } from "@/components/common/page-header";
 import { SeasonCompareChart } from "@/components/charts/season-compare-chart";
 import { CapitalPanel } from "@/components/finance/capital-panel";
@@ -82,7 +83,9 @@ export default async function FinancePage(props: PageProps<"/finance">) {
           title="Keuangan & Kas"
           description={`${season.name} · uang masuk dari penjualan, uang keluar dari bahan dan catatan manual`}
         />
-        <FinanceEntryDialog seasonId={season.id} photoEnabled={photoEnabled} />
+        <CanWrite area="finance">
+          <FinanceEntryDialog seasonId={season.id} photoEnabled={photoEnabled} />
+        </CanWrite>
       </div>
 
       <Card className="mb-6">

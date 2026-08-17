@@ -57,8 +57,15 @@ async function cleanup() {
       where: { name: { startsWith: "E2E " } },
     });
 
+    // Sesi yang dibuat auth.setup.ts. Token bukan sekadar baris data — ia kunci
+    // yang masih bisa diputar sampai kedaluwarsa, jadi ia dibuang seperti yang
+    // lain, bukan dibiarkan menunggu waktu.
+    const sessions = await prisma.session.deleteMany({
+      where: { token: { startsWith: "E2E-session-" } },
+    });
+
     console.log(
-      `Teardown: ${materialIds.length} bahan, ${taskIds.length} tugas, ${seasons.count} musim E2E dibersihkan.`
+      `Teardown: ${materialIds.length} bahan, ${taskIds.length} tugas, ${seasons.count} musim, ${sessions.count} sesi E2E dibersihkan.`
     );
   } finally {
     await prisma.$disconnect();

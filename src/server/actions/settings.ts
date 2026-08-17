@@ -127,6 +127,51 @@ export async function deactivateMember(
 
   const { memberId, restore } = parsed.data;
 
+  /**
+   * Tidak bisa menonaktifkan diri sendiri, dan ini bukan kenyamanan.
+   *
+   * Settings cuma bisa ditulis Admin. Admin yang menonaktifkan dirinya sendiri
+   * langsung kehilangan akses ke satu-satunya halaman yang bisa
+   * mengembalikannya — dan jalan keluarnya cuma menyentuh basis data langsung.
+   * Satu salah pencet di ponsel, di kebun, dan aplikasinya terkunci untuk
+   * semua orang.
+   */
+  if (!restore && memberId === allowed.actor.id) {
+    return {
+      ok: false,
+      message:
+        "Nggak bisa menonaktifkan akun sendiri — nanti nggak ada yang bisa mengaktifkannya lagi.",
+    };
+  }
+
+  /**
+   * Dan harus selalu ada Admin aktif yang tersisa.
+   *
+   * Menonaktifkan Admin terakhir mengunci Settings untuk semua orang, sama
+   * seperti di atas — cuma lewat jalan yang lebih memutar, dan karena itu lebih
+   * mudah terjadi tanpa disadari.
+   */
+  if (!restore) {
+    const target = await prisma.user.findUnique({
+      where: { id: memberId },
+      select: { role: true },
+    });
+
+    if (target?.role === "ADMIN") {
+      const otherAdmins = await prisma.user.count({
+        where: { role: "ADMIN", deletedAt: null, id: { not: memberId } },
+      });
+
+      if (otherAdmins === 0) {
+        return {
+          ok: false,
+          message:
+            "Ini Admin terakhir yang masih aktif. Angkat Admin lain dulu sebelum menonaktifkannya.",
+        };
+      }
+    }
+  }
+
   const result = await prisma.user.updateMany({
     where: { id: memberId },
     data: { deletedAt: restore ? null : new Date() },

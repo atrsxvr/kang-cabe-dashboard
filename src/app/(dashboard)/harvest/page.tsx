@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { Wheat } from "lucide-react";
 
+import { CanWrite } from "@/components/auth/can-write";
 import { PageHeader } from "@/components/common/page-header";
 import { StatusBadge } from "@/components/common/status-badge";
 import { HarvestChart } from "@/components/charts/harvest-chart";
@@ -70,14 +71,20 @@ export default async function HarvestPage(props: PageProps<"/harvest">) {
           }`}
         />
         <div className="flex flex-wrap gap-2">
-          <LossDialog seasonId={season.id} members={members} />
-          <SaleDialog
-            seasonId={season.id}
-            members={members}
-            buyers={buyers}
-            projectedBep={pricing.projectedBep}
-          />
-          <HarvestDialog seasonId={season.id} members={members} />
+          <CanWrite area="harvest">
+            <LossDialog seasonId={season.id} members={members} />
+          </CanWrite>
+          <CanWrite area="harvest">
+            <SaleDialog
+              seasonId={season.id}
+              members={members}
+              buyers={buyers}
+              projectedBep={pricing.projectedBep}
+            />
+          </CanWrite>
+          <CanWrite area="harvest">
+            <HarvestDialog seasonId={season.id} members={members} />
+          </CanWrite>
         </div>
       </div>
 

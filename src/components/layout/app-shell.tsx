@@ -4,8 +4,10 @@ import { useEffect, useRef, useState } from "react";
 import { Menu, Sprout, X } from "lucide-react";
 
 import { SidebarNav } from "@/components/layout/sidebar-nav";
+import { AccountMenu } from "@/components/auth/account-menu";
 import { ThemeToggle } from "@/components/layout/theme-toggle";
 import { Button } from "@/components/ui/button";
+import type { Role } from "@/lib/permissions";
 import { cn } from "@/lib/utils";
 
 /** Matches the `lg:` breakpoint, where the sidebar stops being a drawer. */
@@ -13,10 +15,13 @@ const DESKTOP = "(min-width: 64rem)";
 
 export function AppShell({
   seasonSelector,
+  actor,
   children,
 }: {
   /** Server-rendered node, streamed in via Suspense. */
   seasonSelector: React.ReactNode;
+  /** Siapa yang sedang masuk. Ditampilkan di kanan atas beserta jalan keluar. */
+  actor: { name: string; email: string; role: Role };
   children: React.ReactNode;
 }) {
   const [open, setOpen] = useState(false);
@@ -177,6 +182,11 @@ export function AppShell({
             </span>
             {seasonSelector}
             <ThemeToggle />
+            <AccountMenu
+              name={actor.name}
+              email={actor.email}
+              role={actor.role}
+            />
           </div>
         </header>
 

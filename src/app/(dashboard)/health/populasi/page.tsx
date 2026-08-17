@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { Skull, Sprout } from "lucide-react";
 
+import { CanWrite } from "@/components/auth/can-write";
 import { ConfirmDelete } from "@/components/common/confirm-delete";
 import { PageHeader } from "@/components/common/page-header";
 import { PlantEventDialog } from "@/components/health/plant-event-dialog";
@@ -44,11 +45,13 @@ export default async function PopulationPage(
           title="Kesehatan & Monitoring"
           description={`${season.name} · berapa pokok yang masih berdiri`}
         />
-        <PlantEventDialog
-          seasonId={season.id}
-          members={members}
-          findings={findings}
-        />
+        <CanWrite area="population">
+          <PlantEventDialog
+            seasonId={season.id}
+            members={members}
+            findings={findings}
+          />
+        </CanWrite>
       </div>
 
       <div className="mb-6 grid grid-cols-2 gap-2 sm:gap-3 lg:grid-cols-4">
@@ -151,12 +154,14 @@ export default async function PopulationPage(
                   </div>
 
                   <div className="flex items-center gap-1">
-                    <PlantEventDialog
-                      seasonId={season.id}
-                      members={members}
-                      findings={findings}
-                      event={event}
-                    />
+                    <CanWrite area="population">
+                      <PlantEventDialog
+                        seasonId={season.id}
+                        members={members}
+                        findings={findings}
+                        event={event}
+                      />
+                    </CanWrite>
                     <ConfirmDelete
                       title="Hapus catatan ini?"
                       itemName={`${dying ? "Mati" : "Sulam"} ${event.count} pokok`}

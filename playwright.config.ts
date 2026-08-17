@@ -22,6 +22,23 @@ export default defineConfig({
   retries: process.env.CI ? 1 : 0,
   reporter: process.env.CI ? "github" : "list",
 
+  /**
+   * Satu proyek penyiapan yang membuat sesi masuk, lalu semua spec memakainya.
+   *
+   * Sejak otentikasi terpasang, setiap halaman mengalihkan yang belum masuk —
+   * dan seluruh suite ini membuka halaman. Lihat `e2e/session.ts` untuk alasan
+   * sesinya ditulis langsung ke basis data alih-alih menekan tombol Google.
+   */
+  projects: [
+    { name: "setup", testMatch: /auth\.setup\.ts/ },
+    {
+      name: "e2e",
+      testIgnore: /auth\.setup\.ts/,
+      dependencies: ["setup"],
+      use: { storageState: "e2e/.auth/admin.json" },
+    },
+  ],
+
   use: {
     baseURL: "http://localhost:3000",
     trace: "on-first-retry",

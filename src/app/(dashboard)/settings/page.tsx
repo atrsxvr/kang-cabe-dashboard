@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { connection } from "next/server";
 import { ShieldAlert } from "lucide-react";
 
+import { CanWrite } from "@/components/auth/can-write";
 import { PageHeader } from "@/components/common/page-header";
 import { GardenProfileForm } from "@/components/settings/garden-profile-form";
 import { MemberActiveAction } from "@/components/settings/member-active-action";
@@ -44,7 +45,9 @@ export default async function SettingsPage() {
           title="Settings & Users"
           description="Anggota tim, porsi bagi hasil, dan profil kebun."
         />
-        <MemberDialog />
+        <CanWrite area="settings">
+          <MemberDialog />
+        </CanWrite>
       </div>
 
       {/* Said plainly rather than implied. The roles below look like access
@@ -112,7 +115,9 @@ export default async function SettingsPage() {
               </div>
 
               <div className="flex w-full items-center gap-1 border-t pt-2 sm:w-auto sm:border-0 sm:pt-0">
-                <MemberDialog member={member} />
+                <CanWrite area="settings">
+                  <MemberDialog member={member} />
+                </CanWrite>
                 <MemberActiveAction member={member} />
               </div>
             </CardContent>

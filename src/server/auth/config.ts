@@ -44,6 +44,26 @@ export const auth = betterAuth({
 
   emailAndPassword: { enabled: false },
 
+  account: {
+    /**
+     * Menautkan identitas Google ke baris anggota yang sudah ada.
+     *
+     * Wajib ada di aplikasi yang berbasis undangan. Barisnya dibuat Admin lebih
+     * dulu, tanpa akun Google apa pun — dan tanpa penautan, masuk pertama kali
+     * gagal dengan `account_not_linked`, karena `disableSignUp` melarang
+     * membuat baris baru sementara yang lama tidak boleh disambung.
+     *
+     * `trustedProviders` sengaja cuma Google, dan itu yang membuatnya aman:
+     * penautan lewat email hanya boleh dipercaya kalau penyedianya benar-benar
+     * memverifikasi alamatnya. Google memverifikasi; penyedia yang menerima
+     * email apa pun tanpa bukti tidak boleh masuk daftar ini.
+     */
+    accountLinking: {
+      enabled: true,
+      trustedProviders: ["google"],
+    },
+  },
+
   user: {
     // Peran dibawa di sesi supaya tombol bisa disembunyikan tanpa satu query
     // tambahan tiap render. Penegakannya tetap membaca database — lihat
@@ -59,6 +79,18 @@ export const auth = betterAuth({
     // membuat orang berhenti membuka aplikasinya sama sekali.
     expiresIn: 60 * 60 * 24 * 7,
     updateAge: 60 * 60 * 24,
+  },
+
+  onAPIError: {
+    /**
+     * Galat dibawa ke halaman masuk, bukan ke halaman galat bawaan pustaka.
+     *
+     * Yang bawaan menampilkan kode mentah seperti `signup_disabled` di atas
+     * kotak "Something went wrong" berbahasa Inggris — dan orang yang membacanya
+     * bukan orang teknis. Penolakan yang tidak menyebut sebabnya membuat orang
+     * mencoba berkali-kali, lalu menyangka aplikasinya rusak.
+     */
+    errorURL: "/masuk",
   },
 
   // Harus paling akhir: plugin ini yang menuliskan cookie dari dalam Server

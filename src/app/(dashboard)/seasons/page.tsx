@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { connection } from "next/server";
 import { Sprout } from "lucide-react";
 
+import { CanWrite } from "@/components/auth/can-write";
 import { PageHeader } from "@/components/common/page-header";
 import { StatusBadge } from "@/components/common/status-badge";
 import { SeasonArchiveAction } from "@/components/seasons/season-archive-action";
@@ -33,7 +34,9 @@ export default async function SeasonsPage() {
           title="Manajemen Musim Tanam"
           description="Semua siklus tanam, dari perencanaan sampai arsip."
         />
-        <SeasonDialog />
+        <CanWrite area="seasons">
+          <SeasonDialog />
+        </CanWrite>
       </div>
 
       {seasons.length === 0 ? (
@@ -91,7 +94,9 @@ export default async function SeasonsPage() {
                           seasonId={season.id}
                           status={season.status}
                         />
-                        <SeasonDialog season={season} />
+                        <CanWrite area="seasons">
+                          <SeasonDialog season={season} />
+                        </CanWrite>
                         {season.status !== "ARCHIVED" ? (
                           <SeasonArchiveAction
                             seasonId={season.id}

@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { connection } from "next/server";
 import { CalendarClock, Receipt } from "lucide-react";
 
+import { CanWrite } from "@/components/auth/can-write";
 import { PageHeader } from "@/components/common/page-header";
 import { InventoryViews } from "@/components/inventory/inventory-views";
 import { MaterialDialog } from "@/components/inventory/material-dialog";
@@ -64,9 +65,15 @@ export default async function InventoryPage() {
           description="Stok saprodi dan kondisi alat kerja. Berlaku untuk semua musim."
         />
         <div className="flex flex-wrap gap-2">
-          <StockOpnameDialog rows={rows} members={members} />
-          <ToolDialog />
-          <MaterialDialog />
+          <CanWrite area="inventory">
+            <StockOpnameDialog rows={rows} members={members} />
+          </CanWrite>
+          <CanWrite area="inventory">
+            <ToolDialog />
+          </CanWrite>
+          <CanWrite area="materials">
+            <MaterialDialog />
+          </CanWrite>
         </div>
       </div>
 

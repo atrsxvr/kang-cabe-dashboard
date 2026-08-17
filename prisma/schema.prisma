@@ -123,9 +123,19 @@ model User {
   /// email yang sudah ada di sini yang bisa masuk, dan yang tidak dikenal
   /// ditolak — bukan dibuatkan akun baru.
   email String @unique
-  /// Dipakai better-auth. Selalu true untuk yang masuk lewat Google, karena
-  /// Google sudah memverifikasinya sebelum mengembalikan siapa pun ke sini.
-  emailVerified Boolean @default(false)
+  /// Dipakai better-auth, dan **default true** — bukan kelalaian.
+  ///
+  /// Pustakanya menolak menautkan identitas Google ke baris yang belum
+  /// terverifikasi, supaya penyerang tidak bisa mendaftarkan email korban lebih
+  /// dulu lalu menunggu identitas korban tertaut ke barisnya. Ancaman itu
+  /// mengandaikan orang bisa mendaftar sendiri, dan di sini tidak bisa:
+  /// pendaftaran dimatikan, dan setiap baris dibuat Admin sebagai undangan.
+  ///
+  /// Jadi tindakan Admin mengetik Gmail seseorang di Settings **itulah**
+  /// verifikasinya — seorang manusia yang mengenal orangnya menjaminkan alamat
+  /// itu. Default false membuat setiap anggota baru gagal masuk dengan
+  /// `account_not_linked`, dan pesannya tidak menyebut sebabnya.
+  emailVerified Boolean @default(true)
   /// Foto profil dari Google, kalau ada.
   image         String?
   role          Role    @default(ADMIN)

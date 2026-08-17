@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { PackageMinus, Sprout } from "lucide-react";
 
+import { CanWrite } from "@/components/auth/can-write";
 import { PageHeader } from "@/components/common/page-header";
 import { StatusBadge } from "@/components/common/status-badge";
 import { TaskDialog } from "@/components/tasks/task-dialog";
@@ -65,20 +66,24 @@ export default async function TasksPage(props: PageProps<"/tasks">) {
           description={`${season.name} · ditanam ${formatDate(season.startDate)}`}
         />
         <div className="flex flex-wrap gap-2">
-          <ProgramDialog
-            seasonId={season.id}
-            recipes={recipes}
-            members={members}
-            currentHst={currentHst}
-            defaultTankLitres={profile.defaultTankLitres}
-          />
-          <TaskDialog
-            seasonId={season.id}
-            members={members}
-            currentHst={currentHst}
-            recipes={recipes}
-            materials={materials}
-          />
+          <CanWrite area="tasks">
+            <ProgramDialog
+              seasonId={season.id}
+              recipes={recipes}
+              members={members}
+              currentHst={currentHst}
+              defaultTankLitres={profile.defaultTankLitres}
+            />
+          </CanWrite>
+          <CanWrite area="tasks">
+            <TaskDialog
+              seasonId={season.id}
+              members={members}
+              currentHst={currentHst}
+              recipes={recipes}
+              materials={materials}
+            />
+          </CanWrite>
         </div>
       </div>
 

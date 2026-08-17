@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { Leaf, Sprout } from "lucide-react";
 
+import { CanWrite } from "@/components/auth/can-write";
 import { PageHeader } from "@/components/common/page-header";
 import { FindingCard } from "@/components/health/finding-card";
 import { FindingStatusBoxes } from "@/components/health/finding-status-boxes";
@@ -53,12 +54,14 @@ export default async function HealthPage(props: PageProps<"/health">) {
             on a phone every extra row pushes the findings further down. */}
         <div className="flex flex-wrap items-center gap-2">
           <FindingStatusSelect active={activeStatus} />
-          <FindingDialog
-            seasonId={season.id}
-            members={members}
-            currentHst={currentHst}
-            photoEnabled={isPhotoUploadEnabled()}
-          />
+          <CanWrite area="findings">
+            <FindingDialog
+              seasonId={season.id}
+              members={members}
+              currentHst={currentHst}
+              photoEnabled={isPhotoUploadEnabled()}
+            />
+          </CanWrite>
         </div>
       </div>
 
