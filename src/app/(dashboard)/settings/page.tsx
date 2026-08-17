@@ -1,6 +1,5 @@
 import type { Metadata } from "next";
 import { connection } from "next/server";
-import { ShieldAlert } from "lucide-react";
 
 import { CanWrite } from "@/components/auth/can-write";
 import { PageHeader } from "@/components/common/page-header";
@@ -48,17 +47,6 @@ export default async function SettingsPage() {
         <CanWrite area="settings">
           <MemberDialog />
         </CanWrite>
-      </div>
-
-      {/* Said plainly rather than implied. The roles below look like access
-          control and are not, and someone will assume otherwise. */}
-      <div className="mb-6 flex items-start gap-2 rounded-lg border border-amber-300 bg-amber-50 px-3 py-2 text-sm text-amber-900 dark:border-amber-900/60 dark:bg-amber-950/40 dark:text-amber-200">
-        <ShieldAlert className="mt-0.5 size-4 shrink-0" aria-hidden />
-        <p>
-          Belum ada login. Perannya di bawah ini kesepakatan kerja, belum
-          ditegakkan aplikasi — siapa pun yang buka halaman ini bisa mengubah
-          apa saja. Jangan ditaruh di internet sebelum autentikasi terpasang.
-        </p>
       </div>
 
       <section className="mb-8 grid gap-3">
