@@ -32,9 +32,18 @@ memblokir panen selama beberapa hari.
 | Logistik & Ops | Gotay | Stok saprodi, kelayakan alat, pengadaan |
 | Pascapanen & Sales | Ican | Data panen, grading, tren harga, penjualan |
 
-> **Peran ini belum ditegakkan sistem.** Belum ada autentikasi; aplikasi tidak
-> bisa membedakan satu anggota dari yang lain. Pembagian di atas adalah
-> kesepakatan kerja, dan menjadi dasar RBAC yang akan dibangun. Lihat bagian 6.
+> **Peran ini ditegakkan sistem.** Login lewat Google dan bersifat undangan:
+> cuma email yang sudah didaftarkan Admin di Settings yang bisa masuk, dan
+> anggota yang dinonaktifkan kehilangan akses pada permintaan berikutnya.
+>
+> **Membaca terbuka untuk semua yang sudah masuk**, termasuk angka uang dan
+> setoran modal tiap orang. Ini koperasi berempat — menyembunyikan angka dari
+> rekan sendiri menghilangkan guna aplikasi ini dibangun, dan aturan "porsi bagi
+> hasil tidak dinormalkan" cuma berarti kalau semua bisa melihat celahnya.
+> Otorisasi semata soal **menulis**; matriksnya ada di `src/lib/permissions.ts`.
+>
+> Admin bisa menulis di setiap wilayah, supaya pekerjaan yang tertinggal bisa
+> ditutupi saat temannya tidak bisa mengisi sendiri.
 
 **Alur kerja yang disepakati:** pembuatan tugas dilakukan Admin, hasil
 koordinasi dengan Agronomis. Racikan disusun Agronomis.
@@ -641,8 +650,15 @@ bagi hasilnya.
 **Profil kebun** menyimpan yang berlaku menyeluruh: nama, lokasi, koordinat
 untuk ramalan cuaca, dan volume tangki yang biasa dipakai.
 
-Halaman ini menyatakan terang-terangan bahwa perannya **belum ditegakkan
-sistem** — daftar peran di sini mudah disangka kontrol akses, dan ia bukan.
+Halaman ini adalah **satu-satunya pintu masuk** ke aplikasi: email yang
+didaftarkan di sini itulah undangannya, dan yang tidak ada barisnya ditolak
+Google-nya sendiri sekalipun. Karena itu dialognya menyebutkan hal itu
+terang-terangan — bukan lagi peringatan bahwa perannya belum ditegakkan.
+
+Dua penjaga melindunginya dari mengunci dirinya sendiri: Admin tidak bisa
+menonaktifkan akunnya sendiri, dan Admin aktif terakhir tidak bisa dinonaktifkan
+siapa pun. Keduanya akan mengunci halaman ini untuk semua orang, dan jalan
+keluarnya cuma menyentuh basis data langsung.
 
 ---
 
@@ -723,14 +739,14 @@ benar-benar keluar lalu muncul sebagai biaya.
 
 Diurutkan menurut prioritas.
 
-**1. Autentikasi & RBAC — prioritas utama.** Belum ada login sama sekali.
-Aplikasi sudah bisa menulis dan menghapus data lewat endpoint HTTP publik:
-siapa pun yang tahu URL-nya bisa mengubah isi database. Peran di bagian 2 juga
-tetap menjadi fiksi sampai ini ada. **Jangan deploy ke publik sebelum
-autentikasi terpasang.**
-
-**2. Deployment.** Belum pernah dijalankan di luar localhost, sehingga belum
+**1. Deployment.** Belum pernah dijalankan di luar localhost, sehingga belum
 pernah dipakai di kebun. Branch `main` dan `production` masih di commit awal.
+Langkah-langkahnya, beserta yang sudah disiapkan di repo, ada di `DEPLOY.md`.
+
+Dua hal yang wajib dilakukan lebih dulu: **rotasi `SUPABASE_SERVICE_ROLE_KEY`**,
+yang mem-bypass row-level security dan sudah beredar di `.env` lokal selama
+pengembangan; dan **`BETTER_AUTH_SECRET` yang baru** untuk produksi, bukan
+salinan dari yang dipakai di localhost.
 
 **3. Tren harga pasar lokal.** Sengaja ditunda: mencatat harga pasaran dari
 luar butuh masukan manual rutin, dan biasanya berhenti diisi setelah dua
@@ -768,12 +784,7 @@ dikerjakan.
 Satu benang merah: hampir semuanya menjawab pertanyaan dari data yang **sudah
 lengkap tercatat** dan belum pernah ditanya. Itu yang membuatnya murah.
 
-**1. Autentikasi & RBAC.** Sama dengan bagian 7 nomor 1, dan sekarang lebih
-mendesak daripada saat ditulis: aplikasi ini sudah menyimpan uang, iuran
-pribadi tiap anggota, dan harga jual. Selama belum ada, tiap fitur baru di
-bawah cuma menambah yang bisa dirusak orang.
-
-**2. Perbandingan racikan lawan hasil.** Paling berharga dan paling ambisius.
+**1. Perbandingan racikan lawan hasil.** Paling berharga dan paling ambisius.
 Racikan, tugas yang memakainya di HST tertentu, dan kurva panen semuanya sudah
 tercatat; menyandingkannya menjawab apakah program nutrisi musim ini benar-benar
 bekerja. Itu pertanyaan yang seluruh Pustaka Racikan dibangun untuk menjawabnya,
@@ -784,19 +795,19 @@ umur tanaman bergerak bersamaan dengan jadwal racikan. Halamannya harus
 menyebutkan itu, bukan menyajikan grafik yang mengundang kesimpulan yang tidak
 didukungnya.
 
-**3. Post-mortem musim — satu halaman yang bisa dicetak.** Semua bahannya sudah
+**2. Post-mortem musim — satu halaman yang bisa dicetak.** Semua bahannya sudah
 ada dan tersebar di lima tab. Musim tutup adalah saat berempat duduk bersama;
 sekarang saat itu menuntut membuka lima tab dan menyalin angka ke tempat lain.
 
-**4. Kurva harga jual sepanjang musim.** Tiap transaksi sudah punya tanggal dan
+**3. Kurva harga jual sepanjang musim.** Tiap transaksi sudah punya tanggal dan
 harga, tapi yang ditampilkan baru rata-ratanya — satu angka untuk delapan bulan.
 Grafiknya menjawab "harga terbaik ada di HST berapa", dan itu mengubah kapan
 panen berikutnya dijadwalkan.
 
-**5. Rekap per pembeli.** Nama pembeli sudah tercatat di tiap transaksi. Siapa
+**4. Rekap per pembeli.** Nama pembeli sudah tercatat di tiap transaksi. Siapa
 yang mengambil paling banyak, siapa yang bayarnya paling lama, siapa yang
 harganya paling bagus — tiga pertanyaan yang datanya lengkap dan belum pernah
 dijawab.
 
-**6. Ekspor CSV.** Sederhana, dan menghapus ketakutan yang wajar bahwa data
+**5. Ekspor CSV.** Sederhana, dan menghapus ketakutan yang wajar bahwa data
 kebun terkunci di dalam satu aplikasi buatan sendiri.

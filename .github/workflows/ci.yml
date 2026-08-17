@@ -69,6 +69,15 @@ jobs:
       DIRECT_URL: postgresql://ci:ci@localhost:5432/kangcabe
       # SUPABASE_URL and the service key are deliberately absent: both are
       # optional, and nothing these specs touch uploads a photo.
+      #
+      # Otentikasi butuh rahasia yang sama di dua tempat: aplikasi memakainya
+      # menandatangani cookie sesi, dan e2e/session.ts memakainya membuat cookie
+      # yang bisa diterima aplikasi. Nilai bohongan cukup — asal keduanya sama.
+      #
+      # Kredensial Google sengaja tidak ada: tidak ada spec yang menyentuh layar
+      # Google, dan sesinya ditulis langsung ke tabel Session.
+      BETTER_AUTH_SECRET: ci-hanya-untuk-pengujian-cukup-panjang-32
+      BETTER_AUTH_URL: http://localhost:3000
 
     steps:
       - uses: actions/checkout@v4

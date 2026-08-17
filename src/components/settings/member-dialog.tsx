@@ -87,8 +87,8 @@ export function MemberDialog({ member }: { member?: MemberRow }) {
             {editing ? "Edit Anggota" : "Tambah Anggota"}
           </DialogTitle>
           <DialogDescription>
-            Perannya belum ditegakkan sistem — belum ada login. Ini kesepakatan
-            kerja, dan nanti jadi dasar hak akses.
+            Perannya menentukan apa yang bisa dia ubah. Emailnya jadi undangan:
+            cuma email yang terdaftar di sini yang bisa masuk lewat Google.
           </DialogDescription>
         </DialogHeader>
 
