@@ -116,6 +116,24 @@ export async function deletePhoto(photoUrl: string): Promise<void> {
     return;
   }
 
+  /**
+   * Jalur yang bisa keluar dari bucket-nya ditolak.
+   *
+   * `photoUrl` dibaca dari basis data, tapi kolomnya sendiri menerima URL apa
+   * pun dari formulir — jadi anggota yang menyusun permintaannya sendiri bisa
+   * menanam `…/health-photos/../bucket-lain/berkas.png`, lalu menghapus
+   * temuannya. Pengurai URL merapikan `..` sebelum permintaannya terkirim, dan
+   * yang terhapus jadi objek di bucket lain.
+   *
+   * Dampaknya kecil hari ini — bucket-nya cuma satu — tapi penjagaan yang
+   * bergantung pada "kebetulan belum ada bucket lain" akan berhenti benar tanpa
+   * ada yang mengubah berkas ini.
+   */
+  if (path.includes("..") || path.startsWith("/")) {
+    console.error("Path foto menolak dipercaya:", path);
+    return;
+  }
+
   const response = await fetch(
     `${config.url}/storage/v1/object/${PHOTO_BUCKET}/${path}`,
     { method: "DELETE", headers: authHeaders(config.key) }

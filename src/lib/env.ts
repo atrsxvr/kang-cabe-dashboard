@@ -81,11 +81,27 @@ export type Env = z.infer<typeof schema>;
 function requireAuthInProduction(env: Env): string[] {
   if (env.NODE_ENV !== "production") return [];
 
-  return (
+  const missing = (
     ["GOOGLE_CLIENT_ID", "GOOGLE_CLIENT_SECRET", "BETTER_AUTH_SECRET"] as const
   )
     .filter((key) => !env[key])
     .map((key) => `  ${key}: wajib di produksi — tanpanya login mati total`);
+
+  /**
+   * `https` bukan kerapian, dan ini satu-satunya tempat yang bisa memaksanya.
+   *
+   * better-auth memutuskan flag `Secure` pada cookie sesi dari apakah baseURL
+   * dimulai `https://`. Diisi `http://` di produksi, cookie sesi dikirim polos —
+   * dan siapa pun di jaringan yang sama bisa membacanya lalu memakainya. Tidak
+   * ada galat, tidak ada peringatan; aplikasinya jalan normal.
+   */
+  if (!env.BETTER_AUTH_URL.startsWith("https://")) {
+    missing.push(
+      "  BETTER_AUTH_URL: wajib https di produksi — cookie sesi kehilangan flag Secure kalau tidak"
+    );
+  }
+
+  return missing;
 }
 
 /** Cukup lengkap untuk benar-benar bisa dipakai masuk. */

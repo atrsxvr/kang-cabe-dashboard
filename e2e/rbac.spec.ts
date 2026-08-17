@@ -115,6 +115,32 @@ test.describe("yang belum masuk", () => {
   });
 });
 
+/**
+ * `?lanjut=` ada supaya tautan yang dibagikan di grup WA tetap sampai ke halaman
+ * yang dituju setelah orangnya login. Nilainya datang dari URL — dan sebelum
+ * disaring, ia benar-benar mengalihkan ke luar aplikasi.
+ *
+ * Dampaknya phishing, dan yang paling berbahaya adalah domain pengirimnya asli:
+ * tautan dari alamat kebun yang sah melempar orang ke halaman login tiruan.
+ */
+test.describe("open redirect", () => {
+  for (const evil of [
+    "https://example.com/",
+    "//example.com/",
+    "/\\example.com",
+  ]) {
+    test(`nggak mau dialihkan ke ${evil}`, async ({ page }) => {
+      await page.goto(`/masuk?lanjut=${encodeURIComponent(evil)}`, {
+        waitUntil: "commit",
+      });
+
+      // Sudah masuk sebagai Admin, jadi halaman masuk mengalihkan — dan
+      // tujuannya harus tetap di dalam aplikasi ini.
+      expect(new URL(page.url()).host).toBe("localhost:3000");
+    });
+  }
+});
+
 test.describe("peran yang bukan Admin", () => {
   /**
    * Membaca tetap terbuka untuk semua yang sudah masuk, dan itu keputusan yang
@@ -168,15 +194,79 @@ test.describe("peran yang bukan Admin", () => {
   /**
    * Dan tombol di wilayahnya tetap ada. Tanpa sisi ini, komponen yang
    * menyembunyikan **segalanya** juga akan lulus tes di atas.
+   *
+   * Musimnya dibuat sendiri — halaman Panen tanpa musim menampilkan keadaan
+   * kosong yang memang tidak punya tombol apa pun. Versi sebelumnya bersandar
+   * pada musim yang sudah ada di basis data, dan mati begitu datanya
+   * dibersihkan. Itu kelas kesalahan ketiga yang sama di suite ini.
    */
-  test("tetap dikasih tombol di wilayahnya sendiri", async ({ browser }) => {
-    const context = await contextFor(browser, "SALES");
-    const page = await context.newPage();
+  test("tetap dikasih tombol di wilayahnya sendiri", async ({
+    page,
+    browser,
+  }) => {
+    // `page` memakai sesi Admin dari auth.setup, jadi ia yang membuat musimnya.
+    await page.goto("/seasons");
+    await page.getByRole("button", { name: "Tambah Musim" }).click();
+    await page
+      .getByLabel("Nama Musim", { exact: true })
+      .fill(`E2E Musim Peran ${Date.now()}`);
+    await page.getByLabel("Varietas Benih", { exact: true }).fill("E2E Rawit");
+    await page.getByLabel("Jumlah Populasi", { exact: true }).fill("100");
+    await page.getByLabel("Tanggal Tanam", { exact: true }).fill("2026-01-01");
+    await page.getByRole("button", { name: "Simpan Musim" }).click();
 
-    await page.goto("/harvest");
+    await expect(page).toHaveURL(/season=/);
+    const season = new URL(page.url()).searchParams.get("season");
+
+    const context = await contextFor(browser, "SALES");
+    const sales = await context.newPage();
+    await sales.goto(`/harvest?season=${season}`);
+
     await expect(
-      page.getByRole("button", { name: "Catat Panen" })
+      sales.getByRole("button", { name: "Catat Panen" })
     ).toBeVisible();
+    await expect(
+      sales.getByRole("button", { name: "Catat Penjualan" })
+    ).toBeVisible();
+
+    await context.close();
+  });
+
+  /**
+   * Susut dibuka untuk semua peran, terpisah dari penjualan — dan pemisahan itu
+   * yang diuji di sini. Agronomis yang menemukan tumpukan membusuk harus bisa
+   * mencatatnya, tanpa ikut mendapat izin menjual.
+   */
+  test("Agronomis dapat Catat Susut tapi bukan Catat Penjualan", async ({
+    page,
+    browser,
+  }) => {
+    await page.goto("/seasons");
+    await page.getByRole("button", { name: "Tambah Musim" }).click();
+    await page
+      .getByLabel("Nama Musim", { exact: true })
+      .fill(`E2E Musim Susut ${Date.now()}`);
+    await page.getByLabel("Varietas Benih", { exact: true }).fill("E2E Rawit");
+    await page.getByLabel("Jumlah Populasi", { exact: true }).fill("100");
+    await page.getByLabel("Tanggal Tanam", { exact: true }).fill("2026-01-01");
+    await page.getByRole("button", { name: "Simpan Musim" }).click();
+
+    await expect(page).toHaveURL(/season=/);
+    const season = new URL(page.url()).searchParams.get("season");
+
+    const context = await contextFor(browser, "AGRONOMIST");
+    const agro = await context.newPage();
+    await agro.goto(`/harvest?season=${season}`);
+
+    await expect(
+      agro.getByRole("button", { name: "Catat Susut" })
+    ).toBeVisible();
+    await expect(
+      agro.getByRole("button", { name: "Catat Penjualan" })
+    ).toHaveCount(0);
+    await expect(agro.getByRole("button", { name: "Catat Panen" })).toHaveCount(
+      0
+    );
 
     await context.close();
   });

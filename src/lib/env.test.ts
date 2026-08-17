@@ -23,7 +23,13 @@ const valid = {
 
 describe("parseEnv", () => {
   it("accepts a Supabase pooler pair", () => {
-    const env = parseEnv({ ...valid, NODE_ENV: "production" });
+    // https ikut disebut: sejak flag Secure pada cookie sesi bergantung padanya,
+    // produksi tanpa https ditolak — lihat blok di bawah.
+    const env = parseEnv({
+      ...valid,
+      NODE_ENV: "production",
+      BETTER_AUTH_URL: "https://kebun.example.com",
+    });
     expect(env.DATABASE_URL).toBe(valid.DATABASE_URL);
     expect(env.NODE_ENV).toBe("production");
   });
@@ -88,6 +94,39 @@ describe("otentikasi wajib di produksi", () => {
       expect(isAuthConfigured(parseEnv(without))).toBe(false);
     });
   }
+
+  /**
+   * Flag `Secure` pada cookie sesi ditentukan better-auth dari apakah baseURL
+   * dimulai `https://`. Diisi `http://` di produksi, cookie dikirim polos tanpa
+   * satu pun galat atau peringatan — aplikasinya jalan normal, dan siapa pun di
+   * jaringan yang sama bisa membaca lalu memakai sesinya.
+   */
+  it("refuses a plain http origin in production", () => {
+    expect(() =>
+      parseEnv({
+        ...valid,
+        NODE_ENV: "production",
+        BETTER_AUTH_URL: "http://kebun.example.com",
+      })
+    ).toThrow(/BETTER_AUTH_URL/);
+  });
+
+  it("accepts https in production", () => {
+    expect(() =>
+      parseEnv({
+        ...valid,
+        NODE_ENV: "production",
+        BETTER_AUTH_URL: "https://kebun.example.com",
+      })
+    ).not.toThrow();
+  });
+
+  /** Tapi localhost tetap boleh http — di situ tidak ada yang menyadap. */
+  it("still allows http on localhost", () => {
+    expect(() =>
+      parseEnv({ ...valid, BETTER_AUTH_URL: "http://localhost:3000" })
+    ).not.toThrow();
+  });
 
   it("rejects a session secret too short to be worth signing with", () => {
     expect(() =>

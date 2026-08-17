@@ -5,6 +5,7 @@ import { Sprout, TriangleAlert } from "lucide-react";
 import { SignInButton } from "@/components/auth/sign-in-button";
 import { Card, CardContent } from "@/components/ui/card";
 import { authErrorMessage } from "@/lib/auth-errors";
+import { safeNextPath } from "@/lib/safe-path";
 import { authReady } from "@/server/auth/config";
 import { currentActor } from "@/server/auth/guard";
 
@@ -21,7 +22,9 @@ const asString = (value: string | string[] | undefined) =>
 export default async function SignInPage(props: PageProps<"/masuk">) {
   const { lanjut, error } = await props.searchParams;
 
-  const next = asString(lanjut) ?? "/";
+  // Disaring, bukan dipakai apa adanya: nilainya datang dari URL, dan
+  // `redirect()` akan menuruti `https://…` maupun `//…` dengan senang hati.
+  const next = safeNextPath(lanjut);
   const message = authErrorMessage(asString(error));
 
   // Yang sudah masuk tidak perlu melihat halaman ini — kecuali ia sampai ke sini

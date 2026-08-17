@@ -29,7 +29,7 @@ terbitkan yang baru di Supabase dan cabut yang lama.
 | `DATABASE_URL` | pooler **6543**, `?pgbouncer=true` | wajib. Transaction pooler — satu-satunya yang aman untuk serverless |
 | `DIRECT_URL` | pooler **5432** | untuk `migrate deploy`; DDL tidak jalan di 6543 |
 | `BETTER_AUTH_SECRET` | `openssl rand -base64 32` | **yang baru**, bukan salinan dari `.env` lokal |
-| `BETTER_AUTH_URL` | `https://<domain>` | harus sama persis dengan yang didaftarkan di Google |
+| `BETTER_AUTH_URL` | `https://<domain>` | **harus https** — flag `Secure` pada cookie sesi ditentukan dari ini, dan `parseEnv` menolak boot kalau bukan. Harus sama persis dengan yang didaftarkan di Google |
 | `GOOGLE_CLIENT_ID` | dari Google Console | |
 | `GOOGLE_CLIENT_SECRET` | dari Google Console | |
 | `SUPABASE_SERVICE_ROLE_KEY` | kunci **hasil rotasi** | opsional — tanpa ini foto temuan mati, sisanya jalan |
