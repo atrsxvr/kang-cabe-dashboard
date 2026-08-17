@@ -408,6 +408,40 @@ dan terjadi berminggu-minggu setelahnya.
 berbulan-bulan terpisah tetap berjajar di "hari ke-90". Sumbu tanggal hanya
 bisa menceritakan musim yang sedang dilihat.
 
+**Sebaran hasil tiap petik** menjawab pertanyaan yang berbeda dari grafik di
+atasnya: bukan kapan hasilnya naik-turun, melainkan seberapa bisa diandalkan.
+Rata-rata sendirian tidak bisa membedakan kebun yang memberi 6 kg tiap minggu
+dari kebun yang memberi 15 kg sekali lalu 1 kg tiga kali — keduanya berakhir di
+angka yang sama, tapi hanya yang pertama bisa dijanjikan ke pembeli.
+
+Tiga angka: **rata-rata petik**, **simpangan baku**, dan **koefisien variasi**.
+Yang terakhir yang bisa dibandingkan antar musim — kebun 5.000 pohon yang
+berayun 10 kg tidak lebih goyah dari kebun 230 pohon yang berayun 3 kg, dan
+simpangan baku telanjang akan bilang sebaliknya. CV diterjemahkan ke kata
+(stabil / cukup berayun / sangat berayun) dengan ambang yang diakui sebagai
+konvensi, bukan hukum.
+
+Simpangan bakunya **sampel**, dibagi n−1: petikan yang tercatat adalah contoh
+dari musim yang masih berjalan, dan membaginya dengan n memperlakukan yang
+belum terjadi seolah sudah diketahui — selalu ke arah yang lebih enak dilihat.
+
+Grafiknya sebar, bukan garis. Garis menyambungkan dua petikan berjarak seminggu
+seolah ada nilai di antaranya, padahal di antaranya tidak ada panen sama sekali;
+yang mau dibaca justru jarak vertikal antar titik. Pita menandai satu simpangan
+baku dari rata-rata, dan titik di luar dua simpangan diberi warna sendiri —
+**ungu, sengaja bukan kuning atau merah**, karena keduanya sudah berarti afkir
+dan rugi di halaman lain, sementara petikan yang jauh dari rata-rata bisa jadi
+panen terbaik semusim.
+
+Kartunya menyebut batasnya sendiri: angka ini bilang seberapa besar ayunannya,
+bukan petikan mana yang bermasalah. Panen cabai memang naik pelan, memuncak,
+lalu turun — sebagian sebaran yang terukur adalah bentuk kurva itu, bukan
+ketidakstabilan yang bisa diperbaiki. Kartu yang diam soal ini mengundang orang
+mengejar sebab yang tidak ada.
+
+Di bawah **empat petikan** kartunya menolak berbicara. Satu angka yang meleset
+menggeser seluruh hitungannya, dan pembacanya tidak punya cara tahu itu terjadi.
+
 **Belum ada:** tren harga pasar lokal dari luar.
 
 ### 4.7 Keuangan & Kas — jalan
@@ -665,3 +699,47 @@ pembilangnya biaya sampai hari ini, jadi harga lantai di awal musim sedikit
 lebih longgar daripada yang sebenarnya. Ditunda dengan sadar: menambahkan
 tebakan kedua akan menggandakan sumber kesalahannya, dan menampilkan modal
 real-time di sebelahnya sudah membuat selisihnya terlihat.
+
+---
+
+## 8. Peta Jalan
+
+Usulan berikutnya, diurutkan dari yang paling mahal kalau tidak ada. Bagian 7
+mencatat yang **sengaja** tidak ada; yang di sini adalah yang memang belum
+dikerjakan.
+
+Satu benang merah: hampir semuanya menjawab pertanyaan dari data yang **sudah
+lengkap tercatat** dan belum pernah ditanya. Itu yang membuatnya murah.
+
+**1. Autentikasi & RBAC.** Sama dengan bagian 7 nomor 1, dan sekarang lebih
+mendesak daripada saat ditulis: aplikasi ini sudah menyimpan uang, iuran
+pribadi tiap anggota, dan harga jual. Selama belum ada, tiap fitur baru di
+bawah cuma menambah yang bisa dirusak orang.
+
+**2. Perbandingan racikan lawan hasil.** Paling berharga dan paling ambisius.
+Racikan, tugas yang memakainya di HST tertentu, dan kurva panen semuanya sudah
+tercatat; menyandingkannya menjawab apakah program nutrisi musim ini benar-benar
+bekerja. Itu pertanyaan yang seluruh Pustaka Racikan dibangun untuk menjawabnya,
+dan sampai sekarang belum pernah ditanya sekali pun.
+
+Perlu kehati-hatian: yang muncul adalah korelasi, bukan sebab-akibat. Cuaca dan
+umur tanaman bergerak bersamaan dengan jadwal racikan. Halamannya harus
+menyebutkan itu, bukan menyajikan grafik yang mengundang kesimpulan yang tidak
+didukungnya.
+
+**3. Post-mortem musim — satu halaman yang bisa dicetak.** Semua bahannya sudah
+ada dan tersebar di lima tab. Musim tutup adalah saat berempat duduk bersama;
+sekarang saat itu menuntut membuka lima tab dan menyalin angka ke tempat lain.
+
+**4. Kurva harga jual sepanjang musim.** Tiap transaksi sudah punya tanggal dan
+harga, tapi yang ditampilkan baru rata-ratanya — satu angka untuk delapan bulan.
+Grafiknya menjawab "harga terbaik ada di HST berapa", dan itu mengubah kapan
+panen berikutnya dijadwalkan.
+
+**5. Rekap per pembeli.** Nama pembeli sudah tercatat di tiap transaksi. Siapa
+yang mengambil paling banyak, siapa yang bayarnya paling lama, siapa yang
+harganya paling bagus — tiga pertanyaan yang datanya lengkap dan belum pernah
+dijawab.
+
+**6. Ekspor CSV.** Sederhana, dan menghapus ketakutan yang wajar bahwa data
+kebun terkunci di dalam satu aplikasi buatan sendiri.

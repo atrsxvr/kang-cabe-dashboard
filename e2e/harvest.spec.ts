@@ -207,6 +207,28 @@ test.describe.serial("panen, jual, tagih", () => {
     await expect(row).not.toContainText("4,75 kg");
   });
 
+  /**
+   * Musim ini cuma punya satu petikan, dan itulah gunanya di sini: kartu
+   * sebaran harus menolak berbicara, bukan menerbitkan simpangan baku dari satu
+   * angka. Sisi sebaliknya — hitungannya sendiri — diuji di `lib/spread.test.ts`
+   * terhadap sembilan belas petikan musim rujukan, tanpa perlu database.
+   */
+  test("sebaran menolak dihitung dari petikan yang terlalu sedikit", async ({
+    page,
+  }) => {
+    await harvestPage(page);
+
+    const card = page
+      .locator('[data-slot="card"]')
+      .filter({ hasText: "Sebaran hasil tiap petik" });
+    await expect(card).toBeVisible();
+
+    await expect(card).toContainText("Butuh minimal 4");
+    // Tidak boleh ada angka sebaran yang terlanjur tercetak.
+    await expect(card).not.toContainText("Simpangan baku");
+    await expect(card.locator(".recharts-wrapper")).toHaveCount(0);
+  });
+
   test("dan ke kartu panen di Dashboard", async ({ page }) => {
     await page.goto(`/?season=${seasonId}`);
 

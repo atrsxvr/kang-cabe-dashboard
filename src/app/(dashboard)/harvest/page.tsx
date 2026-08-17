@@ -5,6 +5,7 @@ import { Wheat } from "lucide-react";
 import { PageHeader } from "@/components/common/page-header";
 import { StatusBadge } from "@/components/common/status-badge";
 import { HarvestChart } from "@/components/charts/harvest-chart";
+import { SpreadCard } from "@/components/harvest/spread-card";
 import { HarvestDialog } from "@/components/harvest/harvest-dialog";
 import { HarvestList } from "@/components/harvest/harvest-list";
 import { HarvestViews } from "@/components/harvest/harvest-views";
@@ -211,6 +212,12 @@ export default async function HarvestPage(props: PageProps<"/harvest">) {
                 </CardContent>
               </Card>
             ) : null}
+
+            {/* Grafik di atas menjawab "kapan hasilnya naik dan turun"; yang ini
+                menjawab "seberapa bisa diandalkan". Dua pertanyaan berbeda dari
+                deretan angka yang sama, dan kurva bertumpuk tidak bisa
+                menunjukkan lebar ayunannya. */}
+            <SpreadCard points={curve} />
 
             <HarvestList
             harvests={harvests}
