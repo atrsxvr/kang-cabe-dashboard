@@ -23,6 +23,23 @@ export function isPhotoUploadEnabled(): boolean {
   return storageConfig() !== null;
 }
 
+/**
+ * Dua header, bukan satu — dan itu bukan kelebihan berjaga-jaga.
+ *
+ * Kunci Supabase model baru (`sb_secret_…`) **bukan JWT**: ia string opaque yang
+ * diterjemahkan di sisi Supabase. Dikirim cuma sebagai `Authorization: Bearer`,
+ * Storage mencoba memecahnya sebagai JWT dan menolak dengan
+ * `403 "Invalid Compact JWS"` — pesan yang tidak menyebut sepatah kata pun soal
+ * bentuk kunci, jadi ia terbaca seperti kunci yang salah tempel.
+ *
+ * Header `apikey` yang membuatnya diterima. Kunci `service_role` model lama
+ * menerima keduanya, jadi mengirim dua-duanya benar untuk kedua bentuk — dan itu
+ * yang membuat berkas ini tidak perlu tahu kunci mana yang dipasang.
+ */
+function authHeaders(key: string): Record<string, string> {
+  return { Authorization: `Bearer ${key}`, apikey: key };
+}
+
 export type UploadResult =
   | { ok: true; url: string }
   | { ok: false; message: string };
@@ -54,7 +71,7 @@ export async function uploadPhoto(file: File): Promise<UploadResult> {
     {
       method: "POST",
       headers: {
-        Authorization: `Bearer ${config.key}`,
+        ...authHeaders(config.key),
         "Content-Type": file.type,
         "cache-control": "public, max-age=31536000, immutable",
       },
@@ -101,7 +118,7 @@ export async function deletePhoto(photoUrl: string): Promise<void> {
 
   const response = await fetch(
     `${config.url}/storage/v1/object/${PHOTO_BUCKET}/${path}`,
-    { method: "DELETE", headers: { Authorization: `Bearer ${config.key}` } }
+    { method: "DELETE", headers: authHeaders(config.key) }
   ).catch((error: unknown) => {
     console.error("Gagal menghapus foto:", error);
     return null;
