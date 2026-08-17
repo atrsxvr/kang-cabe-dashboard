@@ -2,7 +2,16 @@ import Link from "next/link";
 import { Cloud, CloudRain, CloudSun, Sun, Zap } from "lucide-react";
 
 import { Card, CardContent } from "@/components/ui/card";
-import { sprayAdvice, weatherLabels, type WeatherKind } from "@/lib/weather";
+import {
+  SPRAY_HOURS,
+  formatMm,
+  sprayAdviceText,
+  sprayReason,
+  sprayVerdict,
+  weatherLabels,
+  type SprayVerdict,
+  type WeatherKind,
+} from "@/lib/weather";
 import { cn } from "@/lib/utils";
 import type { WeatherNow } from "@/server/queries/weather";
 
@@ -14,6 +23,20 @@ const icons: Record<
   BERAWAN: CloudSun,
   HUJAN: CloudRain,
   BADAI: Zap,
+};
+
+/**
+ * Vonis penyemprotan diberi warnanya sendiri, terpisah dari warna langit.
+ *
+ * Cerah bisa berbarengan dengan "jangan nyemprot" — hujan sore yang diramalkan
+ * tidak membatalkan matahari pagi. Memakai satu warna untuk keduanya membuat
+ * kartunya terlihat membantah dirinya sendiri.
+ */
+const verdictTone: Record<SprayVerdict, string> = {
+  AMAN: "text-emerald-700 dark:text-emerald-400",
+  HATI_HATI: "text-amber-700 dark:text-amber-400",
+  JANGAN: "text-destructive font-medium",
+  TIDAK_TAHU: "text-muted-foreground",
 };
 
 const tones: Record<WeatherKind, string> = {
@@ -57,6 +80,8 @@ export function WeatherCard({
   }
 
   const Icon = icons[weather.kind];
+  const verdict = sprayVerdict(weather.today);
+  const reason = sprayReason(weather.today);
 
   return (
     <Card>
@@ -81,9 +106,17 @@ export function WeatherCard({
           </div>
         </div>
 
-        <p className="text-sm">
-          {sprayAdvice(weather.kind, weather.rainChance)}
-        </p>
+        {/* Vonisnya dan angkanya bersama-sama. Kartu ini pernah menulis "Cerah"
+            dan "bakal keguyur" bersebelahan tanpa satu pun menyebutkan
+            dasarnya, dan yang membacanya tidak punya cara membantahnya. */}
+        <div className="grid gap-0.5">
+          <p className={cn("text-sm", verdictTone[verdict])}>
+            {sprayAdviceText[verdict]}
+          </p>
+          {reason ? (
+            <p className="text-muted-foreground text-xs">{reason}</p>
+          ) : null}
+        </div>
 
         <div className="grid grid-cols-4 gap-2 border-t pt-3">
           {weather.days.map((day) => {
@@ -102,13 +135,21 @@ export function WeatherCard({
                   {day.maxTemp}°
                   <span className="text-muted-foreground">/{day.minTemp}°</span>
                 </p>
+                {/* Milimeter, bukan persen. Persen tidak bisa membedakan
+                    gerimis yang tidak membilas apa pun dari hujan yang
+                    membatalkan satu trip menyemprot. */}
                 <p className="text-muted-foreground text-[11px] tabular-nums">
-                  {day.rainChance}% hujan
+                  {day.rainMm > 0 ? formatMm(day.rainMm) : "kering"}
                 </p>
               </div>
             );
           })}
         </div>
+
+        <p className="text-muted-foreground text-[11px]">
+          Dihitung dari jam {SPRAY_HOURS.from}–{SPRAY_HOURS.to} saja — hujan
+          tengah malam nggak menghalangi siapa pun nyemprot.
+        </p>
       </CardContent>
     </Card>
   );

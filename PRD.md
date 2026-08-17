@@ -100,6 +100,32 @@ membilas racikan sebelum sempat diserap, jadi yang dibaca orang adalah "aman
 buat nyemprot" atau "tunda dulu". Kalau koordinatnya belum diisi, kartunya diam
 dan menyuruh mengisi, bukan menebak lokasi.
 
+Vonisnya dihitung dari data **per jam**, disaring ke **jam 6–17**, dan diukur
+dalam **milimeter** — ketiganya keputusan yang lahir dari kekeliruan nyata.
+Ringkasan harian Open-Meteo melaporkan peluang hujan tertinggi sepanjang 24 jam
+dan kode cuaca paling parah sehari itu; dibaca begitu, kartunya pernah menyuruh
+menunda penyemprotan di hari yang kering total gara-gara gerimis 0,1 mm jam
+sepuluh malam, sambil menulis "Cerah" di sebelahnya. Datanya benar sejak awal —
+yang salah pertanyaannya.
+
+Peluang saja tidak pernah cukup. Yang menentukan apakah racikan terbilas adalah
+berapa milimeternya: di bawah 0,5 mm air tidak mengalir di daun, dan peluang 71%
+untuk 0,1 mm bukan alasan membatalkan satu trip menyemprot. Menahan seseorang
+dari pekerjaannya butuh dua-duanya — hujan yang cukup besar **dan** ramalan yang
+cukup yakin.
+
+Angka di balik vonisnya ikut dicetak. Peringatan yang tidak menyebut dasarnya
+tidak bisa dibantah saat ia keliru, dan saat ia keliru sekali, yang membacanya
+berhenti memercayainya untuk selamanya.
+
+**Yang tidak bisa diperbaiki dengan ganti API:** hujan siang tropis itu
+konvektif — awan yang tumbuh dalam hitungan jam di satu tempat. Tidak ada model
+global mana pun, gratis atau bayar, yang menebaknya beberapa hari ke depan.
+Kalau suatu saat masih terlalu sering keliru, kandidat berikutnya **BMKG**
+(ramalan per kelurahan, gratis, tanpa kunci) sebagai sumber **kedua** — dua
+sumber yang berbeda pendapat itu sendiri informasi, dan yang sepakat jauh lebih
+bisa dipercaya daripada salah satunya sendirian.
+
 Di bawahnya ada **grafik hasil panen** musim berjalan.
 
 ### 4.2 Manajemen Musim Tanam — jalan
