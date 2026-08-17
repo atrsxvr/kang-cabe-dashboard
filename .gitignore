@@ -37,6 +37,14 @@ yarn-error.log*
 # prisma (generated client is a build artifact, recreated by `prisma generate`)
 /src/generated/
 
+# dokumen kerja — disimpan lokal, tidak ikut ke repo.
+#
+# AGENTS.md dikecualikan karena ia satu-satunya yang **ditulis ulang otomatis**
+# oleh `next dev`. Kalau ikut diabaikan lalu dihapus, ia muncul lagi sendiri
+# setiap kali dev server jalan dan tree jadi kotor terus-menerus.
+*.md
+!AGENTS.md
+
 # vercel
 .vercel
 
