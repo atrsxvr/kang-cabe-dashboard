@@ -41,36 +41,33 @@ export function SpreadCard({ points }: { points: SpreadPoint[] }) {
       <CardContent className="grid gap-3 py-5">
         <div className="flex items-center gap-2">
           <Sigma className="text-muted-foreground size-4" aria-hidden />
-          <h2 className="text-sm font-medium">Sebaran hasil tiap petik</h2>
+          <h2 className="text-sm font-medium">Naik-turun hasil panen</h2>
         </div>
 
         {spread === null ? (
           <p className="text-muted-foreground text-sm">
-            Baru {points.length} petikan tercatat. Butuh minimal {MIN_SESSIONS}{" "}
-            buat bisa bilang apa-apa soal sebarannya — di bawah itu satu angka
-            yang meleset menggeser seluruh hitungannya, dan nggak ada cara
-            ketahuan.
+            Baru {points.length} kali petik tercatat. Butuh minimal{" "}
+            {MIN_SESSIONS} dulu — kalau baru sedikit, satu angka yang meleset
+            bikin hitungannya ngaco dan nggak bakal ketahuan.
           </p>
         ) : (
           <>
-            <div className="grid grid-cols-3 gap-3 text-center">
+            {/* Dua kotak, bukan tiga. Label yang jujur untuk persentasenya
+                butuh empat kata, dan di layar 360px empat kata membungkus jadi
+                tiga baris — jadi persentasenya pindah ke lencana di bawah, di
+                mana ia bisa dijelaskan dengan kalimat utuh. */}
+            <div className="grid grid-cols-2 gap-3 text-center">
               <div>
                 <p className="text-base font-semibold tabular-nums sm:text-lg">
                   {formatKg(spread.mean)}
                 </p>
-                <p className="text-muted-foreground text-xs">Rata-rata petik</p>
+                <p className="text-muted-foreground text-xs">Rata-rata</p>
               </div>
               <div>
                 <p className="text-base font-semibold tabular-nums sm:text-lg">
                   ± {formatKg(spread.sd)}
                 </p>
-                <p className="text-muted-foreground text-xs">Simpangan baku</p>
-              </div>
-              <div>
-                <p className="text-base font-semibold tabular-nums sm:text-lg">
-                  {formatPercent(spread.cv)}
-                </p>
-                <p className="text-muted-foreground text-xs">Koefisien variasi</p>
+                <p className="text-muted-foreground text-xs">Naik-turunnya</p>
               </div>
             </div>
 
@@ -79,19 +76,21 @@ export function SpreadCard({ points }: { points: SpreadPoint[] }) {
                 variant="outline"
                 className={`justify-self-start ${toneOf[stabilityOf(spread.cv) as string]}`}
               >
-                {stabilityLabels[stabilityOf(spread.cv)!]}
+                {stabilityLabels[stabilityOf(spread.cv)!]} —{" "}
+                {formatPercent(spread.cv)} dari rata-rata
               </Badge>
             ) : null}
 
             <HarvestSpreadChart points={points} spread={spread} />
 
             <p className="text-muted-foreground text-xs">
-              Garis putus-putus itu rata-rata, pitanya satu simpangan baku — di
-              situ kira-kira dua per tiga petikan sepantasnya jatuh. Dari{" "}
-              {spread.count} petikan, yang terkecil {formatKg(spread.min)} dan
-              terbesar {formatKg(spread.max)}.
+              Tiap titik satu kali petik. Garis putus-putus itu rata-ratanya,
+              kotak hijaunya kisaran yang paling sering kejadian — dari tiga kali
+              petik, biasanya dua masuk situ. Dari {spread.count} kali petik,
+              paling sedikit {formatKg(spread.min)} dan paling banyak{" "}
+              {formatKg(spread.max)}.
               {points.some((point) => isOutlier(point.good, spread))
-                ? " Titik ungu berjarak lebih dari dua simpangan — jarang, jadi biasanya ada ceritanya. Bisa panen terbaik, bisa juga yang anjlok."
+                ? " Titik ungu itu yang jauh banget dari biasanya — jarang kejadian, jadi biasanya ada ceritanya. Bisa panen paling bagus, bisa juga yang anjlok."
                 : ""}
             </p>
 
@@ -100,10 +99,10 @@ export function SpreadCard({ points }: { points: SpreadPoint[] }) {
                 diperbaiki. Kartu yang diam soal ini mengundang orang mengejar
                 sebab yang tidak ada. */}
             <p className="text-muted-foreground text-xs">
-              Angka ini bilang seberapa besar ayunannya, bukan petikan mana yang
-              bermasalah. Panen cabai memang naik pelan di awal, memuncak, lalu
-              turun menjelang habis — petikan pertama dan terakhir sepantasnya
-              kecil, dan itu ikut terhitung di sini.
+              Angka ini cuma bilang seberapa besar naik-turunnya, bukan petikan
+              mana yang salah. Panen cabai emang gitu — sedikit di awal, paling
+              banyak di tengah, lalu turun lagi pas mau habis. Petikan pertama
+              dan terakhir wajar kecil, dan itu ikut kehitung di sini.
             </p>
           </>
         )}

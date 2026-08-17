@@ -220,12 +220,12 @@ test.describe.serial("panen, jual, tagih", () => {
 
     const card = page
       .locator('[data-slot="card"]')
-      .filter({ hasText: "Sebaran hasil tiap petik" });
+      .filter({ hasText: "Naik-turun hasil panen" });
     await expect(card).toBeVisible();
 
     await expect(card).toContainText("Butuh minimal 4");
     // Tidak boleh ada angka sebaran yang terlanjur tercetak.
-    await expect(card).not.toContainText("Simpangan baku");
+    await expect(card).not.toContainText("Naik-turunnya");
     await expect(card.locator(".recharts-wrapper")).toHaveCount(0);
   });
 

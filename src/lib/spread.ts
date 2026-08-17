@@ -100,8 +100,15 @@ export function stabilityOf(cv: number | null): Stability | null {
   return "BERAYUN";
 }
 
+/**
+ * Ditulis dengan kata yang dipakai orang, bukan istilah statistik.
+ *
+ * Tiga dari empat yang memakai aplikasi ini bukan orang teknis. "Koefisien
+ * variasi tinggi" tidak memberi tahu apa pun kepada mereka; "naik-turunnya
+ * gede" langsung terbayang.
+ */
 export const stabilityLabels: Record<Stability, string> = {
-  STABIL: "Stabil",
-  SEDANG: "Cukup berayun",
-  BERAYUN: "Sangat berayun",
+  STABIL: "Panennya stabil",
+  SEDANG: "Agak naik-turun",
+  BERAYUN: "Naik-turunnya gede",
 };

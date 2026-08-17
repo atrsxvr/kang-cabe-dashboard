@@ -408,22 +408,31 @@ dan terjadi berminggu-minggu setelahnya.
 berbulan-bulan terpisah tetap berjajar di "hari ke-90". Sumbu tanggal hanya
 bisa menceritakan musim yang sedang dilihat.
 
-**Sebaran hasil tiap petik** menjawab pertanyaan yang berbeda dari grafik di
+**Naik-turun hasil panen** menjawab pertanyaan yang berbeda dari grafik di
 atasnya: bukan kapan hasilnya naik-turun, melainkan seberapa bisa diandalkan.
 Rata-rata sendirian tidak bisa membedakan kebun yang memberi 6 kg tiap minggu
 dari kebun yang memberi 15 kg sekali lalu 1 kg tiga kali — keduanya berakhir di
 angka yang sama, tapi hanya yang pertama bisa dijanjikan ke pembeli.
 
-Tiga angka: **rata-rata petik**, **simpangan baku**, dan **koefisien variasi**.
-Yang terakhir yang bisa dibandingkan antar musim — kebun 5.000 pohon yang
-berayun 10 kg tidak lebih goyah dari kebun 230 pohon yang berayun 3 kg, dan
-simpangan baku telanjang akan bilang sebaliknya. CV diterjemahkan ke kata
-(stabil / cukup berayun / sangat berayun) dengan ambang yang diakui sebagai
-konvensi, bukan hukum.
+Dua angka besar — **rata-rata** dan **naik-turunnya** — ditambah satu lencana
+yang menerjemahkan keduanya jadi kalimat: "Naik-turunnya gede — 61% dari
+rata-rata".
 
-Simpangan bakunya **sampel**, dibagi n−1: petikan yang tercatat adalah contoh
-dari musim yang masih berjalan, dan membaginya dengan n memperlakukan yang
-belum terjadi seolah sudah diketahui — selalu ke arah yang lebih enak dilihat.
+Persentase itu yang bisa dibandingkan antar musim. Kebun 5.000 pohon yang
+berayun 10 kg tidak lebih goyah dari kebun 230 pohon yang berayun 3 kg, dan
+angka naik-turun telanjang akan bilang sebaliknya. Ambang stabil / agak
+naik-turun / naik-turunnya gede diakui sebagai konvensi, bukan hukum.
+
+**Ditulis dengan kata yang dipakai orang.** Tiga dari empat anggota bukan orang
+teknis; "simpangan baku" dan "koefisien variasi" tidak memberi tahu mereka apa
+pun. Persentasenya pindah dari kotak angka ke lencana justru karena label yang
+jujur untuknya butuh empat kata, dan empat kata membungkus jadi tiga baris di
+layar 360px — di lencana ia muat sebagai kalimat utuh.
+
+Hitungannya sendiri tetap **simpangan baku sampel**, dibagi n−1: petikan yang
+tercatat adalah contoh dari musim yang masih berjalan, dan membaginya dengan n
+memperlakukan yang belum terjadi seolah sudah diketahui — selalu ke arah yang
+lebih enak dilihat.
 
 Grafiknya sebar, bukan garis. Garis menyambungkan dua petikan berjarak seminggu
 seolah ada nilai di antaranya, padahal di antaranya tidak ada panen sama sekali;
