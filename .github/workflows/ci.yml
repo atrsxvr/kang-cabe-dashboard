@@ -17,6 +17,14 @@ jobs:
       # on load. No query runs during the build, so a syntactically valid
       # placeholder is enough — CI never reaches a real database.
       DATABASE_URL: postgresql://ci:ci@localhost:5432/ci
+      # `next build` menyetel NODE_ENV=production, dan `parseEnv` menolak boot
+      # tanpa kredensial otentikasi di sana — sengaja, supaya satu deploy yang
+      # lupa mengisinya tidak menyalakan aplikasi dengan seluruh endpoint tulis
+      # terbuka. Build di CI karena itu perlu nilai bohongan; yang diperiksa
+      # bentuknya, bukan apakah Google mengenalinya.
+      GOOGLE_CLIENT_ID: ci-bohongan.apps.googleusercontent.com
+      GOOGLE_CLIENT_SECRET: GOCSPX-ci-bohongan
+      BETTER_AUTH_SECRET: ci-hanya-untuk-pengujian-cukup-panjang-32
       DIRECT_URL: postgresql://ci:ci@localhost:5432/ci
 
     steps:

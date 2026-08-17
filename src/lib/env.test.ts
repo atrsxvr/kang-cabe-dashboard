@@ -101,14 +101,26 @@ describe("otentikasi wajib di produksi", () => {
    * satu pun galat atau peringatan — aplikasinya jalan normal, dan siapa pun di
    * jaringan yang sama bisa membaca lalu memakai sesinya.
    */
-  it("refuses a plain http origin in production", () => {
+  it("refuses a plain http origin on a real host", () => {
+    expect(() =>
+      parseEnv({ ...valid, BETTER_AUTH_URL: "http://kebun.example.com" })
+    ).toThrow(/BETTER_AUTH_URL/);
+  });
+
+  /**
+   * Diperiksa dari host-nya, bukan dari NODE_ENV. Versi pertama memakai
+   * `NODE_ENV === "production"` — dan `next build` menyetelnya pada setiap
+   * build, jadi penjaganya menolak boot pada perintah yang paling sering
+   * dijalankan. Build lokal dan CI sama-sama mati sebelum ketahuan.
+   */
+  it("does not depend on NODE_ENV, which every build sets", () => {
     expect(() =>
       parseEnv({
         ...valid,
         NODE_ENV: "production",
-        BETTER_AUTH_URL: "http://kebun.example.com",
+        BETTER_AUTH_URL: "http://localhost:3000",
       })
-    ).toThrow(/BETTER_AUTH_URL/);
+    ).not.toThrow();
   });
 
   it("accepts https in production", () => {

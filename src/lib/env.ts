@@ -87,21 +87,41 @@ function requireAuthInProduction(env: Env): string[] {
     .filter((key) => !env[key])
     .map((key) => `  ${key}: wajib di produksi — tanpanya login mati total`);
 
-  /**
-   * `https` bukan kerapian, dan ini satu-satunya tempat yang bisa memaksanya.
-   *
-   * better-auth memutuskan flag `Secure` pada cookie sesi dari apakah baseURL
-   * dimulai `https://`. Diisi `http://` di produksi, cookie sesi dikirim polos —
-   * dan siapa pun di jaringan yang sama bisa membacanya lalu memakainya. Tidak
-   * ada galat, tidak ada peringatan; aplikasinya jalan normal.
-   */
-  if (!env.BETTER_AUTH_URL.startsWith("https://")) {
-    missing.push(
-      "  BETTER_AUTH_URL: wajib https di produksi — cookie sesi kehilangan flag Secure kalau tidak"
-    );
+  return missing;
+}
+
+/** localhost boleh polos — di situ tidak ada jaringan untuk disadap. */
+const LOCAL_HOSTS = new Set(["localhost", "127.0.0.1", "[::1]", "0.0.0.0"]);
+
+/**
+ * `http://` ke host selain localhost selalu salah, kapan pun.
+ *
+ * better-auth memutuskan flag `Secure` pada cookie sesi dari apakah baseURL
+ * dimulai `https://`. Diisi `http://domain-sungguhan`, cookie sesi dikirim
+ * polos — tanpa galat, tanpa peringatan, aplikasinya jalan normal, dan siapa pun
+ * di jaringan yang sama bisa membaca lalu memakai sesinya.
+ *
+ * Diperiksa dari **host-nya**, bukan dari `NODE_ENV`. Versi pertama memakai
+ * `NODE_ENV === "production"` dan itu keliru: `next build` menyetelnya pada
+ * setiap build, termasuk build lokal dan CI yang memang tidak punya domain
+ * sungguhan. Penjaganya lalu menolak boot pada perintah yang paling sering
+ * dijalankan. Host adalah sinyal yang benar-benar menandakan bahayanya.
+ */
+function requireSecureOrigin(env: Env): string[] {
+  let host: string;
+  try {
+    host = new URL(env.BETTER_AUTH_URL).hostname;
+  } catch {
+    return [];
   }
 
-  return missing;
+  if (env.BETTER_AUTH_URL.startsWith("https://") || LOCAL_HOSTS.has(host)) {
+    return [];
+  }
+
+  return [
+    `  BETTER_AUTH_URL: ${host} bukan localhost, jadi wajib https — cookie sesi kehilangan flag Secure kalau tidak`,
+  ];
 }
 
 /** Cukup lengkap untuk benar-benar bisa dipakai masuk. */
@@ -125,7 +145,10 @@ export function parseEnv(source: Record<string, string | undefined>): Env {
     );
   }
 
-  const missing = requireAuthInProduction(result.data);
+  const missing = [
+    ...requireAuthInProduction(result.data),
+    ...requireSecureOrigin(result.data),
+  ];
 
   if (missing.length > 0) {
     throw new Error(
