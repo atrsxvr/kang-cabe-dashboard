@@ -10,6 +10,19 @@ import { expect, test, type Page } from "@playwright/test";
  */
 
 const MATERIAL = `E2E Ajir ${Date.now()}`;
+/**
+ * Bahan bersatuan gram, didaftarkan spec ini sendiri.
+ *
+ * Ada karena kegagalan nyata: tes di bawah dulu mengandalkan gudang sungguhan
+ * kebun ini memuat sesuatu yang bisa ditakar per liter. Begitu basis datanya
+ * dikosongkan, tombol "Tambah Racikan" dinonaktifkan dengan benar — dan tesnya
+ * mati menunggu tombol yang aplikasinya memang sengaja matikan.
+ *
+ * Sekarang ia mendaftarkan kedua sisinya, dan itu justru lebih kuat: yang
+ * membuktikan penyaringnya bekerja bukan cuma bahwa ajir tidak ditawarkan, tapi
+ * bahwa pupuk ditawarkan pada saat yang sama.
+ */
+const DOSEABLE = `E2E Pupuk ${Date.now()}`;
 const SEASON = `E2E Musim ${Date.now()}`;
 const SHED_SEASON = `E2E Musim Gudang ${Date.now()}`;
 
@@ -70,6 +83,22 @@ test.describe.serial("bahan masuk gudang lalu jadi biaya musim", () => {
     await expect(page.getByText(MATERIAL).first()).toBeVisible();
   });
 
+  test("mendaftarkan bahan yang bisa ditakar per liter", async ({ page }) => {
+    await openInventory(page);
+
+    await page.getByRole("button", { name: "Tambah Bahan" }).click();
+    await page.getByLabel("Nama Bahan", { exact: true }).fill(DOSEABLE);
+    await page.getByLabel("Satuan", { exact: true }).selectOption("gram");
+    await page
+      .getByLabel("Kategori", { exact: true })
+      .selectOption("FERTILIZER");
+    await page.getByLabel("Stok Awal", { exact: true }).fill("5000");
+    await page.getByLabel("Batas Minimum", { exact: true }).fill("500");
+    await page.getByRole("button", { name: "Simpan Bahan" }).click();
+
+    await expect(page.getByText(DOSEABLE).first()).toBeVisible();
+  });
+
   test("bahan perlengkapan tidak ditawarkan ke form racikan", async ({
     page,
   }) => {
@@ -81,6 +110,9 @@ test.describe.serial("bahan masuk gudang lalu jadi biaya musim", () => {
 
     // A dose per litre of bamboo means nothing, so it must not be offerable.
     await expect(picker.getByRole("option", { name: MATERIAL })).toHaveCount(0);
+    // Dan pupuknya harus ada — tanpa sisi ini, penyaring yang membuang
+    // segalanya juga akan lulus.
+    await expect(picker.getByRole("option", { name: DOSEABLE })).toHaveCount(1);
   });
 
   test("tugas bisa mengambil bahan langsung dari gudang", async ({ page }) => {
