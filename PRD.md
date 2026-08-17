@@ -93,38 +93,49 @@ di tempat lain**:
   Racikan dan gudang; datanya sudah lengkap sejak lama, hanya belum pernah
   dibagi.
 
-**Kartu cuaca** mengambil ramalan dari Open-Meteo untuk koordinat kebun —
-dipilih karena tidak perlu API key, jadi tidak ada rahasia tambahan yang harus
-dirotasi. Yang ditonjolkan bukan cuacanya melainkan keputusannya: hujan
-membilas racikan sebelum sempat diserap, jadi yang dibaca orang adalah "aman
-buat nyemprot" atau "tunda dulu". Kalau koordinatnya belum diisi, kartunya diam
-dan menyuruh mengisi, bukan menebak lokasi.
+**Kartu cuaca** mengambil ramalan dari **BMKG** — badan meteorologi negara ini
+sendiri. Ramalannya diturunkan ke tingkat desa dan disetel untuk kondisi
+Indonesia, bukan grid global belasan kilometer; terbukti bukan sekadar klaim,
+karena dua desa berjarak lima kilometer mengembalikan angka yang berbeda.
+Gratis dan tanpa kunci API, jadi tidak ada rahasia tambahan yang harus dirotasi.
 
-Vonisnya dihitung dari data **per jam**, disaring ke **jam 6–17**, dan diukur
-dalam **milimeter** — ketiganya keputusan yang lahir dari kekeliruan nyata.
-Ringkasan harian Open-Meteo melaporkan peluang hujan tertinggi sepanjang 24 jam
-dan kode cuaca paling parah sehari itu; dibaca begitu, kartunya pernah menyuruh
-menunda penyemprotan di hari yang kering total gara-gara gerimis 0,1 mm jam
-sepuluh malam, sambil menulis "Cerah" di sebelahnya. Datanya benar sejak awal —
-yang salah pertanyaannya.
+Yang ditonjolkan bukan cuacanya melainkan keputusannya: hujan membilas racikan
+sebelum sempat diserap, jadi yang dibaca orang adalah "aman buat nyemprot" atau
+"tunda dulu". Vonisnya diberi warna sendiri, terpisah dari warna langit — cerah
+pagi memang bisa berbarengan dengan hujan sore, dan satu warna untuk keduanya
+pernah membuat kartunya menulis "Cerah" dan "bakal keguyur" bersebelahan.
 
-Peluang saja tidak pernah cukup. Yang menentukan apakah racikan terbilas adalah
-berapa milimeternya: di bawah 0,5 mm air tidak mengalir di daun, dan peluang 71%
-untuk 0,1 mm bukan alasan membatalkan satu trip menyemprot. Menahan seseorang
-dari pekerjaannya butuh dua-duanya — hujan yang cukup besar **dan** ramalan yang
-cukup yakin.
+Vonisnya dihitung dari **jam 6–17** dan diukur dalam **milimeter**. Keduanya
+lahir dari kekeliruan nyata: dibaca dari ringkasan harian, kartunya pernah
+menyuruh menunda penyemprotan di hari yang kering total gara-gara gerimis 0,1 mm
+jam sepuluh malam. Di bawah 0,5 mm air tidak mengalir di daun; di atas 2 mm
+racikan yang baru disemprot ikut turun.
 
-Angka di balik vonisnya ikut dicetak. Peringatan yang tidak menyebut dasarnya
-tidak bisa dibantah saat ia keliru, dan saat ia keliru sekali, yang membacanya
-berhenti memercayainya untuk selamanya.
+BMKG tidak menerbitkan peluang hujan, hanya jumlahnya — dan itu memang yang
+lebih menentukan. Yang hilang adalah kemampuan membedakan "banyak tapi belum
+pasti" dari "banyak dan hampir pasti"; keduanya kini sama-sama menahan
+penyemprotan, dan itu lebih berhati-hati daripada sebaliknya.
 
-**Yang tidak bisa diperbaiki dengan ganti API:** hujan siang tropis itu
+Slotnya **tiga jam sekali** dan ramalannya bergerak maju sepanjang hari, jadi
+lewat pukul lima sore hari ini sudah tidak punya jam kerja tersisa. Yang dipakai
+memutuskan karena itu **jendela nyemprot terdekat**, bukan "hari ini" — bertahan
+pada hari ini akan membuat kartunya bungkam setiap malam, padahal jam enam sore
+pertanyaannya memang sudah bergeser ke besok.
+
+BMKG minta **kode wilayah tingkat desa**, bukan koordinat, dan tidak punya
+endpoint pencarian wilayah. Kodenya karena itu diketik di Settings. Salah ketik
+tetap mengembalikan ramalan — ramalan tempat lain — jadi kartunya menampilkan
+balik nama desa yang benar-benar diramalkan, dan memperingatkan kalau tempat itu
+lebih dari 15 km dari koordinat kebun. Koordinat kebun tetap disimpan justru
+untuk pemeriksaan itu.
+
+Lajunya dibatasi BMKG; cache satu jam bukan penghematan melainkan syarat.
+
+**Yang tidak bisa diperbaiki dengan sumber mana pun:** hujan siang tropis itu
 konvektif — awan yang tumbuh dalam hitungan jam di satu tempat. Tidak ada model
-global mana pun, gratis atau bayar, yang menebaknya beberapa hari ke depan.
-Kalau suatu saat masih terlalu sering keliru, kandidat berikutnya **BMKG**
-(ramalan per kelurahan, gratis, tanpa kunci) sebagai sumber **kedua** — dua
-sumber yang berbeda pendapat itu sendiri informasi, dan yang sepakat jauh lebih
-bisa dipercaya daripada salah satunya sendirian.
+global, gratis atau bayar, yang menebaknya beberapa hari ke depan. Kalau suatu
+saat perlu pembanding, Open-Meteo bisa dipasang lagi sebagai sumber kedua: dua
+sumber yang sepakat jauh lebih bisa dipercaya daripada salah satunya sendirian.
 
 Di bawahnya ada **grafik hasil panen** musim berjalan.
 

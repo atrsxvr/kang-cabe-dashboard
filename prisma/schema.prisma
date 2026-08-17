@@ -155,11 +155,21 @@ model User {
 model GardenProfile {
   id        String   @id @default("garden")
   name      String   @default("Kebun Kang Cabe")
-  /// Koordinat untuk ramalan cuaca. Kosong berarti kartu cuacanya diam saja
-  /// dan menyuruh mengisinya, bukan menebak lokasi.
+  /// Koordinat kebun. Dipakai menampilkan lokasi dan memeriksa apakah kode
+  /// wilayah BMKG di bawah benar-benar menunjuk tempat yang sama.
   latitude  Float?
   longitude Float?
   locationName String?
+  /// Kode wilayah tingkat desa/kelurahan milik BMKG, mis. "32.76.07.1005".
+  ///
+  /// BMKG tidak menerima lintang-bujur, dan tidak punya endpoint pencarian
+  /// wilayah — jadi kodenya harus diketik. Kosong berarti kartu cuacanya diam
+  /// dan menyuruh mengisinya, sama seperti koordinat yang belum diisi.
+  ///
+  /// Diverifikasi dengan cara memanggilnya: jawaban BMKG menyertakan nama desa
+  /// beserta koordinatnya, jadi kode yang salah ketik langsung terlihat sebagai
+  /// nama tempat yang asing atau jarak yang jauh dari kebun.
+  bmkgAdm4 String?
   /// Volume tangki yang biasa dipakai, jadi kalkulator dosis tidak perlu
   /// diketik ulang tiap kali.
   defaultTankLitres Float @default(45)

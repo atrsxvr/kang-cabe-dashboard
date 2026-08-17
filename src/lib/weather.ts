@@ -1,9 +1,13 @@
 /**
- * WMO weather codes, in the words someone standing in a garden would use.
+ * Kode cuaca BMKG, dalam kata yang dipakai orang yang sedang berdiri di kebun.
  *
- * Collapsed hard: the difference between "light drizzle" and "moderate
- * drizzle" changes nothing about whether you spray today, and a forecast that
- * needs a legend is a forecast nobody reads.
+ * BMKG memakai penomoran yang searah WMO — 0/1 cerah, 2/3 berawan, 60-an hujan,
+ * 95 ke atas badai — jadi pemetaan ini juga masih benar kalau suatu hari
+ * sumbernya ditambah atau diganti.
+ *
+ * Dikelompokkan kasar: bedanya "hujan ringan" dan "hujan sedang" tidak mengubah
+ * keputusan menyemprot, dan ramalan yang butuh legenda adalah ramalan yang tidak
+ * dibaca siapa pun. Yang menentukan bukan namanya melainkan milimeternya.
  */
 export type WeatherKind = "CERAH" | "BERAWAN" | "HUJAN" | "BADAI";
 
@@ -50,17 +54,12 @@ export const RAIN_TRACE_MM = 0.5;
  */
 export const RAIN_WASHOUT_MM = 2;
 
-/** Peluang yang sudah cukup tinggi untuk dilihat langitnya dulu. */
-export const RAIN_CHANCE_WATCH = 60;
-
-export type HourlyRow = {
-  /** Waktu setempat, "2026-08-17T14:00" — tanpa offset, jadi jamnya dibaca apa adanya. */
+export type ForecastSlot = {
+  /** Waktu setempat, "2026-08-17 16:00" — tanpa offset, jadi jamnya dibaca apa adanya. */
   time: string;
   code: number;
-  /** Milimeter pada jam itu. */
+  /** Milimeter pada slot itu. */
   mm: number;
-  /** Persen. */
-  chance: number;
 };
 
 export type DayWindow = {
@@ -70,12 +69,15 @@ export type DayWindow = {
   kind: WeatherKind;
   /** Total milimeter yang diramalkan turun di jam kerja. */
   rainMm: number;
-  /** Peluang tertinggi di jam kerja, persen. */
-  rainChance: number;
   /** Ada kode badai di jam kerja. */
   storm: boolean;
-  /** Berapa jam kerja yang datanya terbaca. Nol berarti tidak bisa disimpulkan. */
-  hours: number;
+  /**
+   * Berapa slot jam kerja yang datanya terbaca. Nol berarti tidak bisa
+   * disimpulkan — dan itu keadaan yang wajar terjadi, bukan kegagalan: ramalan
+   * BMKG bergerak maju sepanjang hari, jadi lewat pukul lima sore hari ini
+   * memang tidak punya jam kerja tersisa untuk diramalkan.
+   */
+  slots: number;
 };
 
 const hourOf = (time: string) => Number(time.slice(11, 13));
@@ -90,19 +92,17 @@ const inSprayHours = (time: string) => {
  * Meringkas satu hari, hanya dari jam-jam kerjanya.
  *
  * Jumlah milimeternya ditotal, bukan diambil yang tertinggi: gerimis tipis
- * sepanjang sore bisa membilas lebih banyak daripada satu jam hujan sedang.
- * Peluangnya justru diambil yang tertinggi — satu jam dengan peluang 80% sudah
- * cukup untuk menunda, meski rata-rata sehari itu rendah.
+ * sepanjang sore bisa membilas lebih banyak daripada sekali hujan sedang.
  */
-export function summariseDay(date: string, rows: HourlyRow[]): DayWindow {
-  const hours = rows.filter(
-    (row) => dateOf(row.time) === date && inSprayHours(row.time)
+export function summariseDay(date: string, slots: ForecastSlot[]): DayWindow {
+  const inWindow = slots.filter(
+    (slot) => dateOf(slot.time) === date && inSprayHours(slot.time)
   );
 
-  const worst = hours.reduce<number>((code, row) => {
+  const worst = inWindow.reduce<number>((code, slot) => {
     const rank = (value: number) =>
       value >= 95 ? 4 : value >= 51 ? 3 : value >= 2 ? 2 : 1;
-    return rank(row.code) > rank(code) ? row.code : code;
+    return rank(slot.code) > rank(code) ? slot.code : code;
   }, 0);
 
   return {
@@ -110,36 +110,47 @@ export function summariseDay(date: string, rows: HourlyRow[]): DayWindow {
     kind: weatherKind(worst),
     // Dibulatkan ke satu desimal: milimeter dengan empat angka di belakang koma
     // memberi kesan ketepatan yang tidak dimiliki ramalan mana pun.
-    rainMm: Math.round(hours.reduce((sum, row) => sum + row.mm, 0) * 10) / 10,
-    rainChance: hours.reduce((max, row) => Math.max(max, row.chance), 0),
-    storm: hours.some((row) => row.code >= 95),
-    hours: hours.length,
+    rainMm: Math.round(inWindow.reduce((sum, slot) => sum + slot.mm, 0) * 10) / 10,
+    storm: inWindow.some((slot) => slot.code >= 95),
+    slots: inWindow.length,
   };
+}
+
+/**
+ * Jendela nyemprot terdekat yang masih bisa diramalkan.
+ *
+ * Bukan selalu hari ini, dan itu keputusan yang lahir dari bentuk data BMKG:
+ * ramalannya bergerak maju sepanjang hari, jadi dibuka pukul enam sore hari ini
+ * sudah tidak punya jam kerja tersisa. Bertahan pada "hari ini" akan membuat
+ * kartunya bungkam setiap malam — padahal jam enam sore pertanyaannya memang
+ * sudah bergeser ke besok.
+ */
+export function nextSprayWindow<T extends DayWindow>(days: T[]): T | null {
+  return days.find((day) => day.slots > 0) ?? null;
 }
 
 export type SprayVerdict = "AMAN" | "HATI_HATI" | "JANGAN" | "TIDAK_TAHU";
 
 /**
- * Boleh menyemprot atau tidak, dari dua angka yang berbeda perannya.
+ * Boleh menyemprot atau tidak, dan yang memutuskan cuma milimeter.
  *
- * Peluang saja tidak cukup — 71% peluang gerimis 0,1 mm bukan alasan menunda,
- * dan itulah kekeliruan yang membuat kartu ini pernah menyuruh menunda di hari
- * yang tidak turun hujan sedikit pun. Milimeternya yang menentukan apakah
- * racikannya terbilas; peluangnya menentukan seberapa yakin.
+ * BMKG tidak menerbitkan peluang hujan, hanya jumlahnya — dan setelah dipikir
+ * lagi itu memang yang lebih penting dari keduanya. Peluang 71% untuk gerimis
+ * 0,1 mm pernah membuat kartu ini menyuruh menunda di hari yang tidak turun
+ * hujan sedikit pun; yang menentukan apakah racikan terbilas selalu berapa
+ * airnya, bukan seberapa yakin ramalannya.
+ *
+ * Yang hilang adalah kemampuan membedakan "banyak tapi belum pasti" dari
+ * "banyak dan hampir pasti". Keduanya kini sama-sama menahan penyemprotan, dan
+ * itu memang lebih berhati-hati daripada sebaliknya.
  */
 export function sprayVerdict(day: DayWindow): SprayVerdict {
-  if (day.hours === 0) return "TIDAK_TAHU";
+  if (day.slots === 0) return "TIDAK_TAHU";
   if (day.storm) return "JANGAN";
 
-  // Titik-titik air yang tidak mengalir tidak membawa apa pun turun, seberapa
-  // pun yakinnya ramalan bahwa ia akan ada.
+  // Titik-titik air yang tidak mengalir tidak membawa apa pun turun.
   if (day.rainMm < RAIN_TRACE_MM) return "AMAN";
-
-  // Menahan seseorang dari pekerjaannya butuh dua-duanya: hujan yang cukup
-  // besar untuk membilas, dan ramalan yang cukup yakin hujan itu turun.
-  if (day.rainMm >= RAIN_WASHOUT_MM && day.rainChance >= RAIN_CHANCE_WATCH) {
-    return "JANGAN";
-  }
+  if (day.rainMm >= RAIN_WASHOUT_MM) return "JANGAN";
 
   return "HATI_HATI";
 }
@@ -159,24 +170,17 @@ export const sprayAdviceText: Record<SprayVerdict, string> = {
  * memercayainya untuk selamanya.
  */
 export function sprayReason(day: DayWindow): string {
-  if (day.hours === 0) return "";
+  if (day.slots === 0) return "";
 
   const window = `jam ${SPRAY_HOURS.from}–${SPRAY_HOURS.to}`;
 
-  // Nol milimeter dengan peluang di atas nol itu hal yang wajar: modelnya
-  // melihat kemungkinan hujan tanpa meramalkan air yang benar-benar turun.
-  // "Cuma 0 mm" bukan kalimat yang bisa dibaca siapa pun.
-  if (day.rainMm === 0) {
-    return day.rainChance > 0
-      ? `Ada peluang ${day.rainChance}% ${window}, tapi nggak ada hujan yang diramalkan turun.`
-      : `Nggak ada hujan diramalkan ${window}.`;
-  }
+  if (day.rainMm === 0) return `Nggak ada hujan diramalkan ${window}.`;
 
   if (day.rainMm < RAIN_TRACE_MM) {
-    return `Cuma ${formatMm(day.rainMm)} ${window} (peluang ${day.rainChance}%) — nggak cukup buat membilas.`;
+    return `Cuma ${formatMm(day.rainMm)} ${window} — nggak cukup buat membilas.`;
   }
 
-  return `Diramalkan ${formatMm(day.rainMm)} ${window}, peluang tertinggi ${day.rainChance}%.`;
+  return `Diramalkan ${formatMm(day.rainMm)} ${window}.`;
 }
 
 /** Koma, seperti seluruh angka lain di aplikasi ini. */

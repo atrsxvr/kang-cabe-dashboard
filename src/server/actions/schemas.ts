@@ -538,6 +538,22 @@ export const gardenProfileSchema = z.object({
     .min(-180)
     .max(180)
     .optional(),
+  /**
+   * Kode wilayah BMKG, empat tingkat dipisah titik: "32.76.07.1005".
+   *
+   * Bentuknya diperiksa di sini, tapi benar-tidaknya cuma bisa diperiksa dengan
+   * memanggilnya — dan itu dilakukan kartu cuaca, yang menampilkan balik nama
+   * desanya beserta jaraknya dari kebun.
+   */
+  bmkgAdm4: z
+    .string()
+    .trim()
+    .regex(
+      /^\d{2}\.\d{2}\.\d{2}\.\d{4}$/,
+      "Format kodenya 32.76.07.1005 — dua, dua, dua, empat angka"
+    )
+    .optional()
+    .or(z.literal("")),
   defaultTankLitres: z.coerce
     .number("Isi volume tangki")
     .positive("Harus lebih dari 0")

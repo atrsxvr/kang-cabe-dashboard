@@ -65,6 +65,8 @@ export type GardenProfileRow = {
   latitude: number | null;
   longitude: number | null;
   locationName: string | null;
+  /** Kode wilayah BMKG tingkat desa. Kosong berarti kartu cuaca diam. */
+  bmkgAdm4: string | null;
   defaultTankLitres: number;
 };
 
@@ -84,6 +86,7 @@ export async function getGardenProfile(): Promise<GardenProfileRow> {
       latitude: true,
       longitude: true,
       locationName: true,
+      bmkgAdm4: true,
       defaultTankLitres: true,
     },
   });

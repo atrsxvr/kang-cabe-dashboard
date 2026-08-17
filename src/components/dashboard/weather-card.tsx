@@ -30,7 +30,7 @@ const icons: Record<
  *
  * Cerah bisa berbarengan dengan "jangan nyemprot" — hujan sore yang diramalkan
  * tidak membatalkan matahari pagi. Memakai satu warna untuk keduanya membuat
- * kartunya terlihat membantah dirinya sendiri.
+ * kartunya terlihat membantah dirinya sendiri, dan itu pernah terjadi.
  */
 const verdictTone: Record<SprayVerdict, string> = {
   AMAN: "text-emerald-700 dark:text-emerald-400",
@@ -46,6 +46,29 @@ const tones: Record<WeatherKind, string> = {
   BADAI: "text-rose-600 dark:text-rose-400",
 };
 
+/** Kira-kira berapa kilometer, cukup untuk memeriksa sebuah kode wilayah. */
+function distanceKm(
+  a: { latitude: number; longitude: number },
+  b: { latitude: number; longitude: number }
+): number {
+  const dy = (a.latitude - b.latitude) * 111;
+  const dx =
+    (a.longitude - b.longitude) * 111 * Math.cos((a.latitude * Math.PI) / 180);
+  return Math.hypot(dx, dy);
+}
+
+/** "Hari ini" kalau jendelanya hari ini, kalau bukan sebut harinya. */
+function sprayWhen(label: string): string {
+  const today = new Intl.DateTimeFormat("id-ID", {
+    weekday: "short",
+    timeZone: "Asia/Jakarta",
+  }).format(new Date());
+
+  return label.toLowerCase() === today.toLowerCase()
+    ? "Hari ini:"
+    : `${label}:`;
+}
+
 /**
  * The forecast, framed as a spraying decision rather than as weather.
  *
@@ -55,9 +78,12 @@ const tones: Record<WeatherKind, string> = {
 export function WeatherCard({
   weather,
   locationName,
+  garden,
 }: {
   weather: WeatherNow | null;
   locationName: string | null;
+  /** Koordinat kebun, buat memeriksa apakah kode wilayahnya menunjuk ke situ. */
+  garden: { latitude: number; longitude: number } | null;
 }) {
   if (!weather) {
     return (
@@ -68,7 +94,11 @@ export function WeatherCard({
             <h2 className="text-sm font-medium">Cuaca Kebun</h2>
           </div>
           <p className="text-muted-foreground text-sm">
-            Belum tahu kebunnya di mana. Isi lintang dan bujurnya di{" "}
+            Belum tahu kebunnya di kelurahan mana. Isi{" "}
+            <span className="text-foreground font-medium">
+              Kode Wilayah BMKG
+            </span>{" "}
+            di{" "}
             <Link href="/settings" className="underline">
               Settings
             </Link>
@@ -80,8 +110,17 @@ export function WeatherCard({
   }
 
   const Icon = icons[weather.kind];
-  const verdict = sprayVerdict(weather.today);
-  const reason = sprayReason(weather.today);
+  const window = weather.window;
+  const verdict = window ? sprayVerdict(window) : "TIDAK_TAHU";
+  const reason = window ? sprayReason(window) : "";
+
+  // Kode wilayah yang salah ketik tetap mengembalikan ramalan — ramalan tempat
+  // lain. Jaraknya dari kebun satu-satunya cara ketahuan tanpa hafal koordinat,
+  // jadi disebut begitu ia mulai jauh.
+  const off =
+    garden && distanceKm(garden, weather.place) > 15
+      ? Math.round(distanceKm(garden, weather.place))
+      : null;
 
   return (
     <Card>
@@ -89,9 +128,12 @@ export function WeatherCard({
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0">
             <h2 className="text-sm font-medium">Cuaca Kebun</h2>
-            {locationName ? (
-              <p className="text-muted-foreground text-xs">{locationName}</p>
-            ) : null}
+            <p className="text-muted-foreground truncate text-xs">
+              {weather.place.desa}, {weather.place.kecamatan}
+              {locationName && locationName !== weather.place.desa
+                ? ` · ${locationName}`
+                : ""}
+            </p>
           </div>
           <div className="flex items-center gap-2">
             <Icon className={cn("size-7", tones[weather.kind])} aria-hidden />
@@ -111,6 +153,7 @@ export function WeatherCard({
             dasarnya, dan yang membacanya tidak punya cara membantahnya. */}
         <div className="grid gap-0.5">
           <p className={cn("text-sm", verdictTone[verdict])}>
+            {window ? `${sprayWhen(window.label)} ` : ""}
             {sprayAdviceText[verdict]}
           </p>
           {reason ? (
@@ -118,7 +161,7 @@ export function WeatherCard({
           ) : null}
         </div>
 
-        <div className="grid grid-cols-4 gap-2 border-t pt-3">
+        <div className="grid grid-cols-3 gap-2 border-t pt-3">
           {weather.days.map((day) => {
             const DayIcon = icons[day.kind];
 
@@ -135,11 +178,14 @@ export function WeatherCard({
                   {day.maxTemp}°
                   <span className="text-muted-foreground">/{day.minTemp}°</span>
                 </p>
-                {/* Milimeter, bukan persen. Persen tidak bisa membedakan
-                    gerimis yang tidak membilas apa pun dari hujan yang
-                    membatalkan satu trip menyemprot. */}
+                {/* Milimeter, bukan persen. BMKG memang tidak menerbitkan
+                    peluang hujan — dan milimeter yang lebih menentukan. */}
                 <p className="text-muted-foreground text-[11px] tabular-nums">
-                  {day.rainMm > 0 ? formatMm(day.rainMm) : "kering"}
+                  {day.slots === 0
+                    ? "—"
+                    : day.rainMm > 0
+                      ? formatMm(day.rainMm)
+                      : "kering"}
                 </p>
               </div>
             );
@@ -147,9 +193,20 @@ export function WeatherCard({
         </div>
 
         <p className="text-muted-foreground text-[11px]">
-          Dihitung dari jam {SPRAY_HOURS.from}–{SPRAY_HOURS.to} saja — hujan
-          tengah malam nggak menghalangi siapa pun nyemprot.
+          Dari BMKG, dihitung jam {SPRAY_HOURS.from}–{SPRAY_HOURS.to} saja —
+          hujan tengah malam nggak menghalangi siapa pun nyemprot.
         </p>
+
+        {off !== null ? (
+          <p className="text-amber-700 text-[11px] dark:text-amber-400">
+            Ramalannya buat tempat yang {off} km dari koordinat kebun. Cek lagi
+            Kode Wilayah BMKG di{" "}
+            <Link href="/settings" className="underline">
+              Settings
+            </Link>
+            .
+          </p>
+        ) : null}
       </CardContent>
     </Card>
   );

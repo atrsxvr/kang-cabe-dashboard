@@ -135,6 +135,7 @@ export async function updateGardenProfile(
   const parsed = gardenProfileSchema.safeParse({
     name: formData.get("name"),
     locationName: formData.get("locationName") ?? "",
+    bmkgAdm4: formData.get("bmkgAdm4") ?? "",
     latitude: formData.get("latitude") || undefined,
     longitude: formData.get("longitude") || undefined,
     defaultTankLitres: formData.get("defaultTankLitres"),
@@ -142,13 +143,14 @@ export async function updateGardenProfile(
 
   if (!parsed.success) return invalidForm(parsed.error);
 
-  const { locationName, latitude, longitude, ...rest } = parsed.data;
+  const { locationName, bmkgAdm4, latitude, longitude, ...rest } = parsed.data;
 
   await prisma.gardenProfile.upsert({
     where: { id: "garden" },
     update: {
       ...rest,
       locationName: locationName ? locationName : null,
+      bmkgAdm4: bmkgAdm4 ? bmkgAdm4 : null,
       latitude: latitude ?? null,
       longitude: longitude ?? null,
     },
@@ -156,6 +158,7 @@ export async function updateGardenProfile(
       id: "garden",
       ...rest,
       locationName: locationName ? locationName : null,
+      bmkgAdm4: bmkgAdm4 ? bmkgAdm4 : null,
       latitude: latitude ?? null,
       longitude: longitude ?? null,
     },

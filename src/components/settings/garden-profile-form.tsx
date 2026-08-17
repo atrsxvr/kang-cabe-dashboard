@@ -87,10 +87,26 @@ export function GardenProfileForm({ profile }: { profile: GardenProfileRow }) {
           </div>
 
           <p className="text-muted-foreground -mt-2 text-xs">
-            Diisi buat kartu cuaca di Dashboard. Ambil dari Google Maps: klik
-            kanan titik kebunnya, angka pertama lintang, kedua bujur. Dikosongin
-            juga nggak apa-apa — kartunya cuma diam.
+            Ambil dari Google Maps: klik kanan titik kebunnya, angka pertama
+            lintang, kedua bujur. Dipakai buat memeriksa kode wilayah di bawah
+            benar-benar nunjuk ke kebun.
           </p>
+
+          <Field
+            id="garden-bmkgAdm4"
+            label="Kode Wilayah BMKG"
+            error={errors.bmkgAdm4}
+            hint="Ini yang bikin kartu cuaca jalan. BMKG minta kode kelurahan, bukan koordinat — dan nggak punya pencarinya, jadi kodenya diketik. Kalau salah, kartunya nyebut nama desa yang asing dan jaraknya dari kebun."
+          >
+            <Input
+              id="garden-bmkgAdm4"
+              name="bmkgAdm4"
+              inputMode="numeric"
+              defaultValue={profile.bmkgAdm4 ?? ""}
+              placeholder="32.76.07.1005"
+              aria-invalid={Boolean(errors.bmkgAdm4)}
+            />
+          </Field>
 
           <Field
             id="garden-defaultTankLitres"

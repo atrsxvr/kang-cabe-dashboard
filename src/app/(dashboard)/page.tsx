@@ -43,13 +43,12 @@ export default async function DashboardPage(props: PageProps<"/">) {
     overview(season.id),
   ]);
 
-  // Fetched after the profile because it needs the coordinates, and skipped
-  // entirely when they are not set — a missing forecast must never be the
-  // reason this page fails.
-  const weather =
-    profile.latitude !== null && profile.longitude !== null
-      ? await getWeather(profile.latitude, profile.longitude)
-      : null;
+  // Fetched after the profile because it needs the garden's BMKG region code,
+  // and skipped entirely when that is not set — a missing forecast must never
+  // be the reason this page fails.
+  const weather = profile.bmkgAdm4
+    ? await getWeather(profile.bmkgAdm4)
+    : null;
   const currentHst = calculateHst(season.startDate);
   const notPlanted = season.status === "PLANNING";
 
@@ -140,7 +139,15 @@ export default async function DashboardPage(props: PageProps<"/">) {
           trend={board.harvestTrend}
         />
 
-        <WeatherCard weather={weather} locationName={profile.locationName} />
+        <WeatherCard
+          weather={weather}
+          locationName={profile.locationName}
+          garden={
+            profile.latitude !== null && profile.longitude !== null
+              ? { latitude: profile.latitude, longitude: profile.longitude }
+              : null
+          }
+        />
 
         <Card>
           <CardHeader>
