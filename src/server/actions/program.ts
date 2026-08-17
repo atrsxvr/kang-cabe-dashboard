@@ -5,6 +5,7 @@ import { revalidatePath } from "next/cache";
 import { amountForVolume } from "@/lib/dose";
 import { prisma } from "@/lib/prisma";
 import { invalidForm, type ActionResult } from "@/server/actions/result";
+import { guardWrite } from "@/server/auth/guard";
 import { scheduleProgramSchema } from "@/server/actions/schemas";
 
 /**
@@ -21,6 +22,9 @@ import { scheduleProgramSchema } from "@/server/actions/schemas";
 export async function scheduleProgram(
   formData: FormData
 ): Promise<ActionResult> {
+  const allowed = await guardWrite("tasks");
+  if (!allowed.ok) return allowed;
+
   const parsed = scheduleProgramSchema.safeParse({
     seasonId: formData.get("seasonId"),
     recipeId: formData.get("recipeId"),

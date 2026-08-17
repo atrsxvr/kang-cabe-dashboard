@@ -7,6 +7,7 @@ import { nextAvgCost, rebuildAvgCost } from "@/lib/money";
 import { OPNAME_PREFIX } from "@/lib/stock";
 import { listMovements, type MovementRow } from "@/server/queries/inventory";
 import { invalidForm, type ActionResult } from "@/server/actions/result";
+import { guardWrite } from "@/server/auth/guard";
 import { revalidateSeasonMoney } from "@/server/actions/revalidate";
 import {
   adjustStockSchema,
@@ -40,6 +41,9 @@ export async function getMaterialMovements(
  * changed with no record of why is exactly what this module exists to stop.
  */
 export async function adjustStock(formData: FormData): Promise<ActionResult> {
+  const allowed = await guardWrite("inventory");
+  if (!allowed.ok) return allowed;
+
   const parsed = adjustStockSchema.safeParse({
     materialId: formData.get("materialId"),
     delta: formData.get("delta"),
@@ -125,6 +129,9 @@ export async function adjustStock(formData: FormData): Promise<ActionResult> {
 export async function archiveMaterial(
   formData: FormData
 ): Promise<ActionResult> {
+  const allowed = await guardWrite("inventory");
+  if (!allowed.ok) return allowed;
+
   const parsed = archiveMaterialSchema.safeParse({
     materialId: formData.get("materialId"),
     restore: formData.get("restore") ?? undefined,
@@ -158,6 +165,9 @@ export async function archiveMaterial(
 export async function setMovementCost(
   formData: FormData
 ): Promise<ActionResult> {
+  const allowed = await guardWrite("inventory");
+  if (!allowed.ok) return allowed;
+
   const parsed = setMovementCostSchema.safeParse({
     movementId: formData.get("movementId"),
     totalCost: formData.get("totalCost"),
@@ -224,6 +234,9 @@ async function refreshAvgCost(materialId: string) {
 export async function recordStockOpname(
   formData: FormData
 ): Promise<ActionResult> {
+  const allowed = await guardWrite("inventory");
+  if (!allowed.ok) return allowed;
+
   const counts: { materialId: string; counted: FormDataEntryValue }[] = [];
 
   for (const [key, value] of formData.entries()) {
@@ -298,6 +311,9 @@ export async function recordStockOpname(
 }
 
 export async function createTool(formData: FormData): Promise<ActionResult> {
+  const allowed = await guardWrite("inventory");
+  if (!allowed.ok) return allowed;
+
   const parsed = createToolSchema.safeParse({
     name: formData.get("name"),
     quantity: formData.get("quantity"),
@@ -320,6 +336,9 @@ export async function createTool(formData: FormData): Promise<ActionResult> {
 }
 
 export async function updateTool(formData: FormData): Promise<ActionResult> {
+  const allowed = await guardWrite("inventory");
+  if (!allowed.ok) return allowed;
+
   const parsed = updateToolSchema.safeParse({
     toolId: formData.get("toolId"),
     name: formData.get("name"),
@@ -348,6 +367,9 @@ export async function updateTool(formData: FormData): Promise<ActionResult> {
 }
 
 export async function deleteTool(formData: FormData): Promise<ActionResult> {
+  const allowed = await guardWrite("inventory");
+  if (!allowed.ok) return allowed;
+
   const toolId = String(formData.get("toolId") ?? "");
   if (!toolId) return { ok: false, message: "Alat tidak dikenali." };
 
@@ -369,6 +391,9 @@ export async function deleteTool(formData: FormData): Promise<ActionResult> {
 export async function recordToolEvent(
   formData: FormData
 ): Promise<ActionResult> {
+  const allowed = await guardWrite("inventory");
+  if (!allowed.ok) return allowed;
+
   const parsed = recordToolEventSchema.safeParse({
     toolId: formData.get("toolId"),
     type: formData.get("type"),
@@ -457,6 +482,9 @@ export async function recordToolEvent(
 export async function createShoppingNote(
   formData: FormData
 ): Promise<ActionResult> {
+  const allowed = await guardWrite("inventory");
+  if (!allowed.ok) return allowed;
+
   const parsed = createShoppingNoteSchema.safeParse({
     text: formData.get("text"),
     actorId: formData.get("actorId") ?? "",
@@ -477,6 +505,9 @@ export async function createShoppingNote(
 export async function toggleShoppingNote(
   formData: FormData
 ): Promise<ActionResult> {
+  const allowed = await guardWrite("inventory");
+  if (!allowed.ok) return allowed;
+
   const parsed = toggleShoppingNoteSchema.safeParse({
     noteId: formData.get("noteId"),
     done: formData.get("done"),
@@ -502,6 +533,9 @@ export async function toggleShoppingNote(
 export async function deleteShoppingNote(
   formData: FormData
 ): Promise<ActionResult> {
+  const allowed = await guardWrite("inventory");
+  if (!allowed.ok) return allowed;
+
   const noteId = String(formData.get("noteId") ?? "");
   if (!noteId) return { ok: false, message: "Catatan tidak dikenali." };
 
@@ -513,6 +547,9 @@ export async function deleteShoppingNote(
 
 /** Clears everything already ticked off, after a trip to town. */
 export async function clearDoneShoppingNotes(): Promise<ActionResult> {
+  const allowed = await guardWrite("inventory");
+  if (!allowed.ok) return allowed;
+
   await prisma.shoppingNote.deleteMany({ where: { done: true } });
 
   revalidatePath("/inventory");

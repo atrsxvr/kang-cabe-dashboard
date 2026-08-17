@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 
 import { prisma } from "@/lib/prisma";
 import { invalidForm, type ActionResult } from "@/server/actions/result";
+import { guardWrite } from "@/server/auth/guard";
 import { revalidateSeasonMoney } from "@/server/actions/revalidate";
 import {
   createTaskSchema,
@@ -28,6 +29,9 @@ function parseMaterials(raw: FormDataEntryValue | null) {
 }
 
 export async function createTask(formData: FormData): Promise<ActionResult> {
+  const allowed = await guardWrite("tasks");
+  if (!allowed.ok) return allowed;
+
   const parsed = createTaskSchema.safeParse({
     seasonId: formData.get("seasonId"),
     title: formData.get("title"),
@@ -88,6 +92,9 @@ export async function createTask(formData: FormData): Promise<ActionResult> {
 export async function updateTaskStatus(
   formData: FormData
 ): Promise<ActionResult> {
+  const allowed = await guardWrite("tasks");
+  if (!allowed.ok) return allowed;
+
   const parsed = updateTaskStatusSchema.safeParse({
     taskId: formData.get("taskId"),
     seasonId: formData.get("seasonId"),
@@ -117,6 +124,9 @@ export async function updateTaskStatus(
 }
 
 export async function deleteTask(formData: FormData): Promise<ActionResult> {
+  const allowed = await guardWrite("tasks");
+  if (!allowed.ok) return allowed;
+
   const taskId = String(formData.get("taskId") ?? "");
   const seasonId = String(formData.get("seasonId") ?? "");
 
@@ -137,6 +147,9 @@ export async function deleteTask(formData: FormData): Promise<ActionResult> {
 }
 
 export async function updateTask(formData: FormData): Promise<ActionResult> {
+  const allowed = await guardWrite("tasks");
+  if (!allowed.ok) return allowed;
+
   const parsed = updateTaskSchema.safeParse({
     taskId: formData.get("taskId"),
     seasonId: formData.get("seasonId"),
@@ -227,6 +240,9 @@ export async function updateTask(formData: FormData): Promise<ActionResult> {
 export async function recordTaskUsage(
   formData: FormData
 ): Promise<ActionResult> {
+  const allowed = await guardWrite("tasks");
+  if (!allowed.ok) return allowed;
+
   const parsed = recordTaskUsageSchema.safeParse({
     taskId: formData.get("taskId"),
     seasonId: formData.get("seasonId"),

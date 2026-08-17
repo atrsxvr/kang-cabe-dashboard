@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 
 import { prisma } from "@/lib/prisma";
 import { invalidForm, type ActionResult } from "@/server/actions/result";
+import { guardWrite } from "@/server/auth/guard";
 import {
   canAdvanceFinding,
   createFindingSchema,
@@ -14,6 +15,9 @@ import {
 import { deleteFindingPhoto, uploadFindingPhoto } from "@/server/storage";
 
 export async function createFinding(formData: FormData): Promise<ActionResult> {
+  const allowed = await guardWrite("findings");
+  if (!allowed.ok) return allowed;
+
   // Validate before uploading. Uploading first left a file in the bucket every
   // time the form came back with an error — storage filling up with photos
   // belonging to findings that were never saved.
@@ -66,6 +70,9 @@ export async function createFinding(formData: FormData): Promise<ActionResult> {
 export async function diagnoseFinding(
   formData: FormData
 ): Promise<ActionResult> {
+  const allowed = await guardWrite("diagnosis");
+  if (!allowed.ok) return allowed;
+
   const parsed = diagnoseFindingSchema.safeParse({
     findingId: formData.get("findingId"),
     seasonId: formData.get("seasonId"),
@@ -101,6 +108,9 @@ export async function diagnoseFinding(
 export async function updateFindingStatus(
   formData: FormData
 ): Promise<ActionResult> {
+  const allowed = await guardWrite("findings");
+  if (!allowed.ok) return allowed;
+
   const parsed = updateFindingStatusSchema.safeParse({
     findingId: formData.get("findingId"),
     seasonId: formData.get("seasonId"),
@@ -143,6 +153,9 @@ export async function updateFindingStatus(
 }
 
 export async function updateFinding(formData: FormData): Promise<ActionResult> {
+  const allowed = await guardWrite("findings");
+  if (!allowed.ok) return allowed;
+
   const parsed = updateFindingSchema.safeParse({
     findingId: formData.get("findingId"),
     seasonId: formData.get("seasonId"),
@@ -196,6 +209,9 @@ export async function updateFinding(formData: FormData): Promise<ActionResult> {
 }
 
 export async function deleteFinding(formData: FormData): Promise<ActionResult> {
+  const allowed = await guardWrite("findings");
+  if (!allowed.ok) return allowed;
+
   const findingId = String(formData.get("findingId") ?? "");
   const seasonId = String(formData.get("seasonId") ?? "");
 

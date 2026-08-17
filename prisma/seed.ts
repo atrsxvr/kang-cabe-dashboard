@@ -35,7 +35,7 @@ async function seedMembers() {
       // Name and role are reconciled on every run, so renaming a member here
       // updates the existing row instead of being ignored.
       update: { name: member.name, role: member.role },
-      create: { ...member, password: "not-set" },
+      create: member,
     });
   }
 

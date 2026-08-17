@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 
 import { prisma } from "@/lib/prisma";
 import { invalidForm, type ActionResult } from "@/server/actions/result";
+import { guardWrite } from "@/server/auth/guard";
 import {
   createMemberSchema,
   deactivateMemberSchema,
@@ -18,6 +19,9 @@ function revalidate() {
 }
 
 export async function createMember(formData: FormData): Promise<ActionResult> {
+  const allowed = await guardWrite("settings");
+  if (!allowed.ok) return allowed;
+
   const parsed = createMemberSchema.safeParse({
     name: formData.get("name"),
     email: formData.get("email"),
@@ -47,9 +51,10 @@ export async function createMember(formData: FormData): Promise<ActionResult> {
       ...rest,
       email,
       profitShare: profitShare ?? 0,
-      // Authentication is not built yet, so there is nothing to hash and
-      // nothing that would accept this. Deliberately not a usable secret.
-      password: "not-set",
+      // Tidak ada password di sini. Login lewat Google, dan better-auth
+      // menyimpan kredensial di tabel Account — bukan di baris anggota.
+      // Emailnya yang jadi undangan: mendaftarkan seseorang di sini adalah
+      // satu-satunya cara ia bisa masuk.
     },
   });
 
@@ -58,6 +63,9 @@ export async function createMember(formData: FormData): Promise<ActionResult> {
 }
 
 export async function updateMember(formData: FormData): Promise<ActionResult> {
+  const allowed = await guardWrite("settings");
+  if (!allowed.ok) return allowed;
+
   const parsed = updateMemberSchema.safeParse({
     memberId: formData.get("memberId"),
     name: formData.get("name"),
@@ -107,6 +115,9 @@ export async function updateMember(formData: FormData): Promise<ActionResult> {
 export async function deactivateMember(
   formData: FormData
 ): Promise<ActionResult> {
+  const allowed = await guardWrite("settings");
+  if (!allowed.ok) return allowed;
+
   const parsed = deactivateMemberSchema.safeParse({
     memberId: formData.get("memberId"),
     restore: formData.get("restore") ?? undefined,
@@ -132,6 +143,9 @@ export async function deactivateMember(
 export async function updateGardenProfile(
   formData: FormData
 ): Promise<ActionResult> {
+  const allowed = await guardWrite("settings");
+  if (!allowed.ok) return allowed;
+
   const parsed = gardenProfileSchema.safeParse({
     name: formData.get("name"),
     locationName: formData.get("locationName") ?? "",

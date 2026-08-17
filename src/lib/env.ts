@@ -41,9 +41,59 @@ const schema = z.object({
   // and the finding form degrades to text-only rather than failing to render.
   SUPABASE_URL: z.url().optional(),
   SUPABASE_SERVICE_ROLE_KEY: z.string().min(20).optional(),
+
+  /**
+   * Login lewat Google. **Wajib di produksi**, boleh kosong saat pengembangan.
+   *
+   * Bukan kelonggaran: `requireAuthInProduction` di bawah menolak boot kalau
+   * salah satunya hilang di produksi, karena aplikasi yang menyala tanpa
+   * otentikasi adalah aplikasi yang seluruh endpoint tulisnya terbuka — dan
+   * kegagalan itu tidak bersuara.
+   *
+   * Di localhost dibiarkan opsional karena gagal keras di situ tidak melindungi
+   * siapa pun, dan menukar halaman yang bisa dibaca dengan tumpukan galat
+   * membuat orang yang sedang memasang kredensialnya kehilangan tempat berpijak.
+   * Yang belum dikonfigurasi tetap tidak bisa masuk; ia cuma diberi tahu
+   * sebabnya alih-alih dilempar 500.
+   */
+  GOOGLE_CLIENT_ID: z.string().min(10).optional(),
+  GOOGLE_CLIENT_SECRET: z.string().min(10).optional(),
+  /** Kunci penanda tangan cookie sesi. Bikin dengan `openssl rand -base64 32`. */
+  BETTER_AUTH_SECRET: z.string().min(32).optional(),
+  /**
+   * Asal aplikasi, dipakai menyusun URL callback OAuth. Harus sama persis
+   * dengan yang didaftarkan di Google Cloud Console — beda satu garis miring
+   * pun ditolak Google, dengan pesan yang tidak menyebut sebabnya.
+   */
+  BETTER_AUTH_URL: z.url().default("http://localhost:3000"),
 });
 
 export type Env = z.infer<typeof schema>;
+
+/**
+ * Ketiganya wajib di produksi, dan penolakannya di sini — bukan di schema.
+ *
+ * Dipisah supaya localhost tetap bisa menyala sambil kredensialnya disiapkan,
+ * tanpa memberi produksi jalan yang sama. Yang dilindungi bukan berkas `.env`,
+ * tapi kenyataan bahwa satu deploy yang lupa mengisinya akan membuka seluruh
+ * endpoint tulis ke internet tanpa satu pun tanda.
+ */
+function requireAuthInProduction(env: Env): string[] {
+  if (env.NODE_ENV !== "production") return [];
+
+  return (
+    ["GOOGLE_CLIENT_ID", "GOOGLE_CLIENT_SECRET", "BETTER_AUTH_SECRET"] as const
+  )
+    .filter((key) => !env[key])
+    .map((key) => `  ${key}: wajib di produksi — tanpanya login mati total`);
+}
+
+/** Cukup lengkap untuk benar-benar bisa dipakai masuk. */
+export function isAuthConfigured(env: Env): boolean {
+  return Boolean(
+    env.GOOGLE_CLIENT_ID && env.GOOGLE_CLIENT_SECRET && env.BETTER_AUTH_SECRET
+  );
+}
 
 export function parseEnv(source: Record<string, string | undefined>): Env {
   const result = schema.safeParse(source);
@@ -55,6 +105,15 @@ export function parseEnv(source: Record<string, string | undefined>): Env {
 
     throw new Error(
       `Environment variables are invalid:\n${details}\n\n` +
+        `Copy .env.example to .env and fill in the values.`
+    );
+  }
+
+  const missing = requireAuthInProduction(result.data);
+
+  if (missing.length > 0) {
+    throw new Error(
+      `Environment variables are invalid:\n${missing.join("\n")}\n\n` +
         `Copy .env.example to .env and fill in the values.`
     );
   }

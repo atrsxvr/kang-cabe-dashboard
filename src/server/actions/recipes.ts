@@ -5,6 +5,7 @@ import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { isDosable } from "@/lib/stock";
 import { invalidForm, type ActionResult } from "@/server/actions/result";
+import { guardWrite } from "@/server/auth/guard";
 import {
   createMaterialSchema,
   createRecipeSchema,
@@ -36,6 +37,9 @@ async function rejectUndosable(
 export async function createMaterial(
   formData: FormData
 ): Promise<ActionResult> {
+  const allowed = await guardWrite("materials");
+  if (!allowed.ok) return allowed;
+
   const parsed = createMaterialSchema.safeParse({
     name: formData.get("name"),
     unit: formData.get("unit"),
@@ -106,6 +110,9 @@ export async function createMaterial(
 }
 
 export async function createRecipe(formData: FormData): Promise<ActionResult> {
+  const allowed = await guardWrite("recipes");
+  if (!allowed.ok) return allowed;
+
   // Ingredient rows arrive as parallel arrays from the dynamic form.
   const materialIds = formData.getAll("materialId").map(String);
   const amounts = formData.getAll("amountPerLiter").map(String);
@@ -168,6 +175,9 @@ export async function createRecipe(formData: FormData): Promise<ActionResult> {
 }
 
 export async function deleteRecipe(formData: FormData): Promise<ActionResult> {
+  const allowed = await guardWrite("recipes");
+  if (!allowed.ok) return allowed;
+
   const recipeId = String(formData.get("recipeId") ?? "");
   if (!recipeId) return { ok: false, message: "Racikan tidak dikenali." };
 
@@ -182,6 +192,9 @@ export async function deleteRecipe(formData: FormData): Promise<ActionResult> {
 }
 
 export async function updateRecipe(formData: FormData): Promise<ActionResult> {
+  const allowed = await guardWrite("recipes");
+  if (!allowed.ok) return allowed;
+
   const materialIds = formData.getAll("materialId").map(String);
   const amounts = formData.getAll("amountPerLiter").map(String);
 
@@ -253,6 +266,9 @@ export async function updateRecipe(formData: FormData): Promise<ActionResult> {
 export async function updateMaterial(
   formData: FormData
 ): Promise<ActionResult> {
+  const allowed = await guardWrite("materials");
+  if (!allowed.ok) return allowed;
+
   const parsed = updateMaterialSchema.safeParse({
     materialId: formData.get("materialId"),
     name: formData.get("name"),

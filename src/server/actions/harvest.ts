@@ -2,6 +2,7 @@
 
 import { prisma } from "@/lib/prisma";
 import { invalidForm, type ActionResult } from "@/server/actions/result";
+import { guardWrite } from "@/server/auth/guard";
 import { revalidateSeasonMoney } from "@/server/actions/revalidate";
 import {
   createHarvestSchema,
@@ -41,6 +42,9 @@ async function seasonExists(seasonId: string) {
 }
 
 export async function createHarvest(formData: FormData): Promise<ActionResult> {
+  const allowed = await guardWrite("harvest");
+  if (!allowed.ok) return allowed;
+
   const parsed = createHarvestSchema.safeParse({
     seasonId: formData.get("seasonId"),
     harvestDate: formData.get("harvestDate"),
@@ -72,6 +76,9 @@ export async function createHarvest(formData: FormData): Promise<ActionResult> {
 }
 
 export async function updateHarvest(formData: FormData): Promise<ActionResult> {
+  const allowed = await guardWrite("harvest");
+  if (!allowed.ok) return allowed;
+
   const parsed = updateHarvestSchema.safeParse({
     harvestId: formData.get("harvestId"),
     seasonId: formData.get("seasonId"),
@@ -104,6 +111,9 @@ export async function updateHarvest(formData: FormData): Promise<ActionResult> {
 }
 
 export async function deleteHarvest(formData: FormData): Promise<ActionResult> {
+  const allowed = await guardWrite("harvest");
+  if (!allowed.ok) return allowed;
+
   const harvestId = String(formData.get("harvestId") ?? "");
   const seasonId = String(formData.get("seasonId") ?? "");
 
@@ -124,6 +134,9 @@ export async function deleteHarvest(formData: FormData): Promise<ActionResult> {
 }
 
 export async function createSale(formData: FormData): Promise<ActionResult> {
+  const allowed = await guardWrite("harvest");
+  if (!allowed.ok) return allowed;
+
   const parsed = createSaleSchema.safeParse({
     seasonId: formData.get("seasonId"),
     soldAt: formData.get("soldAt"),
@@ -161,6 +174,9 @@ export async function createSale(formData: FormData): Promise<ActionResult> {
 }
 
 export async function updateSale(formData: FormData): Promise<ActionResult> {
+  const allowed = await guardWrite("harvest");
+  if (!allowed.ok) return allowed;
+
   const parsed = updateSaleSchema.safeParse({
     saleId: formData.get("saleId"),
     seasonId: formData.get("seasonId"),
@@ -212,6 +228,9 @@ export async function updateSale(formData: FormData): Promise<ActionResult> {
 }
 
 export async function deleteSale(formData: FormData): Promise<ActionResult> {
+  const allowed = await guardWrite("harvest");
+  if (!allowed.ok) return allowed;
+
   const saleId = String(formData.get("saleId") ?? "");
   const seasonId = String(formData.get("seasonId") ?? "");
 
@@ -238,6 +257,9 @@ export async function deleteSale(formData: FormData): Promise<ActionResult> {
  * a different job from correcting what was sold, and it happens weeks later.
  */
 export async function markSalePaid(formData: FormData): Promise<ActionResult> {
+  const allowed = await guardWrite("harvest");
+  if (!allowed.ok) return allowed;
+
   const parsed = markSalePaidSchema.safeParse({
     saleId: formData.get("saleId"),
     seasonId: formData.get("seasonId"),

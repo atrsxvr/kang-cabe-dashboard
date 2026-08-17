@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 
 import { prisma } from "@/lib/prisma";
 import { invalidForm, type ActionResult } from "@/server/actions/result";
+import { guardWrite } from "@/server/auth/guard";
 import { revalidateSeasonMoney } from "@/server/actions/revalidate";
 import {
   createHarvestLossSchema,
@@ -28,6 +29,9 @@ function revalidate() {
 export async function createPlantEvent(
   formData: FormData
 ): Promise<ActionResult> {
+  const allowed = await guardWrite("population");
+  if (!allowed.ok) return allowed;
+
   const parsed = createPlantEventSchema.safeParse({
     seasonId: formData.get("seasonId"),
     eventDate: formData.get("eventDate"),
@@ -71,6 +75,9 @@ export async function createPlantEvent(
 export async function updatePlantEvent(
   formData: FormData
 ): Promise<ActionResult> {
+  const allowed = await guardWrite("population");
+  if (!allowed.ok) return allowed;
+
   const parsed = updatePlantEventSchema.safeParse({
     eventId: formData.get("eventId"),
     seasonId: formData.get("seasonId"),
@@ -110,6 +117,9 @@ export async function updatePlantEvent(
 export async function deletePlantEvent(
   formData: FormData
 ): Promise<ActionResult> {
+  const allowed = await guardWrite("population");
+  if (!allowed.ok) return allowed;
+
   const eventId = String(formData.get("eventId") ?? "");
   const seasonId = String(formData.get("seasonId") ?? "");
 
@@ -132,6 +142,9 @@ export async function deletePlantEvent(
 export async function createHarvestLoss(
   formData: FormData
 ): Promise<ActionResult> {
+  const allowed = await guardWrite("harvest");
+  if (!allowed.ok) return allowed;
+
   const parsed = createHarvestLossSchema.safeParse({
     seasonId: formData.get("seasonId"),
     lostAt: formData.get("lostAt"),
@@ -170,6 +183,9 @@ export async function createHarvestLoss(
 export async function deleteHarvestLoss(
   formData: FormData
 ): Promise<ActionResult> {
+  const allowed = await guardWrite("harvest");
+  if (!allowed.ok) return allowed;
+
   const lossId = String(formData.get("lossId") ?? "");
   const seasonId = String(formData.get("seasonId") ?? "");
 

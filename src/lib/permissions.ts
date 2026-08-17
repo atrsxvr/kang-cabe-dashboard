@@ -39,8 +39,22 @@ export const AREAS = [
   /** Menegakkan diagnosa dan perlakuan atas temuan. */
   "diagnosis",
   "recipes",
+  /**
+   * Mendaftarkan sebuah bahan: nama, satuan, kategori.
+   *
+   * Wilayah tersendiri karena satu dialog yang sama dibuka dari dua halaman
+   * milik dua orang berbeda. Agronomis yang menyusun racikan perlu mendaftarkan
+   * bahan yang belum ada; Logistik yang mengurus gudang juga. Mengunci ini ke
+   * salah satunya akan memblokir yang lain di tengah formulir.
+   *
+   * Terpisah dari `inventory`, yang mengurus stok dan harganya — mendaftarkan
+   * "NPK 16-16-16" dan memutuskan berapa karung yang ada di rak adalah dua
+   * pekerjaan berbeda yang kebetulan menyentuh satu tabel.
+   */
+  "materials",
   /** Populasi tanaman: mati dan sulam. */
   "population",
+  /** Stok, harga, opname, alat, dan daftar belanja. */
   "inventory",
   /** Panen, susut, penjualan, dan penagihan. */
   "harvest",
@@ -74,6 +88,8 @@ const WRITERS: Record<Area, readonly Role[]> = {
   findings: ["ADMIN", "AGRONOMIST", "LOGISTICS", "SALES"],
   diagnosis: ["ADMIN", "AGRONOMIST"],
   recipes: ["ADMIN", "AGRONOMIST"],
+  // Keduanya, dan itu bukan kelonggaran: dialognya satu, halamannya dua.
+  materials: ["ADMIN", "AGRONOMIST", "LOGISTICS"],
   population: ["ADMIN", "AGRONOMIST"],
   inventory: ["ADMIN", "LOGISTICS"],
   harvest: ["ADMIN", "SALES"],

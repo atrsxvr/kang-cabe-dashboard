@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 
 import { prisma } from "@/lib/prisma";
 import { invalidForm, type ActionResult } from "@/server/actions/result";
+import { guardWrite } from "@/server/auth/guard";
 import {
   createContributionSchema,
   updateContributionSchema,
@@ -24,6 +25,9 @@ function revalidate() {
 export async function createContribution(
   formData: FormData
 ): Promise<ActionResult> {
+  const allowed = await guardWrite("capital");
+  if (!allowed.ok) return allowed;
+
   // Validated before the upload, so a rejected form leaves no orphan file.
   const parsed = createContributionSchema.safeParse({
     userId: formData.get("userId"),
@@ -72,6 +76,9 @@ export async function createContribution(
 export async function updateContribution(
   formData: FormData
 ): Promise<ActionResult> {
+  const allowed = await guardWrite("capital");
+  if (!allowed.ok) return allowed;
+
   const parsed = updateContributionSchema.safeParse({
     contributionId: formData.get("contributionId"),
     userId: formData.get("userId"),
@@ -127,6 +134,9 @@ export async function updateContribution(
 export async function deleteContribution(
   formData: FormData
 ): Promise<ActionResult> {
+  const allowed = await guardWrite("capital");
+  if (!allowed.ok) return allowed;
+
   const contributionId = String(formData.get("contributionId") ?? "");
   if (!contributionId) return { ok: false, message: "Permintaan tidak valid." };
 

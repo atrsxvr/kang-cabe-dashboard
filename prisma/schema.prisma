@@ -117,11 +117,18 @@ enum ChiliGrade {
 }
 
 model User {
-  id        String    @id @default(uuid())
-  name      String
-  email     String    @unique
-  password  String
-  role      Role      @default(ADMIN)
+  id    String @id @default(uuid())
+  name  String
+  /// Dipakai mencocokkan akun Google yang masuk. Login bersifat undangan: cuma
+  /// email yang sudah ada di sini yang bisa masuk, dan yang tidak dikenal
+  /// ditolak — bukan dibuatkan akun baru.
+  email String @unique
+  /// Dipakai better-auth. Selalu true untuk yang masuk lewat Google, karena
+  /// Google sudah memverifikasinya sebelum mengembalikan siapa pun ke sini.
+  emailVerified Boolean @default(false)
+  /// Foto profil dari Google, kalau ada.
+  image         String?
+  role          Role    @default(ADMIN)
   /// Porsi bagi hasil, persen. Bebas tidak berjumlah 100 — halaman Keuangan
   /// menampilkan selisihnya apa adanya daripada diam-diam menormalkan, karena
   /// pembagian yang tidak genap adalah hal yang perlu dilihat empat orang,
@@ -145,8 +152,73 @@ model User {
   contributions     CapitalContribution[] @relation("Contributions")
   plantEventsLogged PlantEvent[]    @relation("RecordedPlantEvents")
   lossesLogged      HarvestLoss[]   @relation("RecordedLosses")
+  sessions          Session[]
+  accounts          Account[]
 
   @@index([deletedAt])
+}
+
+/// Sesi login yang sedang berjalan. Dikelola better-auth.
+///
+/// Cascade, tidak seperti relasi User lain di berkas ini: sesi bukan riwayat
+/// pekerjaan. Menonaktifkan anggota memang dilakukan lewat `deletedAt`, tapi
+/// kalau suatu hari barisnya benar-benar hilang, sesi yang menganggur tidak
+/// boleh tertinggal sebagai kunci yang masih bisa diputar.
+model Session {
+  id        String   @id
+  userId    String
+  /// Nilai yang benar-benar ada di cookie. Unik, karena inilah kuncinya.
+  token     String   @unique
+  expiresAt DateTime
+  ipAddress String?
+  userAgent String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([expiresAt])
+}
+
+/// Sambungan ke penyedia identitas — untuk kebun ini cuma Google.
+///
+/// Kolom `password` ada karena better-auth memakainya untuk login email, dan
+/// akan selalu kosong selama Google satu-satunya jalan masuk. Dibiarkan ada
+/// supaya menambah jalur cadangan nanti tidak menuntut migrasi lagi.
+model Account {
+  id                    String    @id
+  userId                String
+  providerId            String
+  accountId             String
+  accessToken           String?
+  refreshToken          String?
+  idToken               String?
+  accessTokenExpiresAt  DateTime?
+  refreshTokenExpiresAt DateTime?
+  scope                 String?
+  password              String?
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([providerId, accountId])
+  @@index([userId])
+}
+
+/// Token sekali pakai milik better-auth. Kosong selama cuma Google yang dipakai,
+/// tapi pustakanya mengharapkan tabelnya ada.
+model Verification {
+  id         String   @id
+  identifier String
+  value      String
+  expiresAt  DateTime
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@index([identifier])
+  @@index([expiresAt])
 }
 
 /// Satu baris untuk seluruh kebun. Hal-hal yang berlaku di mana-mana dan tidak

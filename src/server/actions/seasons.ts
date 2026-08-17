@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 
 import { prisma } from "@/lib/prisma";
 import { invalidForm, type ActionResult } from "@/server/actions/result";
+import { guardWrite } from "@/server/auth/guard";
 import {
   createSeasonSchema,
   nextSeasonStatus,
@@ -12,6 +13,9 @@ import {
 } from "@/server/actions/schemas";
 
 export async function createSeason(formData: FormData): Promise<ActionResult> {
+  const allowed = await guardWrite("seasons");
+  if (!allowed.ok) return allowed;
+
   const parsed = createSeasonSchema.safeParse({
     name: formData.get("name"),
     variety: formData.get("variety"),
@@ -42,6 +46,9 @@ export async function createSeason(formData: FormData): Promise<ActionResult> {
 export async function advanceSeasonStatus(
   formData: FormData
 ): Promise<ActionResult> {
+  const allowed = await guardWrite("seasons");
+  if (!allowed.ok) return allowed;
+
   const seasonId = String(formData.get("seasonId") ?? "");
   if (!seasonId) return { ok: false, message: "Musim tidak dikenali." };
 
@@ -70,6 +77,9 @@ export async function advanceSeasonStatus(
 export async function setSeasonStatus(
   formData: FormData
 ): Promise<ActionResult> {
+  const allowed = await guardWrite("seasons");
+  if (!allowed.ok) return allowed;
+
   const seasonId = String(formData.get("seasonId") ?? "");
   const status = String(formData.get("status") ?? "");
 
@@ -91,6 +101,9 @@ export async function setSeasonStatus(
 }
 
 export async function updateSeason(formData: FormData): Promise<ActionResult> {
+  const allowed = await guardWrite("seasons");
+  if (!allowed.ok) return allowed;
+
   const parsed = updateSeasonSchema.safeParse({
     seasonId: formData.get("seasonId"),
     name: formData.get("name"),
@@ -133,6 +146,9 @@ export async function updateSeason(formData: FormData): Promise<ActionResult> {
  * ARCHIVED has been in the schema since the start with no way to reach it.
  */
 export async function archiveSeason(formData: FormData): Promise<ActionResult> {
+  const allowed = await guardWrite("seasons");
+  if (!allowed.ok) return allowed;
+
   const seasonId = String(formData.get("seasonId") ?? "");
   if (!seasonId) return { ok: false, message: "Musim tidak dikenali." };
 

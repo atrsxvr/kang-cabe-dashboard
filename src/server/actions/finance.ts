@@ -2,6 +2,7 @@
 
 import { prisma } from "@/lib/prisma";
 import { invalidForm, type ActionResult } from "@/server/actions/result";
+import { guardWrite } from "@/server/auth/guard";
 import { revalidateSeasonMoney } from "@/server/actions/revalidate";
 import {
   createFinanceEntrySchema,
@@ -20,6 +21,9 @@ const revalidate = revalidateSeasonMoney;
 export async function createFinanceEntry(
   formData: FormData
 ): Promise<ActionResult> {
+  const allowed = await guardWrite("finance");
+  if (!allowed.ok) return allowed;
+
   // Validated before the upload. Uploading first left a file in the bucket
   // every time the form came back with an error.
   const parsed = createFinanceEntrySchema.safeParse({
@@ -65,6 +69,9 @@ export async function createFinanceEntry(
 export async function updateFinanceEntry(
   formData: FormData
 ): Promise<ActionResult> {
+  const allowed = await guardWrite("finance");
+  if (!allowed.ok) return allowed;
+
   const parsed = updateFinanceEntrySchema.safeParse({
     entryId: formData.get("entryId"),
     seasonId: formData.get("seasonId"),
@@ -116,6 +123,9 @@ export async function updateFinanceEntry(
 export async function deleteFinanceEntry(
   formData: FormData
 ): Promise<ActionResult> {
+  const allowed = await guardWrite("finance");
+  if (!allowed.ok) return allowed;
+
   const entryId = String(formData.get("entryId") ?? "");
   const seasonId = String(formData.get("seasonId") ?? "");
 
