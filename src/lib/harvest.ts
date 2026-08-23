@@ -1,0 +1,172 @@
+/**
+ * Two grades, because two is what actually happens at the sorting table: what
+ * is fit to sell whole, and what is not.
+ *
+ * Afkir still sells, only cheaper — it is a grade, not a loss, and treating it
+ * as waste would misstate both the harvest and the income.
+ */
+export const CHILI_GRADES = ["GOOD", "REJECT"] as const;
+
+export type ChiliGradeValue = (typeof CHILI_GRADES)[number];
+
+export const gradeLabels: Record<ChiliGradeValue, string> = {
+  GOOD: "Bagus",
+  REJECT: "Afkir",
+};
+
+export const gradeTones: Record<ChiliGradeValue, string> = {
+  GOOD: "bg-emerald-500/12 text-emerald-700 dark:text-emerald-400",
+  REJECT: "bg-amber-500/15 text-amber-700 dark:text-amber-400",
+};
+
+/**
+ * "12,5 kg", "0,25 kg" — up to two decimals, trailing zeros dropped.
+ *
+ * Two, not one: a quarter kilo is a real sale, and rounding 0,25 to 0,3 both
+ * overstates what left and quietly disagrees with the money the buyer handed
+ * over.
+ */
+export function formatKg(value: number): string {
+  return `${value.toLocaleString("id-ID", { maximumFractionDigits: 2 })} kg`;
+}
+
+/**
+ * The same, but always showing both decimals: "25,50 kg".
+ *
+ * For the running totals, where a column of figures is easier to compare when
+ * the decimal point sits in the same place on every line — and where a
+ * disappearing "0" would look like the quarter kilos had been dropped.
+ */
+export function formatKgPrecise(value: number): string {
+  return `${value.toLocaleString("id-ID", {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  })} kg`;
+}
+
+export type GradeWeights = Record<ChiliGradeValue, number>;
+
+export const emptyWeights = (): GradeWeights => ({ GOOD: 0, REJECT: 0 });
+
+export function totalOf(weights: GradeWeights): number {
+  return weights.GOOD + weights.REJECT;
+}
+
+/**
+ * What is picked but not yet sold, per grade.
+ *
+ * Allowed to go negative, and shown when it does. Chillies pile up waiting for
+ * a buyer, so the two sides are recorded days apart and in either order — a
+ * sale entered before its harvest is a reminder that a picking has not been
+ * written down, not corruption to be refused. The shed refuses a negative
+ * because stock is the thing being protected; here the balance is derived, and
+ * its sign is the message.
+ */
+export function unsoldBalance(
+  harvested: GradeWeights,
+  sold: GradeWeights
+): GradeWeights {
+  return {
+    GOOD: harvested.GOOD - sold.GOOD,
+    REJECT: harvested.REJECT - sold.REJECT,
+  };
+}
+
+/** Nilai sebuah baris penjualan: bobot dikali harga, dibulatkan ke rupiah. */
+export function lineTotal(weightKg: number, pricePerKg: number): number {
+  return Math.round(weightKg * pricePerKg);
+}
+
+/** Harga rata-rata yang benar-benar didapat per kg, lintas mutu. */
+export function averagePrice(totalAmount: number, totalKg: number): number {
+  return totalKg > 0 ? Math.round(totalAmount / totalKg) : 0;
+}
+
+/**
+ * Yield per plant.
+ *
+ * Reported in grams below a kilo, because that is where a chilli plant
+ * actually lives: 5.000 tanaman yang menghasilkan 500 kg itu 100 g per pohon,
+ * dan menuliskannya "0,1 kg" membuang justru angka yang mau dibaca.
+ *
+ * Returns null when there is nothing to divide by — a season with no plant
+ * count recorded should say so rather than print a zero that looks like a
+ * failed harvest.
+ */
+export function perPlantGrams(
+  totalKg: number,
+  plantCount: number
+): number | null {
+  if (plantCount <= 0) return null;
+  return (totalKg * 1000) / plantCount;
+}
+
+export function formatPerPlant(
+  totalKg: number,
+  plantCount: number
+): string {
+  const grams = perPlantGrams(totalKg, plantCount);
+  if (grams === null) return "—";
+
+  if (grams >= 1000) {
+    return `${(grams / 1000).toLocaleString("id-ID", {
+      maximumFractionDigits: 2,
+    })} kg/pohon`;
+  }
+
+  return `${grams.toLocaleString("id-ID", {
+    maximumFractionDigits: grams >= 100 ? 0 : 1,
+  })} g/pohon`;
+}
+
+/**
+ * Share of the harvest that was fit to sell.
+ *
+ * The single most diagnostic number on this page, because it separates two
+ * problems whose cures have nothing in common. A season where total yield
+ * falls but this holds steady has a plant that bore less — nutrition, water,
+ * weather. A season where yield holds but this drops has a plant that bore
+ * plenty and much of it failed the sort — fruit disease, picking too late,
+ * handling. The totals alone cannot tell those apart.
+ *
+ * Null when nothing was picked; a ratio of nothing is not zero percent.
+ */
+export function gradeOutRate(weights: GradeWeights): number | null {
+  const total = totalOf(weights);
+  return total > 0 ? weights.GOOD / total : null;
+}
+
+/**
+ * Population standing today.
+ *
+ * Derived, never stored: `Season.plantCount` is what went into the ground, and
+ * a column holding "how many now" would lose the part worth keeping — when
+ * they died, and why.
+ */
+export function actualPlantCount(
+  planted: number,
+  died: number,
+  replanted: number
+): number {
+  return Math.max(0, planted + replanted - died);
+}
+
+/**
+ * Net mortality against what was planted.
+ *
+ * Net, because replanting genuinely puts the population back — but only early
+ * on. Once the crop is grown a gap stays a gap, which is exactly why the rate
+ * keeps climbing through the season and is worth watching.
+ */
+export function mortalityRate(planted: number, actual: number): number | null {
+  if (planted <= 0) return null;
+  return Math.max(0, (planted - actual) / planted);
+}
+
+/** "87%" — a share written the way it is read aloud. */
+export function formatPercent(value: number | null, digits = 0): string {
+  if (value === null) return "—";
+  return `${(value * 100).toLocaleString("id-ID", {
+    maximumFractionDigits: digits,
+  })}%`;
+}

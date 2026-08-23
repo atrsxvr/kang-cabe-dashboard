@@ -1,0 +1,575 @@
+import type { Metadata } from "next";
+import Link from "next/link";
+import { Coins, PackageMinus, Sprout, Users, Wrench } from "lucide-react";
+
+import { CanWrite } from "@/components/auth/can-write";
+import { PageHeader } from "@/components/common/page-header";
+import { SeasonCompareChart } from "@/components/charts/season-compare-chart";
+import { CapitalPanel } from "@/components/finance/capital-panel";
+import { FinanceEntryDialog } from "@/components/finance/finance-entry-dialog";
+import { FinanceEntryList } from "@/components/finance/finance-entry-list";
+import { FinanceViews } from "@/components/finance/finance-views";
+import { PricingCard } from "@/components/finance/pricing-card";
+import { materialCategoryLabels } from "@/components/inventory/inventory-labels";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
+import {
+  formatKg,
+  formatKgPrecise,
+  formatPercent,
+  formatPerPlant,
+} from "@/lib/harvest";
+import { formatRupiah } from "@/lib/money";
+import { readSeasonParam } from "@/lib/season-param";
+import { canCompareSeasons, comparableSeasons } from "@/lib/season-compare";
+import {
+  listFinanceEntries,
+  pricingGuide,
+  profitSharing,
+  seasonComparison,
+  seasonMaterialCost,
+  seasonResult,
+  toolSpend,
+} from "@/server/queries/finance";
+import type { CostLine, SeasonComparison } from "@/server/queries/finance";
+import { capitalSummary, listContributions } from "@/server/queries/capital";
+import { listSeasons, resolveSeason } from "@/server/queries/seasons";
+import { listActiveMembers } from "@/server/queries/users";
+import { isPhotoUploadEnabled } from "@/server/storage";
+
+export const metadata: Metadata = { title: "Keuangan & Kas" };
+
+export default async function FinancePage(props: PageProps<"/finance">) {
+  const searchParams = await props.searchParams;
+
+  // Reading searchParams already opts this page out of prerendering.
+  const season = await resolveSeason(readSeasonParam(searchParams));
+
+  if (!season) return <NoSeason />;
+
+  const [
+    cost,
+    tools,
+    result,
+    entries,
+    sharing,
+    seasons,
+    capital,
+    contributions,
+    members,
+    seasonList,
+    pricing,
+  ] = await Promise.all([
+    seasonMaterialCost(season.id),
+    toolSpend(),
+    seasonResult(season.id),
+    listFinanceEntries(season.id),
+    profitSharing(season.id),
+    seasonComparison(),
+    capitalSummary(),
+    listContributions(),
+    listActiveMembers(),
+    listSeasons(),
+    pricingGuide(season.id),
+  ]);
+
+  const photoEnabled = isPhotoUploadEnabled();
+
+  return (
+    <>
+      <div className="mb-6 flex flex-wrap items-start justify-between gap-3">
+        <PageHeader
+          title="Keuangan & Kas"
+          description={`${season.name} · uang masuk dari penjualan, uang keluar dari bahan dan catatan manual`}
+        />
+        <CanWrite area="finance">
+          <FinanceEntryDialog seasonId={season.id} photoEnabled={photoEnabled} />
+        </CanWrite>
+      </div>
+
+      <Card className="mb-6">
+        <CardContent className="grid gap-4 py-6">
+          <div className="grid gap-1 text-center">
+            <p className="text-muted-foreground text-sm">
+              Sisa musim ini
+            </p>
+            <p
+              className={
+                result.margin < 0
+                  ? "text-destructive text-3xl font-semibold tabular-nums"
+                  : "text-3xl font-semibold tabular-nums"
+              }
+            >
+              {formatRupiah(result.margin)}
+            </p>
+            <p className="text-muted-foreground mx-auto max-w-md text-xs">
+              Uang masuk dikurangi semua biaya yang tercatat. Seakurat apa yang
+              kalian catat — kalau ada upah yang belum diketik, angka ini masih
+              kebesaran.
+            </p>
+          </div>
+
+          {/* Four figures a spreadsheet would carry, all derived from what is
+              already recorded. HPP divides by kilos picked, not kilos sold:
+              per sold it would pile the whole season's cost onto whatever
+              happens to have gone out, and swing about as stock waits. */}
+          <div className="grid grid-cols-2 gap-3 border-t pt-4 text-center sm:grid-cols-4">
+            <div>
+              <p className="text-base font-semibold tabular-nums sm:text-lg">
+                {result.hppPerKg !== null
+                  ? formatRupiah(result.hppPerKg)
+                  : "—"}
+              </p>
+              <p className="text-muted-foreground text-xs">HPP per kg</p>
+            </div>
+            <div>
+              <p className="text-base font-semibold tabular-nums sm:text-lg">
+                {formatPercent(result.roi, 1)}
+              </p>
+              <p className="text-muted-foreground text-xs">ROI</p>
+            </div>
+            <div>
+              <p className="text-base font-semibold tabular-nums sm:text-lg">
+                {formatPercent(result.grossMarginRate, 1)}
+              </p>
+              <p className="text-muted-foreground text-xs">Margin kotor</p>
+            </div>
+            <div>
+              <p className="text-base font-semibold tabular-nums sm:text-lg">
+                {formatRupiah(result.unsoldValue)}
+              </p>
+              <p className="text-muted-foreground text-xs">Nilai sisa stok</p>
+            </div>
+          </div>
+
+          {result.unsoldValue > 0 ? (
+            // Deliberately outside the margin: you cannot split chillies that
+            // have not sold, and the profit share is computed from the margin.
+            <p className="text-muted-foreground text-center text-xs">
+              {formatRupiah(result.unsoldValue)} masih nyangkut di cabai yang
+              belum laku. Belum masuk sisa musim di atas, dan belum bisa dibagi
+              — baru jadi uang kalau terjual.
+            </p>
+          ) : null}
+
+          <div className="grid grid-cols-2 gap-3 border-t pt-4 text-center">
+            <div>
+              <p className="text-lg font-semibold tabular-nums text-emerald-700 dark:text-emerald-400">
+                {formatRupiah(result.income)}
+              </p>
+              <p className="text-muted-foreground text-xs">Masuk</p>
+              <p className="text-muted-foreground mt-0.5 text-[11px]">
+                {formatRupiah(result.salesIncome)} jualan
+                {result.otherIncome > 0
+                  ? ` · ${formatRupiah(result.otherIncome)} lain`
+                  : ""}
+              </p>
+              {result.outstanding > 0 ? (
+                <p className="text-muted-foreground text-[11px]">
+                  {formatRupiah(result.outstanding)} masih ditagih
+                </p>
+              ) : null}
+            </div>
+            <div>
+              <p className="text-destructive text-lg font-semibold tabular-nums">
+                {formatRupiah(result.totalCost)}
+              </p>
+              <p className="text-muted-foreground text-xs">Keluar</p>
+              <p className="text-muted-foreground mt-0.5 text-[11px]">
+                {formatRupiah(result.materialCost)} bahan
+                {result.otherCost > 0
+                  ? ` · ${formatRupiah(result.otherCost)} lain`
+                  : ""}
+              </p>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      {cost.unpricedUsages > 0 ? (
+        <p className="text-muted-foreground mb-4 text-xs">
+          {cost.unpricedUsages} pemakaian tercatat waktu bahannya belum ada
+          harga, jadi masuk hitungan sebagai Rp 0. Isi harga belanjanya di
+          Inventaris.
+        </p>
+      ) : null}
+
+      <FinanceViews
+        entryCount={entries.length}
+        summary={
+          <div className="grid gap-6">
+            <div className="grid gap-6 lg:grid-cols-2">
+              <Breakdown
+                title="Semua yang keluar"
+                icon={PackageMinus}
+                lines={result.costByCategory}
+                total={result.totalCost}
+                empty="Belum ada pengeluaran tercatat di musim ini."
+              />
+              <Breakdown
+                title="Bahan, per jenis"
+                icon={Sprout}
+                lines={cost.byCategory.map((line) => ({
+                  ...line,
+                  label: materialCategoryLabels[line.label] ?? line.label,
+                }))}
+                total={cost.total}
+                empty="Belum ada pemakaian bahan tercatat."
+              />
+            </div>
+
+            <PricingCard guide={pricing} seasonId={season.id} />
+
+            <Card>
+              <CardContent className="grid gap-3 py-5">
+                <div className="flex items-center gap-2">
+                  <Wrench className="text-muted-foreground size-4" aria-hidden />
+                  <h2 className="text-sm font-medium">Uang keluar buat alat</h2>
+                </div>
+                <p className="text-2xl font-semibold tabular-nums">
+                  {formatRupiah(tools.total)}
+                </p>
+                <p className="text-muted-foreground text-xs">
+                  {formatRupiah(tools.bought)} beli · {formatRupiah(tools.serviced)}{" "}
+                  servis. Dihitung semua musim, bukan per musim — cangkul kepakai
+                  terus, nggak habis kayak pupuk, jadi nggak ikut masuk hitungan
+                  sisa musim di atas.
+                </p>
+              </CardContent>
+            </Card>
+          </div>
+        }
+        entries={
+          <FinanceEntryList
+            entries={entries}
+            seasonId={season.id}
+            photoEnabled={photoEnabled}
+          />
+        }
+        capital={
+          <CapitalPanel
+            summary={capital}
+            contributions={contributions}
+            members={members}
+            seasons={seasonList}
+            photoEnabled={photoEnabled}
+          />
+        }
+        sharing={
+          <Card>
+            <CardContent className="grid gap-4 py-5">
+              <div className="flex items-center gap-2">
+                <Users className="text-muted-foreground size-4" aria-hidden />
+                <h2 className="text-sm font-medium">
+                  Bagi hasil {formatRupiah(Math.max(0, sharing.margin))}
+                </h2>
+              </div>
+
+              {sharing.margin <= 0 ? (
+                <p className="text-muted-foreground text-sm">
+                  Musim ini belum ada sisa buat dibagi.
+                </p>
+              ) : (
+                <ul className="grid gap-2">
+                  {sharing.rows.map((row) => (
+                    <li
+                      key={row.id}
+                      className="flex items-center justify-between gap-2 rounded-md border px-3 py-2 text-sm"
+                    >
+                      <span className="min-w-0 truncate">{row.name}</span>
+                      <span className="flex items-center gap-3">
+                        <Badge variant="secondary" className="tabular-nums">
+                          {row.share}%
+                        </Badge>
+                        <strong className="tabular-nums">
+                          {formatRupiah(row.amount)}
+                        </strong>
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+              )}
+
+              {/* Not normalised on purpose: a gap in the agreed shares is a
+                  conversation the four of them need to have, and inflating
+                  everyone's slice to hide it would settle it for them. */}
+              {sharing.totalShare !== 100 ? (
+                <p className="text-amber-700 text-xs dark:text-amber-400">
+                  Porsinya baru {sharing.totalShare}%, belum genap 100
+                  {sharing.unallocated > 0
+                    ? ` — ${formatRupiah(sharing.unallocated)} belum ada yang punya`
+                    : ""}
+                  . Atur di Settings & Users.
+                </p>
+              ) : null}
+            </CardContent>
+          </Card>
+        }
+        seasons={
+          <div className="grid gap-6">
+            <Card>
+              <CardContent className="py-5">
+                <h2 className="mb-3 text-sm font-medium">
+                  Masuk vs keluar per musim
+                </h2>
+                <SeasonCompareChart seasons={seasons} />
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardContent className="grid gap-2 py-5">
+                <h2 className="text-sm font-medium">
+                  Sisa per kilo &amp; hasil per pohon
+                </h2>
+                <p className="text-muted-foreground text-xs">
+                  Total musim nggak bisa diadu langsung: musim yang jalan lebih
+                  lama atau pohonnya lebih banyak otomatis dapat angka lebih
+                  gede tanpa berarti lebih bagus. Dibagi dulu per kilo dan per
+                  pohon, baru setara.
+                </p>
+
+                <NotEnoughSeasons rows={seasons} />
+
+                <ul className="mt-2 grid gap-2">
+                  {seasons.map((row) => (
+                    <li
+                      key={row.id}
+                      className="grid gap-1 rounded-md border px-3 py-2 text-sm"
+                    >
+                      <div className="flex flex-wrap items-center justify-between gap-2">
+                        <span className="min-w-0">
+                          {row.name}
+                          <span className="text-muted-foreground ml-2 text-xs">
+                            {formatKg(row.harvestedKg)}
+                            {row.plantCount > 0
+                              ? ` · ${row.plantCount.toLocaleString("id-ID")} pohon`
+                              : ""}
+                          </span>
+                        </span>
+                        {/* Named, because "Rp …/kg" appears twice on this page
+                            with opposite meanings: HPP per kg up top is what a
+                            kilo cost, this is what a kilo left over. */}
+                        <strong
+                          className={
+                            row.perKg < 0
+                              ? "text-destructive tabular-nums"
+                              : "tabular-nums"
+                          }
+                        >
+                          {formatRupiah(row.perKg)}/kg
+                          <span className="text-muted-foreground ml-1 text-xs font-normal">
+                            sisa
+                          </span>
+                        </strong>
+                      </div>
+
+                      {/* The sum spelled out. Without it the card shows only a
+                          quotient, and nothing else on screen carries the two
+                          numbers it came from — so an odd figure can only be
+                          taken on faith or ignored.
+
+                          Suppressed before any money moves: "(Rp 0 − Rp 0) ÷
+                          30 kg" explains a zero nobody was puzzled by, and this
+                          line exists to answer puzzlement. */}
+                      {row.harvestedKg > 0 && (row.income > 0 || row.cost > 0) ? (
+                        <p className="text-muted-foreground text-xs tabular-nums">
+                          ({formatRupiah(row.income)} &minus;{" "}
+                          {formatRupiah(row.cost)}) &divide;{" "}
+                          {formatKg(row.harvestedKg)}
+                        </p>
+                      ) : null}
+
+                      <p className="text-muted-foreground text-xs tabular-nums">
+                        {formatPerPlant(row.harvestedKg, row.plantCount)} layak
+                        {row.perPlantTotalGrams !== null
+                          ? ` dari ${formatPerPlant((row.perPlantTotalGrams * row.plantCount) / 1000, row.plantCount)} total`
+                          : ""}
+                        {row.gradeOutRate !== null
+                          ? ` · ${formatPercent(row.gradeOutRate)} lolos sortir`
+                          : ""}
+                      </p>
+
+                      <UnsoldCaveat
+                        harvestedKg={row.harvestedKg}
+                        soldKg={row.soldKg}
+                        lostKg={row.lostKg}
+                        unsoldKg={row.unsoldKg}
+                      />
+                    </li>
+                  ))}
+                </ul>
+              </CardContent>
+            </Card>
+          </div>
+        }
+      />
+    </>
+  );
+}
+
+/**
+ * Admits when the comparison has nothing to compare.
+ *
+ * The per-kilo figure has one job — putting seasons of different sizes on the
+ * same footing — and with a single season that job is not happening. The figure
+ * is still true, so it stays; what was missing was any hint that its whole
+ * point is off screen, which is what made it read as arithmetic nobody could
+ * account for. Saying so is cheaper than removing a number that becomes the
+ * most useful one on the card the moment a second planting closes.
+ */
+function NotEnoughSeasons({ rows }: { rows: SeasonComparison[] }) {
+  if (canCompareSeasons(rows)) return null;
+
+  const picked = comparableSeasons(rows);
+
+  return (
+    <p className="text-muted-foreground rounded-md border border-dashed px-3 py-2 text-xs">
+      {picked === 0
+        ? "Belum ada musim yang panennya tercatat, jadi belum ada yang bisa diadu."
+        : "Baru satu musim yang panennya tercatat, jadi angka per kilo di bawah belum ada lawannya."}{" "}
+      Angka ini baru kepakai pas musim kedua jalan: yang pohonnya lebih banyak
+      otomatis dapat total lebih gede, dan cuma hitungan per kilo yang bisa
+      bilang apakah untungnya ikut naik sebanding.
+    </p>
+  );
+}
+
+/**
+ * Says how much of the crop the per-kilo figure above is actually built on.
+ *
+ * The figure divides realised margin by *every* kilo picked, so a heap still
+ * waiting for a buyer drags it down without anything on screen admitting it.
+ * That is not a flaw in the division — per kilo sold would swing wildly as
+ * stock goes out — but it does mean the number is provisional until the season
+ * has cleared, and a reader has no way to tell a genuinely thin season from
+ * one whose sales simply have not been typed in.
+ *
+ * Every kilo is named rather than one figure quoted, because a share on its own
+ * invites the reader to subtract it from the whole and land on the wrong pile:
+ * what rotted is neither sold nor waiting for a buyer, and only the waiting
+ * part can still move the number. Spoilage is stated for the same reason it is
+ * recorded at all — it is the difference between a heap that is coming and a
+ * heap that is gone.
+ *
+ * Amber once most of the crop is still unsold, because at that point the figure
+ * describes the crates more than the farming.
+ */
+function UnsoldCaveat({
+  harvestedKg,
+  soldKg,
+  lostKg,
+  unsoldKg,
+}: {
+  harvestedKg: number;
+  soldKg: number;
+  lostKg: number;
+  unsoldKg: number;
+}) {
+  // Deliberately no arithmetic here. These three come from `harvestSummary`,
+  // which is where the one definition of "belum laku" lives; recomputing it
+  // from picked less sold is exactly how spoiled chillies got reported as
+  // stock somebody might still buy.
+  //
+  // A tenth of a kilo is a rounding artefact, not a heap worth mentioning.
+  // Negative happens legitimately: a sale can be recorded before the picking
+  // it drew from.
+  if (harvestedKg <= 0 || unsoldKg <= 0.1) return null;
+
+  return (
+    <p
+      className={
+        unsoldKg / harvestedKg > 0.5
+          ? "text-amber-700 text-xs dark:text-amber-400"
+          : "text-muted-foreground text-xs"
+      }
+    >
+      Dari {formatKgPrecise(harvestedKg)} yang dipetik: {formatKgPrecise(soldKg)}{" "}
+      laku
+      {lostKg > 0 ? `, ${formatKgPrecise(lostKg)} susut` : ""},{" "}
+      {formatKgPrecise(unsoldKg)} masih nunggu pembeli — angka per kilo di atas
+      bakal naik kalau sisanya kejual.
+    </p>
+  );
+}
+
+function Breakdown({
+  title,
+  icon: Icon,
+  lines,
+  total,
+  empty,
+}: {
+  title: string;
+  icon: React.ComponentType<{ className?: string }>;
+  lines: CostLine[];
+  total: number;
+  empty: string;
+}) {
+  return (
+    <Card>
+      <CardContent className="grid gap-3 py-5">
+        <div className="flex items-center gap-2">
+          <Icon className="text-muted-foreground size-4" aria-hidden />
+          <h2 className="text-sm font-medium">{title}</h2>
+        </div>
+
+        {lines.length === 0 ? (
+          <p className="text-muted-foreground text-sm">{empty}</p>
+        ) : (
+          <ul className="grid gap-3">
+            {lines.map((line) => {
+              // Share of the season's spend, so the big items stand out
+              // without anyone doing the division in their head.
+              const share = total > 0 ? (line.amount / total) * 100 : 0;
+
+              return (
+                <li key={line.key} className="grid gap-1">
+                  <div className="flex items-baseline justify-between gap-2 text-sm">
+                    <span className="min-w-0 truncate">{line.label}</span>
+                    <span className="font-medium tabular-nums">
+                      {formatRupiah(line.amount)}
+                    </span>
+                  </div>
+                  <div className="bg-muted h-1.5 overflow-hidden rounded-full">
+                    <div
+                      className="bg-primary h-full rounded-full"
+                      style={{ width: `${share}%` }}
+                    />
+                  </div>
+                  <p className="text-muted-foreground text-xs">
+                    {line.detail} · {Math.round(share)}%
+                  </p>
+                </li>
+              );
+            })}
+          </ul>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
+
+function NoSeason() {
+  return (
+    <>
+      <PageHeader title="Keuangan & Kas" />
+      <Card>
+        <CardContent className="flex flex-col items-center gap-3 py-14 text-center">
+          <div className="bg-muted rounded-lg p-3">
+            <Coins className="text-muted-foreground size-6" aria-hidden />
+          </div>
+          <div>
+            <p className="font-medium">Belum ada musim tanam</p>
+            <p className="text-muted-foreground mt-1 text-sm">
+              Biaya selalu dihitung per musim, jadi buat musimnya dulu.
+            </p>
+          </div>
+          <Button asChild size="sm">
+            <Link href="/seasons">Ke Manajemen Musim</Link>
+          </Button>
+        </CardContent>
+      </Card>
+    </>
+  );
+}
