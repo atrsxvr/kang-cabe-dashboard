@@ -1,0 +1,844 @@
+datasource db {
+  provider = "postgresql"
+}
+
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+enum Role {
+  ADMIN
+  AGRONOMIST
+  LOGISTICS
+  SALES
+}
+
+enum SeasonStatus {
+  PLANNING
+  ACTIVE
+  HARVESTING
+  COMPLETED
+  ARCHIVED
+}
+
+enum TaskStatus {
+  TODO
+  IN_PROGRESS
+  DONE
+}
+
+/// Alur temuan lapangan: dilaporkan siapa saja, didiagnosa Agronomis, lalu
+/// ditangani tim. Boolean tidak cukup — tahap "sudah didiagnosa, belum
+/// disemprot" justru saat pekerjaan berpindah tangan.
+enum FindingStatus {
+  REPORTED
+  DIAGNOSED
+  TREATED
+  RESOLVED
+}
+
+enum Severity {
+  LOW
+  MEDIUM
+  HIGH
+}
+
+/// Fase yang dipakai di lapangan. PRODUCTION terbuka ujungnya — cabai rawit
+/// terus berproduksi berbulan-bulan, kebun rujukan sudah lewat HST 200.
+enum GrowthPhase {
+  VEGETATIVE
+  GENERATIVE
+  PRODUCTION
+}
+
+enum RecipeKind {
+  ROUTINE // kebutuhan rutin per fase
+  TREATMENT // penanganan masalah tertentu
+}
+
+enum ApplicationMethod {
+  KOCOR
+  SEMPROT
+}
+
+enum MaterialCategory {
+  FERTILIZER
+  PESTICIDE
+  FUNGICIDE
+  GROWTH_REGULATOR
+  SEED
+  MULCH
+  SUPPLIES // polybag, tali, dan sejenisnya
+  OTHER
+}
+
+/// Alasan stok berubah. Tanpa ini angka stok tidak bisa direkonsiliasi saat
+/// terasa janggal, dan pembelian tidak bisa disambungkan ke modul Keuangan.
+enum StockReason {
+  PURCHASE
+  USAGE
+  CORRECTION
+  LOSS
+}
+
+enum ToolCondition {
+  GOOD
+  NEEDS_SERVICE
+  BROKEN
+}
+
+/// Kejadian pada alat. Yang mengurangi jumlah dipisahkan dari yang hanya
+/// mengubah kondisi: alat hilang barangnya tidak ada lagi, alat rusak masih
+/// ada dan mungkin bisa diperbaiki.
+enum ToolEventType {
+  ACQUIRED // beli/dapat baru, jumlah bertambah
+  LOST // hilang, jumlah berkurang
+  RETIRED // dipensiunkan, jumlah berkurang
+  DAMAGED // rusak atau butuh servis, jumlah tetap
+  SERVICED // selesai diservis, kondisi kembali baik
+  CHECKED_OUT // dibawa seseorang, jumlah tetap
+  RETURNED // dikembalikan ke gudang, jumlah tetap
+}
+
+enum TransactionType {
+  INCOME
+  EXPENSE
+}
+
+/// Mutu hasil sortir. Dua saja, karena itu yang benar-benar dilakukan di
+/// kebun: dipisah jadi yang layak dan yang tidak.
+///
+/// Afkir tetap dijual, hanya lebih murah — jadi ia mutu, bukan kerugian, dan
+/// tidak boleh diperlakukan seperti barang buangan.
+enum ChiliGrade {
+  GOOD // "Bagus"
+  REJECT // "Afkir"
+}
+
+model User {
+  id    String @id @default(uuid())
+  name  String
+  /// Dipakai mencocokkan akun Google yang masuk. Login bersifat undangan: cuma
+  /// email yang sudah ada di sini yang bisa masuk, dan yang tidak dikenal
+  /// ditolak — bukan dibuatkan akun baru.
+  email String @unique
+  /// Dipakai better-auth, dan **default true** — bukan kelalaian.
+  ///
+  /// Pustakanya menolak menautkan identitas Google ke baris yang belum
+  /// terverifikasi, supaya penyerang tidak bisa mendaftarkan email korban lebih
+  /// dulu lalu menunggu identitas korban tertaut ke barisnya. Ancaman itu
+  /// mengandaikan orang bisa mendaftar sendiri, dan di sini tidak bisa:
+  /// pendaftaran dimatikan, dan setiap baris dibuat Admin sebagai undangan.
+  ///
+  /// Jadi tindakan Admin mengetik Gmail seseorang di Settings **itulah**
+  /// verifikasinya — seorang manusia yang mengenal orangnya menjaminkan alamat
+  /// itu. Default false membuat setiap anggota baru gagal masuk dengan
+  /// `account_not_linked`, dan pesannya tidak menyebut sebabnya.
+  emailVerified Boolean @default(true)
+  /// Foto profil dari Google, kalau ada.
+  image         String?
+  role          Role    @default(ADMIN)
+  /// Porsi bagi hasil, persen. Bebas tidak berjumlah 100 — halaman Keuangan
+  /// menampilkan selisihnya apa adanya daripada diam-diam menormalkan, karena
+  /// pembagian yang tidak genap adalah hal yang perlu dilihat empat orang,
+  /// bukan disembunyikan.
+  profitShare Float    @default(0)
+  deletedAt DateTime? // Pekerja nonaktif ditandai di sini, barisnya tidak dihapus
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  tasksAssigned     TaskAssignee[]
+  findingsReported  HealthLog[]     @relation("ReportedFindings")
+  findingsDiagnosed HealthLog[]     @relation("DiagnosedFindings")
+  recipesAuthored   Recipe[]        @relation("AuthoredRecipes")
+  stockMovements    StockMovement[] @relation("StockMovements")
+  stockOpnames      StockOpname[]   @relation("StockOpnames")
+  toolEvents        ToolEvent[]     @relation("ToolEvents")
+  toolsHeld         Tool[]          @relation("HeldTools")
+  shoppingNotes     ShoppingNote[]  @relation("ShoppingNotes")
+  harvestsRecorded  HarvestLog[]    @relation("RecordedHarvests")
+  salesRecorded     SaleTransaction[] @relation("RecordedSales")
+  contributions     CapitalContribution[] @relation("Contributions")
+  plantEventsLogged PlantEvent[]    @relation("RecordedPlantEvents")
+  lossesLogged      HarvestLoss[]   @relation("RecordedLosses")
+  sessions          Session[]
+  accounts          Account[]
+
+  @@index([deletedAt])
+}
+
+/// Sesi login yang sedang berjalan. Dikelola better-auth.
+///
+/// Cascade, tidak seperti relasi User lain di berkas ini: sesi bukan riwayat
+/// pekerjaan. Menonaktifkan anggota memang dilakukan lewat `deletedAt`, tapi
+/// kalau suatu hari barisnya benar-benar hilang, sesi yang menganggur tidak
+/// boleh tertinggal sebagai kunci yang masih bisa diputar.
+model Session {
+  id        String   @id
+  userId    String
+  /// Nilai yang benar-benar ada di cookie. Unik, karena inilah kuncinya.
+  token     String   @unique
+  expiresAt DateTime
+  ipAddress String?
+  userAgent String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([expiresAt])
+}
+
+/// Sambungan ke penyedia identitas — untuk kebun ini cuma Google.
+///
+/// Kolom `password` ada karena better-auth memakainya untuk login email, dan
+/// akan selalu kosong selama Google satu-satunya jalan masuk. Dibiarkan ada
+/// supaya menambah jalur cadangan nanti tidak menuntut migrasi lagi.
+model Account {
+  id                    String    @id
+  userId                String
+  providerId            String
+  accountId             String
+  accessToken           String?
+  refreshToken          String?
+  idToken               String?
+  accessTokenExpiresAt  DateTime?
+  refreshTokenExpiresAt DateTime?
+  scope                 String?
+  password              String?
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([providerId, accountId])
+  @@index([userId])
+}
+
+/// Token sekali pakai milik better-auth. Kosong selama cuma Google yang dipakai,
+/// tapi pustakanya mengharapkan tabelnya ada.
+model Verification {
+  id         String   @id
+  identifier String
+  value      String
+  expiresAt  DateTime
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@index([identifier])
+  @@index([expiresAt])
+}
+
+/// Satu baris untuk seluruh kebun. Hal-hal yang berlaku di mana-mana dan tidak
+/// masuk akal diulang per musim: di mana kebunnya, dan tangki ukuran berapa
+/// yang biasa dipakai.
+model GardenProfile {
+  id        String   @id @default("garden")
+  name      String   @default("Kebun Kang Cabe")
+  /// Koordinat kebun. Dipakai menampilkan lokasi dan memeriksa apakah kode
+  /// wilayah BMKG di bawah benar-benar menunjuk tempat yang sama.
+  latitude  Float?
+  longitude Float?
+  locationName String?
+  /// Kode wilayah tingkat desa/kelurahan milik BMKG, mis. "32.76.07.1005".
+  ///
+  /// BMKG tidak menerima lintang-bujur, dan tidak punya endpoint pencarian
+  /// wilayah — jadi kodenya harus diketik. Kosong berarti kartu cuacanya diam
+  /// dan menyuruh mengisinya, sama seperti koordinat yang belum diisi.
+  ///
+  /// Diverifikasi dengan cara memanggilnya: jawaban BMKG menyertakan nama desa
+  /// beserta koordinatnya, jadi kode yang salah ketik langsung terlihat sebagai
+  /// nama tempat yang asing atau jarak yang jauh dari kebun.
+  bmkgAdm4 String?
+  /// Volume tangki yang biasa dipakai, jadi kalkulator dosis tidak perlu
+  /// diketik ulang tiap kali.
+  defaultTankLitres Float @default(45)
+  updatedAt DateTime @updatedAt
+}
+
+/// Uang yang disetor anggota sebagai modal.
+///
+/// Tabel sendiri, **bukan** FinanceTransaction bertipe INCOME. Modal bukan
+/// pemasukan: mencatatnya begitu akan membuat musim terlihat untung padahal
+/// uangnya berasal dari kantong sendiri, dan itu justru angka yang paling
+/// berbahaya untuk dibagi berempat.
+///
+/// Juga tidak terikat musim — iuran awal menghidupi Musim 1 lalu sisanya
+/// terus dipakai musim berikutnya, jadi membebankannya ke satu musim membuat
+/// musim itu terlihat berat sendirian. `seasonId` boleh diisi hanya untuk
+/// menandai iuran susulan itu untuk putaran yang mana.
+model CapitalContribution {
+  id     String @id @default(uuid())
+  userId String
+  /// Rupiah bulat, seperti seluruh angka uang lain di aplikasi ini.
+  amount Int
+  paidAt DateTime
+  note     String?
+  proofUrl String?
+  seasonId String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Restrict: anggota dinonaktifkan lewat deletedAt, bukan dihapus — setoran
+  // modalnya harus tetap bertuan.
+  user   User    @relation("Contributions", fields: [userId], references: [id], onDelete: Restrict)
+  season Season? @relation(fields: [seasonId], references: [id], onDelete: SetNull)
+
+  @@index([userId])
+  @@index([paidAt])
+  @@index([seasonId])
+}
+
+model Season {
+  id         String       @id @default(uuid())
+  name       String // Contoh: "Musim Tanam 1 - Rawit Ori 212"
+  variety    String // Varietas benih
+  /// Populasi **tanam awal**, bukan yang berdiri hari ini. Yang sekarang
+  /// dihitung dari PlantEvent — lihat catatan di sana.
+  plantCount Int
+  /// Perkiraan total panen **Bagus** semusim, kg. Diketik, bukan dihitung —
+  /// ini target yang disepakati orangnya, bukan kesimpulan dari data, dan
+  /// menebaknya dari kurva panen akan membuat harga lantai bergerak sendiri
+  /// tanpa ada yang memutuskan.
+  ///
+  /// Dipakai untuk BEP proyeksi: biaya dibagi seluruh panen yang diharapkan,
+  /// bukan yang sudah terpetik. Kosong berarti panduan harga jual tidak
+  /// ditampilkan — menebak angkanya akan menghasilkan harga lantai palsu, dan
+  /// harga lantai palsu lebih berbahaya daripada tidak ada panduan sama sekali.
+  projectedHarvestKg Float?
+  startDate  DateTime // Tanggal tanam (HST 0)
+  endDate    DateTime? // Tanggal selesai musim
+  status     SeasonStatus @default(PLANNING)
+  notes      String?
+  createdAt  DateTime     @default(now())
+  updatedAt  DateTime     @updatedAt
+
+  tasks               Task[]
+  healthLogs          HealthLog[]
+  harvestLogs         HarvestLog[]
+  harvestLosses       HarvestLoss[]
+  plantEvents         PlantEvent[]
+  sales               SaleTransaction[]
+  financeTransactions FinanceTransaction[]
+  stockMovements      StockMovement[]
+  contributions       CapitalContribution[]
+}
+
+model Task {
+  id          String     @id @default(uuid())
+  seasonId    String
+  title       String
+  description String?
+  hst         Int? // Hari Setelah Tanam saat tugas direncanakan
+  dueDate     DateTime
+  status      TaskStatus @default(TODO)
+  // Diisi saat status menjadi DONE, dikosongkan kalau dibatalkan. Terpisah dari
+  // updatedAt supaya urutan Logbook tidak berubah saat tugas disunting.
+  completedAt DateTime?
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+
+  /// Racikan asal, kalau tugas ini dibuat dari Pustaka Racikan. Hanya untuk
+  /// label; takarannya disalin ke TaskMaterial, tidak dibaca ulang dari sini.
+  recipeId        String?
+  /// Volume yang benar-benar diracik, bisa berbeda dari volume acuan racikan.
+  recipeVolumeL   Float?
+  /// Diisi saat pemakaian bahannya sudah dipotong dari stok. Membuat
+  /// pencatatan idempoten: tugas selesai yang belum tercatat masih bisa
+  /// ditagih lewat tombol, dan yang sudah tidak bisa dipotong dua kali.
+  usageRecordedAt DateTime?
+
+  season    Season         @relation(fields: [seasonId], references: [id], onDelete: Cascade)
+  assignees TaskAssignee[]
+  // SetNull: menghapus racikan tidak boleh merusak tugas yang terlanjur
+  // memakainya — salinan takarannya tetap utuh.
+  recipe    Recipe?        @relation("RecipeTasks", fields: [recipeId], references: [id], onDelete: SetNull)
+  materials TaskMaterial[]
+
+  @@index([seasonId])
+  @@index([status, dueDate]) // Papan tugas: filter status, urut jatuh tempo
+  @@index([seasonId, completedAt]) // Logbook: riwayat selesai per musim
+  @@index([recipeId])
+}
+
+/// Takaran yang disalin ke tugas saat dibuat dari racikan.
+///
+/// Menghitung ulang dari racikan saat tugas diselesaikan akan memotong stok
+/// dengan angka berbeda dari yang tertulis di tugas, kalau dosisnya sempat
+/// direvisi di antara kedua momen itu.
+model TaskMaterial {
+  id         String @id @default(uuid())
+  taskId     String
+  materialId String
+  /// Jumlah pada satuan bahannya, sudah dikalikan volume.
+  amount     Float
+  /// Nilai rupiah pemakaian ini, dibekukan saat stok dipotong — sama seperti
+  /// takarannya. Harga pupuk naik bulan depan tidak boleh menulis ulang biaya
+  /// musim lalu. Kosong berarti pemakaiannya belum dicatat.
+  totalCost  Int?
+
+  task     Task     @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  material Material @relation(fields: [materialId], references: [id], onDelete: Restrict)
+
+  @@unique([taskId, materialId])
+  @@index([materialId])
+}
+
+// Penghubung Task <-> User. Satu tugas bisa dikerjakan beberapa orang.
+model TaskAssignee {
+  taskId     String
+  userId     String
+  assignedAt DateTime @default(now())
+
+  task Task @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  // Restrict: User dinonaktifkan lewat deletedAt, bukan dihapus. Ini jaring
+  // pengaman kalau ada penghapusan permanen yang tidak disengaja.
+  user User @relation(fields: [userId], references: [id], onDelete: Restrict)
+
+  @@id([taskId, userId])
+  @@index([userId]) // "tugas saya"; taskId sudah tercakup prefix primary key
+}
+
+model HealthLog {
+  id          String        @id @default(uuid())
+  seasonId    String
+  hst         Int // Hari Setelah Tanam saat ditemukannya gejala
+  photoUrl    String?
+  location    String? // Petak/blok tempat temuan, kalau relevan
+  symptoms    String // Gejala penyakit/hama
+  severity    Severity      @default(MEDIUM)
+  status      FindingStatus @default(REPORTED)
+  diagnosis   String? // Diagnosa dari Agronomis
+  treatment   String? // Solusi / Racikan obat
+  diagnosedAt DateTime?
+  resolvedAt  DateTime?
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+
+  reportedById  String?
+  diagnosedById String?
+
+  season      Season @relation(fields: [seasonId], references: [id], onDelete: Cascade)
+  // Restrict, konsisten dengan TaskAssignee: anggota dinonaktifkan lewat
+  // deletedAt, bukan dihapus, supaya riwayat temuan tetap bisa ditelusuri.
+  reportedBy  User?  @relation("ReportedFindings", fields: [reportedById], references: [id], onDelete: Restrict)
+  diagnosedBy User?  @relation("DiagnosedFindings", fields: [diagnosedById], references: [id], onDelete: Restrict)
+  plantEvents PlantEvent[]
+
+  @@index([seasonId])
+  @@index([seasonId, status]) // Antrean temuan per tahap
+  @@index([reportedById])
+  @@index([diagnosedById])
+}
+
+/// Satu baris per bahan, dipakai bersama oleh Pustaka Racikan dan Inventaris.
+/// Dipisah dulu akan berarti "NPK 16-16-16" diketik dua kali dan pertanyaan
+/// "stok cukup untuk racikan ini?" tidak pernah bisa dijawab.
+///
+/// Tidak terikat musim: karung pupuk dipakai lintas musim tanam.
+model Material {
+  id       String           @id @default(uuid())
+  name     String           @unique
+  /// Satuan baku untuk bahan ini — takaran racikan dan stok memakai satuan
+  /// yang sama, supaya keduanya bisa dibandingkan tanpa konversi.
+  unit     String
+  category MaterialCategory @default(FERTILIZER)
+
+  stock    Float @default(0)
+  /// Ambang peringatan. Status stok dihitung dari stock vs minStock, tidak
+  /// disimpan — kolom status hanya bisa melenceng dari angka yang diwakilinya.
+  minStock Float @default(0)
+
+  /// Harga rata-rata bergerak per satuan, rupiah. Bukan sumber kebenaran:
+  /// selalu bisa dibangun ulang dari StockMovement, dan memang harus, karena
+  /// harga sebuah pembelian boleh diisi belakangan. Disimpan hanya supaya
+  /// nilai gudang tidak perlu memindai seluruh riwayat tiap halaman dibuka.
+  ///
+  /// Float, bukan Int: ini tarif per satuan, bukan jumlah uang. Rp 32,5 per
+  /// gram itu wajar; yang dibulatkan ke rupiah utuh adalah hasil kalinya.
+  avgCost Float @default(0)
+
+  /// Satuan saat dibeli, kalau berbeda dari satuan pakai — "sak" untuk pupuk
+  /// yang ditakar dalam gram. Hanya untuk menulis daftar belanja; stok tetap
+  /// disimpan dalam satu satuan supaya racikan dan gudang tetap sebanding.
+  purchaseUnit String?
+  /// Berapa satuan pakai dalam satu satuan beli, mis. 5000 gram per sak.
+  purchaseSize Float?
+
+  /// Kedaluwarsa terdekat yang perlu diingat. Satu tanggal per bahan, bukan
+  /// per batch: gudang ini memakai harga rata-rata, bukan FIFO, jadi tidak ada
+  /// baris batch untuk ditempeli tanggal masing-masing.
+  expiresAt DateTime?
+
+  /// Diarsipkan, bukan dihapus. Menghapus bahan akan menghanyutkan seluruh
+  /// riwayat stoknya — termasuk pemakaian yang sudah dibebankan ke musim lalu,
+  /// yang membuat laporan musim itu ikut berubah setelah ditutup.
+  archivedAt DateTime?
+
+  notes     String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  recipeItems RecipeItem[]
+  movements   StockMovement[]
+  taskUsages  TaskMaterial[]
+
+  @@index([category])
+  @@index([archivedAt])
+}
+
+/// Riwayat perubahan stok. Menjawab "kenapa NPK tinggal segini".
+model StockMovement {
+  id         String      @id @default(uuid())
+  materialId String
+  /// Positif menambah, negatif mengurangi.
+  delta      Float
+  reason     StockReason
+  /// Total rupiah yang dibayar, hanya untuk PURCHASE. Boleh kosong: belanja
+  /// tanpa nota di tangan tetap harus bisa dicatat, dan harganya dilengkapi
+  /// belakangan. Selama kosong, rata-rata harga bahan tidak digeser.
+  ///
+  /// Int: rupiah tidak punya sen, dan Float menghasilkan selisih receh yang
+  /// tidak akan pernah bisa dijelaskan ke siapa pun.
+  totalCost  Int?
+  note       String?
+  actorId    String?
+  createdAt  DateTime    @default(now())
+
+  /// Musim yang menanggung pemakaian ini, untuk bahan yang keluar **di luar**
+  /// sebuah tugas — ambil dua puluh ajir mengganti yang patah, misalnya.
+  ///
+  /// Sengaja dibiarkan kosong oleh `recordTaskUsage`: biaya tugas sudah
+  /// dibekukan di `TaskMaterial.totalCost`, dan mengisi keduanya akan membuat
+  /// laporan musim menghitung pemakaian yang sama dua kali.
+  seasonId String?
+  /// Opname yang melahirkan koreksi ini.
+  opnameId String?
+
+  material Material     @relation(fields: [materialId], references: [id], onDelete: Cascade)
+  actor    User?        @relation("StockMovements", fields: [actorId], references: [id], onDelete: Restrict)
+  season   Season?      @relation(fields: [seasonId], references: [id], onDelete: SetNull)
+  opname   StockOpname? @relation(fields: [opnameId], references: [id], onDelete: SetNull)
+
+  @@index([materialId, createdAt])
+  @@index([actorId])
+  @@index([seasonId])
+  @@index([opnameId])
+}
+
+/// Satu kali hitung fisik gudang.
+///
+/// Ditulis **selalu**, termasuk saat semua angka cocok dan tidak ada satu pun
+/// koreksi. Tanpa baris ini, opname yang rapi justru tidak meninggalkan bukti
+/// bahwa ia pernah dilakukan, dan "terakhir kita hitung kapan" tidak terjawab.
+model StockOpname {
+  id        String   @id @default(uuid())
+  countedAt DateTime @default(now())
+  /// Berapa baris yang diisi hitungan fisiknya, dan berapa yang ternyata beda.
+  checked   Int
+  corrected Int
+  note      String?
+  actorId   String?
+
+  actor     User?           @relation("StockOpnames", fields: [actorId], references: [id], onDelete: Restrict)
+  movements StockMovement[]
+
+  @@index([countedAt])
+  @@index([actorId])
+}
+
+/// Alat kerja. Tabel sendiri karena cangkul tidak punya stok, satuan, atau
+/// ambang minimum — yang ia punya kondisi dan riwayat servis.
+model Tool {
+  id             String        @id @default(uuid())
+  name           String
+  /// Berapa yang benar-benar dimiliki. Berkurang saat hilang atau
+  /// dipensiunkan; nol berarti perlu diganti.
+  quantity       Int           @default(1)
+  /// Kondisi baris ini secara keseluruhan. Kalau satu dari beberapa unit
+  /// rusak sendiri, pisahkan jadi baris tersendiri — satu baris hanya bisa
+  /// mewakili satu kondisi.
+  condition      ToolCondition @default(GOOD)
+  lastServicedAt DateTime?
+  /// Servis berkala tiap sekian hari. Kosong berarti tidak dijadwalkan —
+  /// cangkul tidak perlu, tangki semprot perlu.
+  serviceIntervalDays Int?
+  /// Siapa yang sedang membawanya. Kosong berarti ada di gudang.
+  heldById       String?
+  notes          String?
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+
+  events ToolEvent[]
+  heldBy User?      @relation("HeldTools", fields: [heldById], references: [id], onDelete: Restrict)
+
+  @@index([condition])
+  @@index([heldById])
+}
+
+/// Riwayat alat, cerminan StockMovement untuk bahan. Menjawab "cangkul kita
+/// dulu tiga, sekarang kenapa dua".
+model ToolEvent {
+  id        String        @id @default(uuid())
+  toolId    String
+  type      ToolEventType
+  /// Berapa unit yang terdampak. Hanya berarti untuk kejadian yang mengubah
+  /// jumlah.
+  quantity  Int           @default(1)
+  /// Uang keluar untuk kejadian ini — harga beli atau ongkos servis. Alat
+  /// tidak disusutkan: cangkul tidak habis terpakai seperti pupuk, dan
+  /// penyusutan hanya menghasilkan angka yang tidak dimengerti siapa pun.
+  totalCost Int?
+  note      String?
+  actorId   String?
+  createdAt DateTime      @default(now())
+
+  tool  Tool  @relation(fields: [toolId], references: [id], onDelete: Cascade)
+  actor User? @relation("ToolEvents", fields: [actorId], references: [id], onDelete: Restrict)
+
+  @@index([toolId, createdAt])
+  @@index([actorId])
+}
+
+/// Baris belanja yang diketik sendiri: barang yang belum terdaftar, jasa
+/// servis, atau apa pun yang perlu diurus saat ke kota. Daftar belanja yang
+/// hanya bisa dihitung dari stok tidak punya tempat untuk hal-hal ini.
+model ShoppingNote {
+  id          String    @id @default(uuid())
+  text        String
+  done        Boolean   @default(false)
+  completedAt DateTime?
+  actorId     String?
+  createdAt   DateTime  @default(now())
+
+  actor User? @relation("ShoppingNotes", fields: [actorId], references: [id], onDelete: Restrict)
+
+  @@index([done, createdAt])
+  @@index([actorId])
+}
+
+/// Racikan — pengetahuan yang dipakai ulang lintas musim, jadi **tidak**
+/// terikat seasonId. Lihat pengecualian yang dicatat di CLAUDE.md.
+model Recipe {
+  id     String            @id @default(uuid())
+  name   String
+  kind   RecipeKind        @default(ROUTINE)
+  method ApplicationMethod @default(SEMPROT)
+
+  /// Diisi untuk racikan rutin.
+  phase        GrowthPhase?
+  /// Diisi untuk racikan penanganan, mis. "Antraknosa".
+  targetIssue  String?
+  /// "Ulangi tiap N hari" — di fase produksi perlakuan berputar, bukan sekali
+  /// jalan di HST tertentu.
+  intervalDays Int?
+
+  /// Volume acuan saat racikan ditampilkan. Takaran disimpan per liter supaya
+  /// tangki ukuran lain tetap benar tanpa hitung ulang.
+  basisVolumeL Float @default(45)
+
+  /// Masa tunggu panen setelah aplikasi, hari. Penting untuk kebun yang panen
+  /// terus-menerus: menyemprot memblokir panen selama sekian hari.
+  preHarvestIntervalDays Int?
+
+  notes     String?
+  authorId  String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  author User?        @relation("AuthoredRecipes", fields: [authorId], references: [id], onDelete: Restrict)
+  items  RecipeItem[]
+  tasks  Task[]       @relation("RecipeTasks")
+
+  @@index([kind, phase])
+  @@index([authorId])
+}
+
+model RecipeItem {
+  id         String @id @default(uuid())
+  recipeId   String
+  materialId String
+
+  /// Satuannya mengikuti Material.unit.
+  amountPerLiter Float
+  note           String?
+
+  recipe   Recipe   @relation(fields: [recipeId], references: [id], onDelete: Cascade)
+  material Material @relation(fields: [materialId], references: [id], onDelete: Restrict)
+
+  @@unique([recipeId, materialId])
+  @@index([materialId])
+}
+
+/// Sekali petik. Kebun ini panen terus-menerus, jadi barisnya banyak dan
+/// pendek-pendek, bukan satu peristiwa besar di akhir musim.
+/// Kenapa jumlah pokok berubah. Mati atau disulam.
+enum PlantEventType {
+  DIED // mati
+  REPLANTED // disulam
+}
+
+/// Buku catatan perubahan jumlah pokok, bukan angka yang ditimpa.
+///
+/// Populasi aktual dihitung dari sini: populasi tanam dikurangi yang mati,
+/// ditambah yang disulam. Menyimpan "populasi sekarang" sebagai kolom akan
+/// menghapus riwayat yang justru paling berguna — kapan matinya, dan kenapa.
+///
+/// Menyulam hanya masuk akal selagi tanaman masih kecil; sulaman yang telat
+/// tidak akan pernah mengejar yang lain. Setelah jendela itu lewat, pokok
+/// yang mati meninggalkan lubang kosong sampai musim berakhir — dan justru
+/// itu yang membuat catatan ini berarti.
+model PlantEvent {
+  id        String         @id @default(uuid())
+  seasonId  String
+  eventDate DateTime
+  type      PlantEventType
+  /// Berapa pokok yang terdampak.
+  count     Int
+
+  /// Sebab kematian, kalau diketahui. Teks bebas: yang menuliskannya sedang
+  /// berdiri di kebun, bukan memilih dari daftar.
+  cause     String?
+  /// Temuan lapangan yang menjelaskannya, kalau ada. Inilah alasan catatan ini
+  /// tinggal di modul Kesehatan: "20 pokok mati karena antraknosa yang
+  /// dilaporkan tanggal sekian" hanya bisa dirangkai kalau keduanya sekamar.
+  findingId String?
+
+  note         String?
+  recordedById String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  season     Season     @relation(fields: [seasonId], references: [id], onDelete: Cascade)
+  finding    HealthLog? @relation(fields: [findingId], references: [id], onDelete: SetNull)
+  recordedBy User?      @relation("RecordedPlantEvents", fields: [recordedById], references: [id], onDelete: Restrict)
+
+  @@index([seasonId])
+  @@index([seasonId, eventDate])
+  @@index([findingId])
+  @@index([recordedById])
+}
+
+/// Cabai yang sudah dipetik tapi hilang sebelum terjual — busuk, tercecer.
+///
+/// Tanpa ini, sisa belum terjual dihitung dari panen dikurangi penjualan saja,
+/// dan terus melar tiap kali ada yang membusuk. Angkanya akan makin jauh dari
+/// tumpukan yang benar-benar ada.
+model HarvestLoss {
+  id       String     @id @default(uuid())
+  seasonId String
+  lostAt   DateTime
+  grade    ChiliGrade
+  weightKg Float
+  reason   String?
+
+  note         String?
+  recordedById String?
+  createdAt    DateTime @default(now())
+
+  season     Season @relation(fields: [seasonId], references: [id], onDelete: Cascade)
+  recordedBy User?  @relation("RecordedLosses", fields: [recordedById], references: [id], onDelete: Restrict)
+
+  @@index([seasonId])
+  @@index([seasonId, lostAt])
+  @@index([recordedById])
+}
+
+model HarvestLog {
+  id          String   @id @default(uuid())
+  seasonId    String
+  harvestDate DateTime
+
+  /// Bobot per mutu, kg. Totalnya **dihitung**, tidak disimpan — kolom total
+  /// di samping angka-angka penyusunnya adalah dua sumber untuk satu fakta,
+  /// dan yang satu pasti akan lupa diperbarui.
+  goodKg   Float @default(0)
+  rejectKg Float @default(0)
+
+  notes        String?
+  recordedById String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  season     Season @relation(fields: [seasonId], references: [id], onDelete: Cascade)
+  recordedBy User?  @relation("RecordedHarvests", fields: [recordedById], references: [id], onDelete: Restrict)
+
+  @@index([seasonId])
+  @@index([seasonId, harvestDate]) // Grafik hasil panen per musim
+  @@index([recordedById])
+}
+
+/// Sekali jual, ke satu pembeli.
+///
+/// Tidak menempel ke satu HarvestLog. Cabai menumpuk dulu sebelum ada yang
+/// mengangkut, jadi yang dijual berasal dari tumpukan — bisa gabungan panen
+/// beberapa hari, bisa juga sebagian saja dari satu hari. Sisa yang belum
+/// terjual dihitung per musim: total panen dikurangi total terjual.
+model SaleTransaction {
+  id        String   @id @default(uuid())
+  seasonId  String
+  /// Kapan transaksinya terjadi, terpisah dari kapan ia diketik — sama
+  /// alasannya dengan completedAt pada Task.
+  soldAt    DateTime
+  buyerName String
+
+  /// Piutang. Tidak semua pengepul bayar di tempat.
+  isPaid Boolean   @default(false)
+  paidAt DateTime?
+
+  notes        String?
+  recordedById String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  season     Season     @relation(fields: [seasonId], references: [id], onDelete: Cascade)
+  recordedBy User?      @relation("RecordedSales", fields: [recordedById], references: [id], onDelete: Restrict)
+  items      SaleItem[]
+
+  @@index([seasonId])
+  @@index([seasonId, soldAt])
+  @@index([isPaid]) // Tagihan yang belum lunas
+  @@index([buyerName]) // Saran nama pembeli, dan rekap per pembeli
+  @@index([recordedById])
+}
+
+/// Satu baris per mutu dalam sebuah penjualan.
+///
+/// Bagus dan afkir hampir selalu berbeda harga, dan sering terangkut dalam
+/// transaksi yang sama — satu harga per transaksi tidak bisa menuliskannya.
+/// Nilai barisnya dihitung dari bobot kali harga, tidak disimpan.
+model SaleItem {
+  id         String     @id @default(uuid())
+  saleId     String
+  grade      ChiliGrade
+  weightKg   Float
+  /// Rupiah bulat, seperti seluruh angka uang lain di aplikasi ini.
+  pricePerKg Int
+
+  sale SaleTransaction @relation(fields: [saleId], references: [id], onDelete: Cascade)
+
+  @@unique([saleId, grade])
+  @@index([saleId])
+}
+
+model FinanceTransaction {
+  id          String          @id @default(uuid())
+  seasonId    String
+  type        TransactionType
+  category    String // Benih, Pupuk, Peralatan, Penjualan, Operasional
+  /// Rupiah bulat. Lihat catatan di SaleTransaction.
+  amount      Int
+  description String
+  proofUrl    String? // Foto nota/bukti
+  date        DateTime        @default(now())
+  createdAt   DateTime        @default(now())
+
+  season Season @relation(fields: [seasonId], references: [id], onDelete: Cascade)
+
+  @@index([seasonId])
+  @@index([seasonId, type]) // Rekap pemasukan vs pengeluaran per musim
+  @@index([date])
+}

@@ -1,0 +1,117 @@
+name: CI
+
+on:
+  push:
+    branches: [main, development, production]
+  pull_request:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    env:
+      # `next build` imports src/lib/prisma.ts, which validates the environment
+      # on load. No query runs during the build, so a syntactically valid
+      # placeholder is enough — CI never reaches a real database.
+      DATABASE_URL: postgresql://ci:ci@localhost:5432/ci
+      # `next build` menyetel NODE_ENV=production, dan `parseEnv` menolak boot
+      # tanpa kredensial otentikasi di sana — sengaja, supaya satu deploy yang
+      # lupa mengisinya tidak menyalakan aplikasi dengan seluruh endpoint tulis
+      # terbuka. Build di CI karena itu perlu nilai bohongan; yang diperiksa
+      # bentuknya, bukan apakah Google mengenalinya.
+      GOOGLE_CLIENT_ID: ci-bohongan.apps.googleusercontent.com
+      GOOGLE_CLIENT_SECRET: GOCSPX-ci-bohongan
+      BETTER_AUTH_SECRET: ci-hanya-untuk-pengujian-cukup-panjang-32
+      DIRECT_URL: postgresql://ci:ci@localhost:5432/ci
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      # Runs `prisma generate` via postinstall; the generated client is
+      # gitignored, so nothing downstream typechecks without this.
+      - run: pnpm install --frozen-lockfile
+
+      - run: pnpm lint
+
+      - run: pnpm typecheck
+
+      - run: pnpm test
+
+      - run: pnpm build
+
+  # Separate job, and a real database. The unit suite deliberately never
+  # touches Postgres; these specs exist precisely to cover the seams it cannot
+  # reach — a form posting to a Server Action, a season filter surviving a page
+  # change, stock leaving the shed and turning up as a cost.
+  e2e:
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_USER: ci
+          POSTGRES_PASSWORD: ci
+          POSTGRES_DB: kangcabe
+        ports:
+          - 5432:5432
+        # Without this the first migration can race the server's startup.
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    env:
+      DATABASE_URL: postgresql://ci:ci@localhost:5432/kangcabe
+      DIRECT_URL: postgresql://ci:ci@localhost:5432/kangcabe
+      # SUPABASE_URL and the service key are deliberately absent: both are
+      # optional, and nothing these specs touch uploads a photo.
+      #
+      # Otentikasi butuh rahasia yang sama di dua tempat: aplikasi memakainya
+      # menandatangani cookie sesi, dan e2e/session.ts memakainya membuat cookie
+      # yang bisa diterima aplikasi. Nilai bohongan cukup — asal keduanya sama.
+      #
+      # Kredensial Google sengaja tidak ada: tidak ada spec yang menyentuh layar
+      # Google, dan sesinya ditulis langsung ke tabel Session.
+      BETTER_AUTH_SECRET: ci-hanya-untuk-pengujian-cukup-panjang-32
+      BETTER_AUTH_URL: http://localhost:3000
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+
+      # migrate deploy, not migrate dev: CI applies what is committed and never
+      # invents a migration of its own.
+      - run: pnpm db:deploy
+
+      - run: pnpm db:seed
+
+      - run: pnpm exec playwright install --with-deps chromium
+
+      - run: pnpm test:e2e
+
+      - uses: actions/upload-artifact@v4
+        if: ${{ !cancelled() }}
+        with:
+          name: playwright-report
+          path: playwright-report/
+          retention-days: 7
