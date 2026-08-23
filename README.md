@@ -2,8 +2,8 @@
 
 Dashboard bisnis pertanian cabai rawit merah
 
-Kebutuhan produk ada di [PRD.md](PRD.md); aturan coding dan struktur folder di
-[CLAUDE.md](CLAUDE.md).
+Dokumen kerja (PRD, aturan coding, langkah deployment) disimpan lokal dan tidak
+ikut ke repo ini.
 
 ## Stack
 
@@ -18,9 +18,9 @@ Kebutuhan produk ada di [PRD.md](PRD.md); aturan coding dan struktur folder di
 
 ```bash
 pnpm install
-cp .env.example .env    # isi DATABASE_URL dan DIRECT_URL
+cp .env.example .env    # isi minimal DATABASE_URL dan DIRECT_URL
 pnpm db:migrate         # terapkan skema
-pnpm db:seed            # 1 musim contoh (opsional)
+pnpm db:seed            # 4 anggota + 1 musim contoh
 pnpm dev
 ```
 
@@ -28,16 +28,32 @@ Buka [http://localhost:3000](http://localhost:3000).
 
 ### Environment
 
-Dua variabel, keduanya connection string PostgreSQL:
-
 | Variabel | Dipakai oleh | Catatan |
 | --- | --- | --- |
 | `DATABASE_URL` | aplikasi saat runtime | Supabase: transaction pooler, port **6543** |
 | `DIRECT_URL` | Prisma CLI (migrate, studio) | Supabase: session pooler, port **5432** |
+| `GOOGLE_CLIENT_ID` | login | wajib di produksi |
+| `GOOGLE_CLIENT_SECRET` | login | wajib di produksi |
+| `BETTER_AUTH_SECRET` | tanda tangan cookie sesi | `openssl rand -base64 32` |
+| `BETTER_AUTH_URL` | asal aplikasi, callback OAuth | wajib `https` di luar localhost |
+| `SUPABASE_SERVICE_ROLE_KEY` | upload foto temuan | opsional; tanpanya form turun jadi teks-saja |
+| `PROD_DB_REF` | penjaga basis data | ref proyek produksi — lihat di bawah |
 
-Keduanya dibutuhkan karena transaction pooler tidak mendukung DDL, sehingga
-migrasi gagal jika dijalankan lewat port 6543. Nilainya divalidasi saat boot
-oleh `src/lib/env.ts` — salah format akan gagal dengan menyebut variabelnya.
+Dua connection string dibutuhkan karena transaction pooler tidak mendukung DDL,
+sehingga migrasi gagal jika dijalankan lewat port 6543.
+
+Nilainya divalidasi saat boot oleh `src/lib/env.ts` — salah format gagal dengan
+menyebut variabelnya. Tiga variabel otentikasi ditolak kalau kosong di produksi:
+aplikasi yang menyala tanpa otentikasi adalah aplikasi yang seluruh endpoint
+tulisnya terbuka, dan kegagalan itu tidak bersuara.
+
+### Basis data pengembangan terpisah
+
+`PROD_DB_REF` diisi ref proyek Supabase yang dipakai aplikasi live. Selama itu
+terisi, `db:migrate`, `db:seed`, dan `test:e2e` menolak jalan kalau
+`DATABASE_URL` ternyata menunjuk produksi — `migrate dev` boleh me-reset basis
+data, dan seed menyuntik anggota contoh ke daftar yang berisi orang sungguhan.
+`ALLOW_PROD_DB=1` untuk yang memang disengaja.
 
 ## Perintah
 
@@ -49,6 +65,7 @@ pnpm lint
 pnpm typecheck
 pnpm test         # vitest run
 pnpm test:watch
+pnpm test:e2e     # playwright; bangun sendiri di port 3100
 
 pnpm db:migrate   # prisma migrate dev
 pnpm db:deploy    # prisma migrate deploy (production)
@@ -88,4 +105,8 @@ prisma/
 - Setiap tabel baru wajib diberi `ENABLE ROW LEVEL SECURITY` di migrasinya.
   Supabase mengekspos schema `public` lewat PostgREST, dan Postgres tidak
   mengaktifkan RLS secara otomatis.
-- Autentikasi belum ada. Seluruh aplikasi masih terbuka.
+- Login lewat Google saja, dan bersifat undangan: pendaftaran sendiri dimatikan,
+  jadi yang emailnya belum didaftarkan Admin tidak punya jalan masuk.
+- Membaca terbuka untuk semua yang sudah masuk; menulis dijaga per wilayah lewat
+  empat peran. Penegakannya ada di setiap Server Action — bukan di tombolnya,
+  yang cuma disembunyikan demi kerapian.
