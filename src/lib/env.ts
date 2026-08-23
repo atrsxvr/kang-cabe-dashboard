@@ -2,6 +2,8 @@ import "server-only";
 
 import { z } from "zod";
 
+import { projectRefOf } from "@/lib/db-ref";
+
 /**
  * Validated server environment. Importing this module fails loudly at boot
  * with the offending variable named, instead of surfacing later as an opaque
@@ -166,8 +168,7 @@ export function parseEnv(source: Record<string, string | undefined>): Env {
  * be configured by hand — one fewer value to get wrong.
  */
 export function deriveSupabaseUrl(databaseUrl: string): string | undefined {
-  const user = databaseUrl.match(/^[a-z+]+:\/\/([^:@/]+)/i)?.[1];
-  const ref = user?.startsWith("postgres.") ? user.slice("postgres.".length) : undefined;
+  const ref = projectRefOf(databaseUrl);
   return ref ? `https://${ref}.supabase.co` : undefined;
 }
 

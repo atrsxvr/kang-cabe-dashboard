@@ -9,14 +9,14 @@
     "lint": "eslint",
     "postinstall": "prisma generate",
     "db:generate": "prisma generate",
-    "db:migrate": "prisma migrate dev",
+    "db:migrate": "tsx scripts/guard-dev-db.mts 'prisma migrate dev' && prisma migrate dev",
     "db:deploy": "prisma migrate deploy",
-    "db:seed": "prisma db seed",
+    "db:seed": "tsx scripts/guard-dev-db.mts 'prisma db seed' && prisma db seed",
     "db:studio": "prisma studio",
     "test": "vitest run",
     "test:watch": "vitest",
     "typecheck": "tsc --noEmit",
-    "test:e2e": "playwright test",
+    "test:e2e": "tsx scripts/guard-dev-db.mts 'playwright test' && playwright test",
     "test:e2e:ui": "playwright test --ui"
   },
   "dependencies": {
