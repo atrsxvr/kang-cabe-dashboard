@@ -129,14 +129,17 @@ test.describe("open redirect", () => {
     "//example.com/",
     "/\\example.com",
   ]) {
-    test(`nggak mau dialihkan ke ${evil}`, async ({ page }) => {
+    test(`nggak mau dialihkan ke ${evil}`, async ({ page, baseURL }) => {
       await page.goto(`/masuk?lanjut=${encodeURIComponent(evil)}`, {
         waitUntil: "commit",
       });
 
       // Sudah masuk sebagai Admin, jadi halaman masuk mengalihkan — dan
-      // tujuannya harus tetap di dalam aplikasi ini.
-      expect(new URL(page.url()).host).toBe("localhost:3000");
+      // tujuannya harus tetap di dalam aplikasi ini. Dibandingkan dengan
+      // baseURL, bukan host yang ditulis tangan: yang diuji adalah "tidak
+      // pindah asal", dan menuliskan portnya membuat tesnya ikut gagal setiap
+      // kali suite ini dijalankan di port lain.
+      expect(new URL(page.url()).host).toBe(new URL(baseURL!).host);
     });
   }
 });
