@@ -18,7 +18,20 @@
  * Saldo awal masuk sebagai sumbernya sendiri, bukan setoran: uang yang sudah
  * ada sebelum aplikasi dipakai milik kebun bersama, dan menaruhnya atas nama
  * seseorang akan memutuskan pembagian yang belum disepakati.
+ *
+ * **Saldo awal adalah foto isi kas pada satu hari.** Semua yang masuk dan
+ * keluar sebelum hari itu sudah tercermin di dalamnya, jadi catatan bertanggal
+ * lebih awal tetap disimpan dan ditampilkan — setoran Musim 1 perlu ada untuk
+ * porsi modal tiap orang — tapi tidak dihitung ulang ke saldo. Tanpa ini, setoran
+ * yang sisanya sudah ada di foto terhitung dua kali, dan saldo melebihi uang
+ * yang benar-benar dipegang.
+ *
+ * Dibandingkan per hari kalender WIB. Tanggal dari formulir tersimpan sebagai
+ * tengah malam UTC, belanja dengan jam sungguhan; dibandingkan mentah, belanja
+ * pukul tiga pagi WIB akan dianggap terjadi sehari sebelumnya.
  */
+
+import { startOfDayInJakarta } from "@/lib/hst";
 
 export const CASH_SOURCES = [
   "OPENING",
@@ -76,6 +89,8 @@ export type CashEntry = {
 
 export type LedgerRow = CashEntry & {
   direction: CashDirection;
+  /** Lebih tua dari saldo awal: sudah termasuk di dalamnya, tidak dihitung ulang. */
+  beforeOpening: boolean;
   /** Saldo tepat sesudah baris ini — buat menelusuri di mana angkanya meleset. */
   balanceAfter: number;
 };
@@ -85,6 +100,8 @@ export type CashTotals = {
   totalIn: number;
   totalOut: number;
   bySource: Record<CashSource, number>;
+  /** Catatan yang tidak dihitung karena lebih tua dari saldo awal. */
+  beforeOpeningCount: number;
   /** Terbaru di atas. */
   ledger: LedgerRow[];
 };
@@ -109,13 +126,32 @@ export function summariseCash(entries: CashEntry[]): CashTotals {
       a.id.localeCompare(b.id)
   );
 
+  // Saldo awal yang paling awal. Kalau ada lebih dari satu, yang lebih baru
+  // diperlakukan sebagai tambahan biasa — biasanya cuma satu.
+  const openings = entries
+    .filter((entry) => entry.source === "OPENING")
+    .map((entry) => startOfDayInJakarta(entry.date));
+  const cutoff = openings.length > 0 ? Math.min(...openings) : null;
+
   let balance = 0;
   let totalIn = 0;
   let totalOut = 0;
+  let beforeOpeningCount = 0;
   const ledger: LedgerRow[] = [];
 
   for (const entry of ordered) {
     const direction = directionOf(entry.source);
+    const beforeOpening =
+      cutoff !== null &&
+      entry.source !== "OPENING" &&
+      startOfDayInJakarta(entry.date) < cutoff;
+
+    if (beforeOpening) {
+      beforeOpeningCount += 1;
+      ledger.push({ ...entry, direction, beforeOpening, balanceAfter: balance });
+      continue;
+    }
+
     bySource[entry.source] += entry.amount;
 
     if (direction === "IN") {
@@ -126,10 +162,17 @@ export function summariseCash(entries: CashEntry[]): CashTotals {
       balance -= entry.amount;
     }
 
-    ledger.push({ ...entry, direction, balanceAfter: balance });
+    ledger.push({ ...entry, direction, beforeOpening, balanceAfter: balance });
   }
 
-  return { balance, totalIn, totalOut, bySource, ledger: ledger.reverse() };
+  return {
+    balance,
+    totalIn,
+    totalOut,
+    bySource,
+    beforeOpeningCount,
+    ledger: ledger.reverse(),
+  };
 }
 
 /**

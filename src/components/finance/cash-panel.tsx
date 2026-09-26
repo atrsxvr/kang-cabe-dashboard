@@ -90,6 +90,14 @@ export function CashPanel({
             </p>
           ) : null}
 
+          {report.beforeOpeningCount > 0 ? (
+            <p className="text-muted-foreground text-center text-xs">
+              {report.beforeOpeningCount} catatan bertanggal sebelum saldo awal
+              nggak dihitung ulang — uangnya udah termasuk di saldo awal.
+              Tetap dipakai buat porsi modal tiap orang.
+            </p>
+          ) : null}
+
           {report.receivable > 0 ? (
             <p className="text-muted-foreground text-center text-xs">
               {formatRupiah(report.receivable)} dari {report.receivableCount}{" "}
@@ -256,7 +264,13 @@ export function CashPanel({
           ) : (
             <ul className="divide-y">
               {report.ledger.map((row) => (
-                <li key={row.id} className="flex items-start gap-3 py-2 text-sm">
+                <li
+                  key={row.id}
+                  className={cn(
+                    "flex items-start gap-3 py-2 text-sm",
+                    row.beforeOpening && "opacity-60",
+                  )}
+                >
                   <DirectionIcon direction={row.direction} />
                   <div className="min-w-0 flex-1">
                     <p className="truncate">{row.label}</p>
@@ -264,14 +278,21 @@ export function CashPanel({
                       {formatDate(row.date)} · {cashSourceLabels[row.source]}
                       {row.detail ? ` · ${row.detail}` : ""}
                     </p>
+                    {row.beforeOpening ? (
+                      <p className="text-muted-foreground text-xs italic">
+                        Sudah termasuk saldo awal — nggak mengubah saldo.
+                      </p>
+                    ) : null}
                   </div>
                   <div className="shrink-0 text-right">
                     <p
                       className={cn(
                         "font-medium tabular-nums",
-                        row.direction === "IN"
-                          ? "text-emerald-700 dark:text-emerald-400"
-                          : "text-destructive",
+                        row.beforeOpening
+                          ? "text-muted-foreground line-through"
+                          : row.direction === "IN"
+                            ? "text-emerald-700 dark:text-emerald-400"
+                            : "text-destructive",
                       )}
                     >
                       {row.direction === "IN" ? "+" : "−"}

@@ -127,6 +127,7 @@ export function OpeningDialog({ opening }: { opening?: OpeningRow }) {
               id="opening-countedAt"
               label="Mulai dihitung"
               error={errors.countedAt}
+              hint="Hari kamu menghitung uangnya. Catatan bertanggal sebelum ini dianggap udah termasuk, jadi nggak dihitung dua kali."
             >
               <Input
                 id="opening-countedAt"

@@ -88,6 +88,10 @@ test("saldo awal menambah kas, bukan modal siapa pun", async ({ page }) => {
   await page.getByRole("button", { name: "Catat Saldo Awal" }).click();
   const dialog = page.getByRole("dialog");
   await dialog.getByLabel("Jumlah (Rp)").fill("3000000");
+  // Tanggal yang jauh di belakang, supaya tidak ada catatan lain di basis data
+  // uji yang mendadak "sudah termasuk saldo awal" — selisihnya harus tepat
+  // jumlah yang dicatat, apa pun isi basis datanya.
+  await dialog.getByLabel("Mulai dihitung").fill("2000-01-01");
   await dialog.getByLabel("Catatan (opsional)").fill(`E2E saldo awal ${stamp}`);
   await dialog.getByRole("button", { name: "Simpan Saldo Awal" }).click();
   await expect(dialog).toBeHidden();
@@ -96,6 +100,41 @@ test("saldo awal menambah kas, bukan modal siapa pun", async ({ page }) => {
 
   await page.getByRole("tab", { name: "Modal" }).click();
   expect(rupiahOf(await modal.innerText())).toBe(capitalBefore);
+});
+
+/**
+ * Setoran yang lebih tua dari saldo awal: tercatat untuk porsi modal, tapi
+ * tidak menambah saldo — sisanya sudah ada di dalam saldo awal. Bergantung pada
+ * saldo awal 1 Januari 2000 dari tes sebelumnya; file ini berjalan berurutan.
+ */
+test("setoran sebelum saldo awal masuk modal, bukan saldo", async ({ page }) => {
+  await openFinance(page, "Modal");
+  const modal = page
+    .getByText("Total modal bersih", { exact: true })
+    .locator("xpath=following-sibling::p[1]");
+  const capitalBefore = rupiahOf(await modal.innerText());
+
+  await page.getByRole("tab", { name: "Kas" }).click();
+  const before = await balance(page);
+
+  await page.getByRole("tab", { name: "Modal" }).click();
+  await page.getByRole("button", { name: "Catat Setoran" }).click();
+  const setor = page.getByRole("dialog");
+  await setor.getByLabel("Jumlah (Rp)").fill("700000");
+  await setor.getByLabel("Tanggal Setor").fill("1999-12-31");
+  await setor.getByLabel("Catatan (opsional)").fill(`E2E setoran lama ${stamp}`);
+  await setor.getByRole("button", { name: "Simpan Setoran" }).click();
+  await expect(setor).toBeHidden();
+
+  await expect.poll(async () => rupiahOf(await modal.innerText())).toBe(
+    capitalBefore + 700_000
+  );
+
+  await page.getByRole("tab", { name: "Kas" }).click();
+  expect(await balance(page)).toBe(before);
+  await expect(
+    page.getByText("Sudah termasuk saldo awal — nggak mengubah saldo.").first()
+  ).toBeVisible();
 });
 
 /**

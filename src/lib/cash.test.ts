@@ -102,3 +102,66 @@ describe("netCapital", () => {
     expect(netCapital(2_000_000, 0)).toBe(2_000_000);
   });
 });
+
+/**
+ * Saldo awal adalah foto isi kas pada satu hari. Setoran Musim 1 yang sisanya
+ * sudah ada di foto itu tetap boleh dicatat — untuk porsi modal — tanpa
+ * membuat saldo melebihi uang yang dipegang.
+ */
+describe("summariseCash with an opening balance", () => {
+  it("keeps entries older than the opening out of the balance", () => {
+    const cash = summariseCash([
+      entry("setor-lama", "2026-03-01", "CAPITAL", 2_000_000),
+      entry("awal", "2026-09-27", "OPENING", 1_500_000),
+    ]);
+
+    expect(cash.balance).toBe(1_500_000);
+    expect(cash.bySource.CAPITAL).toBe(0);
+    expect(cash.totalIn).toBe(1_500_000);
+    expect(cash.beforeOpeningCount).toBe(1);
+
+    const lama = cash.ledger.find((row) => row.id === "setor-lama");
+    expect(lama?.beforeOpening).toBe(true);
+  });
+
+  it("counts everything from the opening day on", () => {
+    const cash = summariseCash([
+      entry("awal", "2026-09-27", "OPENING", 1_500_000),
+      entry("setor-hari-itu", "2026-09-27", "CAPITAL", 500_000),
+      entry("pupuk", "2026-09-30", "PURCHASE", 200_000),
+    ]);
+
+    expect(cash.balance).toBe(1_800_000);
+    expect(cash.beforeOpeningCount).toBe(0);
+  });
+
+  /**
+   * Tanggal formulir tersimpan sebagai tengah malam UTC; belanja dengan jam
+   * sungguhan. 20.00 UTC tanggal 26 adalah pukul tiga pagi WIB tanggal 27 —
+   * hari yang sama dengan saldo awalnya, jadi harus dihitung.
+   */
+  it("compares by calendar day in Jakarta, not in UTC", () => {
+    const cash = summariseCash([
+      entry("awal", "2026-09-27", "OPENING", 1_000_000),
+      {
+        id: "subuh",
+        date: new Date("2026-09-26T20:00:00Z"),
+        source: "PURCHASE",
+        amount: 100_000,
+        label: "subuh",
+        detail: null,
+      },
+    ]);
+
+    expect(cash.balance).toBe(900_000);
+    expect(cash.beforeOpeningCount).toBe(0);
+  });
+
+  it("counts everything when there is no opening balance", () => {
+    const cash = summariseCash([
+      entry("setor-lama", "2026-03-01", "CAPITAL", 2_000_000),
+    ]);
+    expect(cash.balance).toBe(2_000_000);
+    expect(cash.beforeOpeningCount).toBe(0);
+  });
+});
