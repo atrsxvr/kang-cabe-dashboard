@@ -117,12 +117,12 @@ enum ChiliGrade {
 }
 
 model User {
-  id    String @id @default(uuid())
-  name  String
+  id            String    @id @default(uuid())
+  name          String
   /// Dipakai mencocokkan akun Google yang masuk. Login bersifat undangan: cuma
   /// email yang sudah ada di sini yang bisa masuk, dan yang tidak dikenal
   /// ditolak — bukan dibuatkan akun baru.
-  email String @unique
+  email         String    @unique
   /// Dipakai better-auth, dan **default true** — bukan kelalaian.
   ///
   /// Pustakanya menolak menautkan identitas Google ke baris yang belum
@@ -135,33 +135,34 @@ model User {
   /// verifikasinya — seorang manusia yang mengenal orangnya menjaminkan alamat
   /// itu. Default false membuat setiap anggota baru gagal masuk dengan
   /// `account_not_linked`, dan pesannya tidak menyebut sebabnya.
-  emailVerified Boolean @default(true)
+  emailVerified Boolean   @default(true)
   /// Foto profil dari Google, kalau ada.
   image         String?
-  role          Role    @default(ADMIN)
+  role          Role      @default(ADMIN)
   /// Porsi bagi hasil, persen. Bebas tidak berjumlah 100 — halaman Keuangan
   /// menampilkan selisihnya apa adanya daripada diam-diam menormalkan, karena
   /// pembagian yang tidak genap adalah hal yang perlu dilihat empat orang,
   /// bukan disembunyikan.
-  profitShare Float    @default(0)
-  deletedAt DateTime? // Pekerja nonaktif ditandai di sini, barisnya tidak dihapus
-  createdAt DateTime  @default(now())
-  updatedAt DateTime  @updatedAt
+  profitShare   Float     @default(0)
+  deletedAt     DateTime? // Pekerja nonaktif ditandai di sini, barisnya tidak dihapus
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
 
   tasksAssigned     TaskAssignee[]
-  findingsReported  HealthLog[]     @relation("ReportedFindings")
-  findingsDiagnosed HealthLog[]     @relation("DiagnosedFindings")
-  recipesAuthored   Recipe[]        @relation("AuthoredRecipes")
-  stockMovements    StockMovement[] @relation("StockMovements")
-  stockOpnames      StockOpname[]   @relation("StockOpnames")
-  toolEvents        ToolEvent[]     @relation("ToolEvents")
-  toolsHeld         Tool[]          @relation("HeldTools")
-  shoppingNotes     ShoppingNote[]  @relation("ShoppingNotes")
-  harvestsRecorded  HarvestLog[]    @relation("RecordedHarvests")
-  salesRecorded     SaleTransaction[] @relation("RecordedSales")
+  findingsReported  HealthLog[]           @relation("ReportedFindings")
+  findingsDiagnosed HealthLog[]           @relation("DiagnosedFindings")
+  recipesAuthored   Recipe[]              @relation("AuthoredRecipes")
+  stockMovements    StockMovement[]       @relation("StockMovements")
+  stockOpnames      StockOpname[]         @relation("StockOpnames")
+  toolEvents        ToolEvent[]           @relation("ToolEvents")
+  toolsHeld         Tool[]                @relation("HeldTools")
+  shoppingNotes     ShoppingNote[]        @relation("ShoppingNotes")
+  harvestsRecorded  HarvestLog[]          @relation("RecordedHarvests")
+  salesRecorded     SaleTransaction[]     @relation("RecordedSales")
   contributions     CapitalContribution[] @relation("Contributions")
-  plantEventsLogged PlantEvent[]    @relation("RecordedPlantEvents")
-  lossesLogged      HarvestLoss[]   @relation("RecordedLosses")
+  payouts           MemberPayout[]        @relation("Payouts")
+  plantEventsLogged PlantEvent[]          @relation("RecordedPlantEvents")
+  lossesLogged      HarvestLoss[]         @relation("RecordedLosses")
   sessions          Session[]
   accounts          Account[]
 
@@ -235,13 +236,13 @@ model Verification {
 /// masuk akal diulang per musim: di mana kebunnya, dan tangki ukuran berapa
 /// yang biasa dipakai.
 model GardenProfile {
-  id        String   @id @default("garden")
-  name      String   @default("Kebun Kang Cabe")
+  id                String   @id @default("garden")
+  name              String   @default("Kebun Kang Cabe")
   /// Koordinat kebun. Dipakai menampilkan lokasi dan memeriksa apakah kode
   /// wilayah BMKG di bawah benar-benar menunjuk tempat yang sama.
-  latitude  Float?
-  longitude Float?
-  locationName String?
+  latitude          Float?
+  longitude         Float?
+  locationName      String?
   /// Kode wilayah tingkat desa/kelurahan milik BMKG, mis. "32.76.07.1005".
   ///
   /// BMKG tidak menerima lintang-bujur, dan tidak punya endpoint pencarian
@@ -251,11 +252,11 @@ model GardenProfile {
   /// Diverifikasi dengan cara memanggilnya: jawaban BMKG menyertakan nama desa
   /// beserta koordinatnya, jadi kode yang salah ketik langsung terlihat sebagai
   /// nama tempat yang asing atau jarak yang jauh dari kebun.
-  bmkgAdm4 String?
+  bmkgAdm4          String?
   /// Volume tangki yang biasa dipakai, jadi kalkulator dosis tidak perlu
   /// diketik ulang tiap kali.
-  defaultTankLitres Float @default(45)
-  updatedAt DateTime @updatedAt
+  defaultTankLitres Float    @default(45)
+  updatedAt         DateTime @updatedAt
 }
 
 /// Uang yang disetor anggota sebagai modal.
@@ -270,11 +271,11 @@ model GardenProfile {
 /// musim itu terlihat berat sendirian. `seasonId` boleh diisi hanya untuk
 /// menandai iuran susulan itu untuk putaran yang mana.
 model CapitalContribution {
-  id     String @id @default(uuid())
-  userId String
+  id       String   @id @default(uuid())
+  userId   String
   /// Rupiah bulat, seperti seluruh angka uang lain di aplikasi ini.
-  amount Int
-  paidAt DateTime
+  amount   Int
+  paidAt   DateTime
   note     String?
   proofUrl String?
   seasonId String?
@@ -292,13 +293,51 @@ model CapitalContribution {
   @@index([seasonId])
 }
 
+/// Uang yang keluar dari kas ke tangan anggota.
+///
+/// Tanpa catatan ini saldo kas terus kelebihan sebesar semua yang pernah
+/// dibagikan: setelah hasil panen dibagi, uangnya ada di kantong masing-masing,
+/// sementara aplikasi masih menganggapnya di kas.
+///
+/// Dua jenis dipisah karena akibatnya pada modal berbeda. Tarik modal
+/// mengembalikan setoran, jadi mengurangi porsi modal orangnya; bagi hasil
+/// membayar bagian laba dan tidak menyentuh modal sama sekali.
+model MemberPayout {
+  id       String     @id @default(uuid())
+  userId   String
+  type     PayoutType
+  /// Rupiah bulat. Lihat catatan di SaleTransaction.
+  amount   Int
+  paidAt   DateTime
+  /// Musim yang labanya dibagi. Wajib untuk bagi hasil — laba selalu milik
+  /// satu musim — dan boleh kosong untuk tarik modal, yang milik kas bersama.
+  seasonId String?
+  note     String?
+  proofUrl String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user   User    @relation("Payouts", fields: [userId], references: [id], onDelete: Restrict)
+  season Season? @relation(fields: [seasonId], references: [id], onDelete: SetNull)
+
+  @@index([userId])
+  @@index([paidAt])
+  @@index([seasonId])
+}
+
+enum PayoutType {
+  PROFIT_SHARE // bagi hasil
+  CAPITAL_RETURN // tarik modal
+}
+
 model Season {
-  id         String       @id @default(uuid())
-  name       String // Contoh: "Musim Tanam 1 - Rawit Ori 212"
-  variety    String // Varietas benih
+  id                 String       @id @default(uuid())
+  name               String // Contoh: "Musim Tanam 1 - Rawit Ori 212"
+  variety            String // Varietas benih
   /// Populasi **tanam awal**, bukan yang berdiri hari ini. Yang sekarang
   /// dihitung dari PlantEvent — lihat catatan di sana.
-  plantCount Int
+  plantCount         Int
   /// Perkiraan total panen **Bagus** semusim, kg. Diketik, bukan dihitung —
   /// ini target yang disepakati orangnya, bukan kesimpulan dari data, dan
   /// menebaknya dari kurva panen akan membuat harga lantai bergerak sendiri
@@ -309,12 +348,12 @@ model Season {
   /// ditampilkan — menebak angkanya akan menghasilkan harga lantai palsu, dan
   /// harga lantai palsu lebih berbahaya daripada tidak ada panduan sama sekali.
   projectedHarvestKg Float?
-  startDate  DateTime // Tanggal tanam (HST 0)
-  endDate    DateTime? // Tanggal selesai musim
-  status     SeasonStatus @default(PLANNING)
-  notes      String?
-  createdAt  DateTime     @default(now())
-  updatedAt  DateTime     @updatedAt
+  startDate          DateTime // Tanggal tanam (HST 0)
+  endDate            DateTime? // Tanggal selesai musim
+  status             SeasonStatus @default(PLANNING)
+  notes              String?
+  createdAt          DateTime     @default(now())
+  updatedAt          DateTime     @updatedAt
 
   tasks               Task[]
   healthLogs          HealthLog[]
@@ -325,6 +364,7 @@ model Season {
   financeTransactions FinanceTransaction[]
   stockMovements      StockMovement[]
   contributions       CapitalContribution[]
+  payouts             MemberPayout[]
 }
 
 model Task {
@@ -421,11 +461,11 @@ model HealthLog {
   reportedById  String?
   diagnosedById String?
 
-  season      Season @relation(fields: [seasonId], references: [id], onDelete: Cascade)
+  season      Season       @relation(fields: [seasonId], references: [id], onDelete: Cascade)
   // Restrict, konsisten dengan TaskAssignee: anggota dinonaktifkan lewat
   // deletedAt, bukan dihapus, supaya riwayat temuan tetap bisa ditelusuri.
-  reportedBy  User?  @relation("ReportedFindings", fields: [reportedById], references: [id], onDelete: Restrict)
-  diagnosedBy User?  @relation("DiagnosedFindings", fields: [diagnosedById], references: [id], onDelete: Restrict)
+  reportedBy  User?        @relation("ReportedFindings", fields: [reportedById], references: [id], onDelete: Restrict)
+  diagnosedBy User?        @relation("DiagnosedFindings", fields: [diagnosedById], references: [id], onDelete: Restrict)
   plantEvents PlantEvent[]
 
   @@index([seasonId])
@@ -553,27 +593,27 @@ model StockOpname {
 /// Alat kerja. Tabel sendiri karena cangkul tidak punya stok, satuan, atau
 /// ambang minimum — yang ia punya kondisi dan riwayat servis.
 model Tool {
-  id             String        @id @default(uuid())
-  name           String
+  id                  String        @id @default(uuid())
+  name                String
   /// Berapa yang benar-benar dimiliki. Berkurang saat hilang atau
   /// dipensiunkan; nol berarti perlu diganti.
-  quantity       Int           @default(1)
+  quantity            Int           @default(1)
   /// Kondisi baris ini secara keseluruhan. Kalau satu dari beberapa unit
   /// rusak sendiri, pisahkan jadi baris tersendiri — satu baris hanya bisa
   /// mewakili satu kondisi.
-  condition      ToolCondition @default(GOOD)
-  lastServicedAt DateTime?
+  condition           ToolCondition @default(GOOD)
+  lastServicedAt      DateTime?
   /// Servis berkala tiap sekian hari. Kosong berarti tidak dijadwalkan —
   /// cangkul tidak perlu, tangki semprot perlu.
   serviceIntervalDays Int?
   /// Siapa yang sedang membawanya. Kosong berarti ada di gudang.
-  heldById       String?
-  notes          String?
-  createdAt      DateTime      @default(now())
-  updatedAt      DateTime      @updatedAt
+  heldById            String?
+  notes               String?
+  createdAt           DateTime      @default(now())
+  updatedAt           DateTime      @updatedAt
 
   events ToolEvent[]
-  heldBy User?      @relation("HeldTools", fields: [heldById], references: [id], onDelete: Restrict)
+  heldBy User?       @relation("HeldTools", fields: [heldById], references: [id], onDelete: Restrict)
 
   @@index([condition])
   @@index([heldById])

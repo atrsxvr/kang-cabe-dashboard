@@ -560,13 +560,23 @@ export const gardenProfileSchema = z.object({
     .max(10_000),
 });
 
+/**
+ * Tanpa "Peralatan", dan itu disengaja.
+ *
+ * Alat dibeli lewat Inventaris, yang mencatat harganya di kejadian alat. Kalau
+ * Keuangan juga menerima belanja alat, cangkul yang sama bisa tercatat di dua
+ * tempat dan kas berkurang dua kali — tanpa satu pun catatan yang salah kalau
+ * dilihat sendiri-sendiri. Satu jalan masuk untuk satu jenis uang keluar.
+ *
+ * "Benih" tetap di sini karena bibit yang dibeli langsung ditanam dan tidak
+ * pernah masuk rak. Benih yang disetok di gudang didaftarkan sebagai bahan.
+ */
 export const expenseCategories = [
   "Upah",
   "Sewa",
   "Transport",
   "Operasional",
   "Benih",
-  "Peralatan",
   "Lainnya",
 ] as const;
 
@@ -634,6 +644,43 @@ export const updateContributionSchema = z.object({
   ...contributionBase,
   contributionId: z.string().min(1),
 });
+
+export const payoutTypes = ["PROFIT_SHARE", "CAPITAL_RETURN"] as const;
+
+/**
+ * Uang yang keluar dari kas ke anggota.
+ *
+ * Bagi hasil wajib menyebut musimnya: laba selalu milik satu musim, dan bagi
+ * hasil tanpa musim tidak bisa dicocokkan dengan hitungan bagi hasil yang
+ * menjadi dasarnya.
+ */
+const payoutFields = z.object({
+  userId: z.string().min(1, "Pilih anggotanya"),
+  type: z.enum(payoutTypes, "Pilih jenisnya"),
+  amount: rupiah.refine((value) => value > 0, "Isi jumlahnya"),
+  paidAt: z.coerce.date("Tanggal tidak valid"),
+  seasonId: z.string().optional().or(z.literal("")),
+  note: z.string().trim().max(300).optional().or(z.literal("")),
+  proofUrl: z.url("Tautan bukti tidak valid").optional().or(z.literal("")),
+});
+
+const seasonForProfitShare = <T extends { type: string; seasonId?: string }>(
+  value: T
+) => value.type !== "PROFIT_SHARE" || Boolean(value.seasonId);
+
+const seasonMessage = {
+  message: "Bagi hasil musim yang mana? Pilih musimnya.",
+  path: ["seasonId"],
+};
+
+export const createPayoutSchema = payoutFields.refine(
+  seasonForProfitShare,
+  seasonMessage
+);
+
+export const updatePayoutSchema = payoutFields
+  .extend({ payoutId: z.string().min(1) })
+  .refine(seasonForProfitShare, seasonMessage);
 
 export const plantEventTypes = ["DIED", "REPLANTED"] as const;
 

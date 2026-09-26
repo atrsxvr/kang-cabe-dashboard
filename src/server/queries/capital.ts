@@ -1,5 +1,6 @@
 import "server-only";
 
+import { netCapital } from "@/lib/cash";
 import { prisma } from "@/lib/prisma";
 
 /**
@@ -38,7 +39,10 @@ export async function listContributions(): Promise<ContributionRow[]> {
 export type ContributorRow = {
   id: string;
   name: string;
+  /** Modal bersih: disetor dikurangi yang sudah ditarik kembali. */
   total: number;
+  /** Yang sudah ditarik kembali lewat "tarik modal". */
+  returned: number;
   count: number;
   /** Porsi modal, persen dari seluruh setoran. */
   capitalShare: number;
@@ -63,12 +67,17 @@ export type CapitalSummary = {
  * Deactivated members are included — their money is still in the pot.
  */
 export async function capitalSummary(): Promise<CapitalSummary> {
-  const [grouped, members] = await Promise.all([
+  const [grouped, returns, members] = await Promise.all([
     prisma.capitalContribution.groupBy({
       by: ["userId"],
       _sum: { amount: true },
       _count: { _all: true },
       _max: { paidAt: true },
+    }),
+    prisma.memberPayout.groupBy({
+      by: ["userId"],
+      where: { type: "CAPITAL_RETURN" },
+      _sum: { amount: true },
     }),
     prisma.user.findMany({
       orderBy: { name: "asc" },
@@ -77,7 +86,14 @@ export async function capitalSummary(): Promise<CapitalSummary> {
   ]);
 
   const byUser = new Map(grouped.map((row) => [row.userId, row]));
-  const total = grouped.reduce((sum, row) => sum + (row._sum.amount ?? 0), 0);
+  const returnedBy = new Map(
+    returns.map((row) => [row.userId, row._sum.amount ?? 0])
+  );
+  const total = grouped.reduce(
+    (sum, row) =>
+      sum + netCapital(row._sum.amount ?? 0, returnedBy.get(row.userId) ?? 0),
+    0
+  );
 
   const contributors: ContributorRow[] = members
     // Anyone who has put money in stays listed even after being deactivated —
@@ -89,12 +105,14 @@ export async function capitalSummary(): Promise<CapitalSummary> {
     )
     .map((member) => {
       const row = byUser.get(member.id);
-      const amount = row?._sum.amount ?? 0;
+      const returned = returnedBy.get(member.id) ?? 0;
+      const amount = netCapital(row?._sum.amount ?? 0, returned);
 
       return {
         id: member.id,
         name: member.name,
         total: amount,
+        returned,
         count: row?._count._all ?? 0,
         capitalShare: total > 0 ? Math.round((amount / total) * 1000) / 10 : 0,
         profitShare: member.profitShare,

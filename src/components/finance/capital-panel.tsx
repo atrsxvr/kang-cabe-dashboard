@@ -31,7 +31,7 @@ export function CapitalPanel({
         <CardContent className="grid gap-4 py-5">
           <div className="grid gap-1 text-center">
             <p className="text-muted-foreground text-sm">
-              Total modal terkumpul
+              Total modal bersih
             </p>
             <p className="text-3xl font-semibold tabular-nums">
               {formatRupiah(summary.total)}
@@ -39,7 +39,8 @@ export function CapitalPanel({
             <p className="text-muted-foreground mx-auto max-w-md text-xs">
               Uang yang kalian taruh sendiri, dihitung terpisah dari hasil
               jualan. Modal bukan pemasukan — kalau dicampur, musimnya kelihatan
-              untung padahal cuma balik modal.
+              untung padahal cuma balik modal. Modal yang ditarik kembali
+              sudah dikurangkan.
             </p>
           </div>
 
@@ -89,6 +90,11 @@ export function CapitalPanel({
                       ) : (
                         <span>belum pernah setor</span>
                       )}
+                      {row.returned > 0 ? (
+                        <span className="tabular-nums">
+                          {formatRupiah(row.returned)} ditarik
+                        </span>
+                      ) : null}
                       {gap !== 0 && row.total > 0 ? (
                         <Badge
                           variant="secondary"

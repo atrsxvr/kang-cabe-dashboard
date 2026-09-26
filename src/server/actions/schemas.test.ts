@@ -2,12 +2,15 @@ import { describe, expect, it } from "vitest";
 
 import {
   createMaterialSchema,
+  createPayoutSchema,
   createSeasonSchema,
   createTaskSchema,
+  expenseCategories,
   nextSeasonStatus,
   recordTaskUsageSchema,
   stockOpnameSchema,
   updateMaterialSchema,
+  updatePayoutSchema,
   updateTaskStatusSchema,
 } from "@/server/actions/schemas";
 
@@ -246,5 +249,85 @@ describe("material schemas", () => {
 
     expect("stock" in parsed).toBe(false);
     expect(parsed.minStock).toBe(1000);
+  });
+});
+
+describe("payout schemas", () => {
+  const base = {
+    userId: "u1",
+    amount: "500000",
+    paidAt: "2026-09-26",
+    note: "",
+    proofUrl: "",
+  };
+
+  /** Laba selalu milik satu musim; bagi hasil tanpa musim tidak bisa dicocokkan. */
+  it("requires a season for a profit share", () => {
+    const result = createPayoutSchema.safeParse({
+      ...base,
+      type: "PROFIT_SHARE",
+      seasonId: "",
+    });
+    expect(result.success).toBe(false);
+    expect(result.error?.issues[0].path).toEqual(["seasonId"]);
+  });
+
+  it("accepts a profit share with its season", () => {
+    const result = createPayoutSchema.safeParse({
+      ...base,
+      type: "PROFIT_SHARE",
+      seasonId: "s1",
+    });
+    expect(result.success).toBe(true);
+  });
+
+  /** Tarik modal mengembalikan setoran, yang milik kas bersama. */
+  it("lets a capital return stand without a season", () => {
+    const result = createPayoutSchema.safeParse({
+      ...base,
+      type: "CAPITAL_RETURN",
+      seasonId: "",
+    });
+    expect(result.success).toBe(true);
+    expect(result.data?.amount).toBe(500_000);
+  });
+
+  it("keeps the season rule when editing", () => {
+    const result = updatePayoutSchema.safeParse({
+      ...base,
+      payoutId: "p1",
+      type: "PROFIT_SHARE",
+      seasonId: "",
+    });
+    expect(result.success).toBe(false);
+  });
+
+  it("refuses an unknown kind and a zero amount", () => {
+    expect(
+      createPayoutSchema.safeParse({ ...base, type: "HADIAH", seasonId: "" })
+        .success
+    ).toBe(false);
+    expect(
+      createPayoutSchema.safeParse({
+        ...base,
+        amount: "0",
+        type: "CAPITAL_RETURN",
+        seasonId: "",
+      }).success
+    ).toBe(false);
+  });
+});
+
+/**
+ * Alat dibeli lewat Inventaris. Menerimanya juga di Keuangan membuat satu
+ * cangkul bisa tercatat dua kali, dan kas berkurang dua kali.
+ */
+describe("expenseCategories", () => {
+  it("has no tool category, because tools are bought through the shed", () => {
+    expect(expenseCategories).not.toContain("Peralatan");
+  });
+
+  it("keeps seed, which goes straight into the ground", () => {
+    expect(expenseCategories).toContain("Benih");
   });
 });
