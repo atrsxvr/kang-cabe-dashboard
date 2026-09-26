@@ -7,12 +7,14 @@ import {
   PieChart,
   ReceiptText,
   Users,
+  Wallet,
 } from "lucide-react";
 
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 export function FinanceViews({
   summary,
+  cash,
   entries,
   sharing,
   capital,
@@ -20,6 +22,7 @@ export function FinanceViews({
   entryCount,
 }: {
   summary: React.ReactNode;
+  cash: React.ReactNode;
   entries: React.ReactNode;
   sharing: React.ReactNode;
   capital: React.ReactNode;
@@ -31,7 +34,7 @@ export function FinanceViews({
   return (
     <Tabs value={view} onValueChange={setView}>
       {/* TabsList is inline-flex w-fit, so on a phone it ran off the side with
-          nothing to scroll — five tabs need 480px and no phone is that wide.
+          nothing to scroll — six tabs need well over 480px and no phone is that wide.
           It scrolls now rather than wrapping: a tab sliced off at the edge is
           its own invitation to swipe, and the header stays one row tall.
           justify-start matters — the default centring would push the first tab
@@ -40,6 +43,10 @@ export function FinanceViews({
         <TabsTrigger value="summary">
           <PieChart className="size-4" aria-hidden />
           Rincian
+        </TabsTrigger>
+        <TabsTrigger value="cash">
+          <Wallet className="size-4" aria-hidden />
+          Kas
         </TabsTrigger>
         <TabsTrigger value="entries">
           <ReceiptText className="size-4" aria-hidden />
@@ -65,6 +72,7 @@ export function FinanceViews({
       </TabsList>
 
       <TabsContent value="summary">{summary}</TabsContent>
+      <TabsContent value="cash">{cash}</TabsContent>
       <TabsContent value="entries">{entries}</TabsContent>
       <TabsContent value="capital">{capital}</TabsContent>
       <TabsContent value="sharing">{sharing}</TabsContent>

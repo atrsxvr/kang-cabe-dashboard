@@ -6,6 +6,7 @@ import { CanWrite } from "@/components/auth/can-write";
 import { PageHeader } from "@/components/common/page-header";
 import { SeasonCompareChart } from "@/components/charts/season-compare-chart";
 import { CapitalPanel } from "@/components/finance/capital-panel";
+import { CashPanel } from "@/components/finance/cash-panel";
 import { FinanceEntryDialog } from "@/components/finance/finance-entry-dialog";
 import { FinanceEntryList } from "@/components/finance/finance-entry-list";
 import { FinanceViews } from "@/components/finance/finance-views";
@@ -34,6 +35,7 @@ import {
 } from "@/server/queries/finance";
 import type { CostLine, SeasonComparison } from "@/server/queries/finance";
 import { capitalSummary, listContributions } from "@/server/queries/capital";
+import { cashReport, listOpenings, listPayouts } from "@/server/queries/cash";
 import { listSeasons, resolveSeason } from "@/server/queries/seasons";
 import { listActiveMembers } from "@/server/queries/users";
 import { isPhotoUploadEnabled } from "@/server/storage";
@@ -60,6 +62,9 @@ export default async function FinancePage(props: PageProps<"/finance">) {
     members,
     seasonList,
     pricing,
+    cash,
+    openings,
+    payouts,
   ] = await Promise.all([
     seasonMaterialCost(season.id),
     toolSpend(),
@@ -72,6 +77,9 @@ export default async function FinancePage(props: PageProps<"/finance">) {
     listActiveMembers(),
     listSeasons(),
     pricingGuide(season.id),
+    cashReport(),
+    listOpenings(),
+    listPayouts(),
   ]);
 
   const photoEnabled = isPhotoUploadEnabled();
@@ -239,6 +247,16 @@ export default async function FinancePage(props: PageProps<"/finance">) {
               </CardContent>
             </Card>
           </div>
+        }
+        cash={
+          <CashPanel
+            report={cash}
+            openings={openings}
+            payouts={payouts}
+            members={members}
+            seasons={seasonList}
+            photoEnabled={photoEnabled}
+          />
         }
         entries={
           <FinanceEntryList

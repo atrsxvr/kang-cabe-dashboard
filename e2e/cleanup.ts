@@ -52,6 +52,18 @@ async function cleanup() {
       where: { buyerName: { startsWith: "E2E " } },
     });
 
+    // Uang keluar lebih dulu: ia menunjuk musim, dan catatan ini tidak ikut
+    // terhapus bersama musimnya — hanya kehilangan labelnya.
+    const payouts = await prisma.memberPayout.deleteMany({
+      where: { note: { startsWith: "E2E " } },
+    });
+    const openings = await prisma.cashOpening.deleteMany({
+      where: { note: { startsWith: "E2E " } },
+    });
+    const contributions = await prisma.capitalContribution.deleteMany({
+      where: { note: { startsWith: "E2E " } },
+    });
+
     // Cascades to the tasks, findings, harvests and sales under it.
     const seasons = await prisma.season.deleteMany({
       where: { name: { startsWith: "E2E " } },
@@ -65,7 +77,7 @@ async function cleanup() {
     });
 
     console.log(
-      `Teardown: ${materialIds.length} bahan, ${taskIds.length} tugas, ${seasons.count} musim, ${sessions.count} sesi E2E dibersihkan.`
+      `Teardown: ${materialIds.length} bahan, ${taskIds.length} tugas, ${seasons.count} musim, ${contributions.count} setoran, ${payouts.count} uang keluar, ${openings.count} saldo awal, ${sessions.count} sesi E2E dibersihkan.`
     );
   } finally {
     await prisma.$disconnect();

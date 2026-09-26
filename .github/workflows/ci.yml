@@ -2,7 +2,7 @@ name: CI
 
 on:
   push:
-    branches: [main, development, production]
+    branches: [main, development]
   pull_request:
 
 concurrency:
@@ -82,8 +82,14 @@ jobs:
       # menandatangani cookie sesi, dan e2e/session.ts memakainya membuat cookie
       # yang bisa diterima aplikasi. Nilai bohongan cukup — asal keduanya sama.
       #
-      # Kredensial Google sengaja tidak ada: tidak ada spec yang menyentuh layar
-      # Google, dan sesinya ditulis langsung ke tabel Session.
+      # Kredensial Google tetap harus ada meski tidak ada spec yang menyentuh
+      # layar Google (sesinya ditulis langsung ke tabel Session): webServer
+      # menjalankan `next build`, yang menyetel NODE_ENV=production, dan
+      # `parseEnv` menolak boot produksi tanpa ketiganya. Dulu di sini tertulis
+      # "sengaja tidak ada" — benar sampai penjaga itu dipasang, lalu diam-diam
+      # membuat server e2e tidak pernah bisa menyala.
+      GOOGLE_CLIENT_ID: ci-bohongan.apps.googleusercontent.com
+      GOOGLE_CLIENT_SECRET: GOCSPX-ci-bohongan
       BETTER_AUTH_SECRET: ci-hanya-untuk-pengujian-cukup-panjang-32
       BETTER_AUTH_URL: http://localhost:3000
 
@@ -98,6 +104,16 @@ jobs:
           cache: pnpm
 
       - run: pnpm install --frozen-lockfile
+
+      # Peran yang disediakan Supabase tapi tidak ada di Postgres polos.
+      # Migrasi enable_rls mencabut hak keduanya, dan tanpa peran ini
+      # `db:deploy` berhenti di migrasi kedua dengan "role anon does not exist"
+      # — yang membuat seluruh job e2e gagal sebelum satu spec pun jalan.
+      # Dibuat di sini, bukan dijaga di migrasinya: migrasi itu sudah diterapkan
+      # di produksi, dan mengubahnya mengubah checksum yang tercatat di sana.
+      - run: >-
+          psql "postgresql://ci:ci@localhost:5432/kangcabe"
+          -c "CREATE ROLE anon NOLOGIN; CREATE ROLE authenticated NOLOGIN;"
 
       # migrate deploy, not migrate dev: CI applies what is committed and never
       # invents a migration of its own.

@@ -20,6 +20,8 @@ import {
 import { resolveSeason } from "@/server/queries/seasons";
 import { listTreatmentRecipes } from "@/server/queries/recipes";
 import { listActiveMembers } from "@/server/queries/users";
+import { canWrite } from "@/lib/permissions";
+import { currentActor } from "@/server/auth/guard";
 import { isPhotoUploadEnabled } from "@/server/storage";
 
 export const metadata: Metadata = { title: "Kesehatan & Monitoring" };
@@ -32,13 +34,14 @@ export default async function HealthPage(props: PageProps<"/health">) {
 
   const activeStatus = readStatusParam(searchParams);
 
-  const [findings, counts, members, treatmentRecipes] = await Promise.all([
+  const [findings, counts, members, treatmentRecipes, actor] = await Promise.all([
     listFindingsBySeason(season.id, activeStatus),
     // Counts stay unfiltered — they are the filter control, so they have to
     // keep showing what each stage holds even while one is selected.
     countFindingsByStatus(season.id),
     listActiveMembers(),
     listTreatmentRecipes(),
+    currentActor(),
   ]);
 
   const currentHst = calculateHst(season.startDate);
@@ -60,6 +63,9 @@ export default async function HealthPage(props: PageProps<"/health">) {
               members={members}
               currentHst={currentHst}
               photoEnabled={isPhotoUploadEnabled()}
+              canChooseReporter={
+                actor ? canWrite(actor.role, "diagnosis") : false
+              }
             />
           </CanWrite>
         </div>
@@ -80,6 +86,7 @@ export default async function HealthPage(props: PageProps<"/health">) {
               treatmentRecipes={treatmentRecipes}
               currentHst={currentHst}
               photoEnabled={isPhotoUploadEnabled()}
+              actor={actor}
             />
           ))}
         </div>

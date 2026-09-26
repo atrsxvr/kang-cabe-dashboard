@@ -13,7 +13,7 @@ import { AREAS } from "@/lib/permissions";
  * disembunyikan bukan penjagaan, dan `proxy.ts` cuma memeriksa ada-tidaknya
  * cookie — di produksi ia bahkan bisa berjalan di CDN, jauh dari basis data.
  *
- * Jadi penjagaannya ada di 55 tempat, dan satu yang lupa adalah lubang yang
+ * Jadi penjagaannya ada di 61 tempat, dan satu yang lupa adalah lubang yang
  * tidak bersuara: fiturnya tetap jalan, tesnya tetap hijau, dan tidak ada yang
  * tahu sampai seseorang memanggilnya langsung. Membaca berkasnya adalah
  * satu-satunya cara memeriksa keseluruhannya sekaligus — dan itu yang dilakukan

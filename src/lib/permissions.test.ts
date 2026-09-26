@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import {
   AREAS,
   ROLES,
+  canManageFinding,
   canWrite,
   denialMessage,
   writableAreas,
@@ -152,5 +153,44 @@ describe("denialMessage", () => {
     for (const area of AREAS) {
       expect(denialMessage(area as Area).length).toBeGreaterThan(10);
     }
+  });
+});
+
+describe("usage", () => {
+  /** Yang menyemprot yang tahu racikannya benar-benar dipakai. */
+  it("lets the Agronomist record what a task used, without the rest of the shed", () => {
+    expect(canWrite("AGRONOMIST", "usage")).toBe(true);
+    expect(canWrite("LOGISTICS", "usage")).toBe(true);
+    expect(canWrite("AGRONOMIST", "inventory")).toBe(false);
+    expect(canWrite("SALES", "usage")).toBe(false);
+  });
+});
+
+describe("canManageFinding", () => {
+  const sales = { id: "sales", role: "SALES" as const };
+  const logistik = { id: "log", role: "LOGISTICS" as const };
+  const agro = { id: "agro", role: "AGRONOMIST" as const };
+  const admin = { id: "admin", role: "ADMIN" as const };
+
+  it("lets a reporter fix their own report", () => {
+    expect(canManageFinding(sales, "sales")).toBe(true);
+    expect(canManageFinding(logistik, "log")).toBe(true);
+  });
+
+  /** Tidak ada yang boleh menulis ulang klaim orang lain tentang apa yang ia lihat. */
+  it("does not let anyone rewrite someone else's report", () => {
+    expect(canManageFinding(sales, "agro")).toBe(false);
+    expect(canManageFinding(logistik, "sales")).toBe(false);
+  });
+
+  it("lets whoever curates the health log manage any report", () => {
+    expect(canManageFinding(agro, "sales")).toBe(true);
+    expect(canManageFinding(admin, "log")).toBe(true);
+  });
+
+  /** Tanpa pelapor tercatat tidak ada pemilik untuk dicocokkan. */
+  it("leaves reports with no recorded reporter to the curators", () => {
+    expect(canManageFinding(sales, null)).toBe(false);
+    expect(canManageFinding(agro, null)).toBe(true);
   });
 });

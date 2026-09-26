@@ -1,5 +1,6 @@
 import { HandCoins } from "lucide-react";
 
+import { CanWrite } from "@/components/auth/can-write";
 import { ConfirmDelete } from "@/components/common/confirm-delete";
 import { ContributionDialog } from "@/components/finance/contribution-dialog";
 import { Badge } from "@/components/ui/badge";
@@ -31,7 +32,7 @@ export function CapitalPanel({
         <CardContent className="grid gap-4 py-5">
           <div className="grid gap-1 text-center">
             <p className="text-muted-foreground text-sm">
-              Total modal terkumpul
+              Total modal bersih
             </p>
             <p className="text-3xl font-semibold tabular-nums">
               {formatRupiah(summary.total)}
@@ -39,7 +40,8 @@ export function CapitalPanel({
             <p className="text-muted-foreground mx-auto max-w-md text-xs">
               Uang yang kalian taruh sendiri, dihitung terpisah dari hasil
               jualan. Modal bukan pemasukan — kalau dicampur, musimnya kelihatan
-              untung padahal cuma balik modal.
+              untung padahal cuma balik modal. Modal yang ditarik kembali
+              sudah dikurangkan.
             </p>
           </div>
 
@@ -89,6 +91,11 @@ export function CapitalPanel({
                       ) : (
                         <span>belum pernah setor</span>
                       )}
+                      {row.returned > 0 ? (
+                        <span className="tabular-nums">
+                          {formatRupiah(row.returned)} ditarik
+                        </span>
+                      ) : null}
                       {gap !== 0 && row.total > 0 ? (
                         <Badge
                           variant="secondary"
@@ -115,11 +122,13 @@ export function CapitalPanel({
 
       <div className="flex items-center justify-between gap-2">
         <h2 className="text-sm font-medium">Riwayat setoran</h2>
-        <ContributionDialog
-          members={members}
-          seasons={seasons}
-          photoEnabled={photoEnabled}
-        />
+        <CanWrite area="capital">
+          <ContributionDialog
+            members={members}
+            seasons={seasons}
+            photoEnabled={photoEnabled}
+          />
+        </CanWrite>
       </div>
 
       {contributions.length === 0 ? (
@@ -167,6 +176,7 @@ export function CapitalPanel({
                   {formatRupiah(row.amount)}
                 </p>
 
+                <CanWrite area="capital">
                 <div className="flex items-center gap-1">
                   <ContributionDialog
                     members={members}
@@ -183,6 +193,7 @@ export function CapitalPanel({
                     iconOnly
                   />
                 </div>
+                </CanWrite>
               </CardContent>
             </Card>
           ))}

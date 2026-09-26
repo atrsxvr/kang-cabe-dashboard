@@ -1,5 +1,6 @@
 import { ReceiptText } from "lucide-react";
 
+import { CanWrite } from "@/components/auth/can-write";
 import { ConfirmDelete } from "@/components/common/confirm-delete";
 import { FinanceEntryDialog } from "@/components/finance/finance-entry-dialog";
 import { Badge } from "@/components/ui/badge";
@@ -82,6 +83,7 @@ export function FinanceEntryList({
                 {formatRupiah(entry.amount)}
               </p>
 
+              <CanWrite area="finance">
               <div className="flex items-center gap-1">
                 <FinanceEntryDialog
                   seasonId={seasonId}
@@ -97,6 +99,7 @@ export function FinanceEntryList({
                   iconOnly
                 />
               </div>
+              </CanWrite>
             </CardContent>
           </Card>
         );

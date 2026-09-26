@@ -129,14 +129,17 @@ test.describe("open redirect", () => {
     "//example.com/",
     "/\\example.com",
   ]) {
-    test(`nggak mau dialihkan ke ${evil}`, async ({ page }) => {
+    test(`nggak mau dialihkan ke ${evil}`, async ({ page, baseURL }) => {
       await page.goto(`/masuk?lanjut=${encodeURIComponent(evil)}`, {
         waitUntil: "commit",
       });
 
       // Sudah masuk sebagai Admin, jadi halaman masuk mengalihkan — dan
-      // tujuannya harus tetap di dalam aplikasi ini.
-      expect(new URL(page.url()).host).toBe("localhost:3000");
+      // tujuannya harus tetap di dalam aplikasi ini. Dibandingkan dengan
+      // baseURL, bukan host yang ditulis tangan: yang diuji adalah "tidak
+      // pindah asal", dan menuliskan portnya membuat tesnya ikut gagal setiap
+      // kali suite ini dijalankan di port lain.
+      expect(new URL(page.url()).host).toBe(new URL(baseURL!).host);
     });
   }
 });
@@ -291,6 +294,134 @@ test.describe("peran yang bukan Admin", () => {
     await page.getByRole("button", { name: "Simpan Bahan" }).click();
 
     await expect(page.getByText(name).first()).toBeVisible();
+
+    await context.close();
+  });
+});
+
+/**
+ * Keputusan RBAC 26 September: temuan dimiliki pelapornya, status dan diagnosa
+ * milik pengurus catatan kesehatan, dan tombol di luar wilayah seseorang tidak
+ * ditampilkan sama sekali.
+ *
+ * Penegakannya di Server Action dan diuji di `canManageFinding` serta
+ * `guarded.test.ts`. Yang dibuktikan di sini sisi yang hanya bisa dilihat dari
+ * peramban: setiap peran mendapat tombol yang benar, di baris yang benar.
+ */
+test.describe("temuan dimiliki pelapornya", () => {
+  test("pelapor mengurus laporannya sendiri, bukan milik orang lain", async ({
+    page,
+    browser,
+  }) => {
+    const stamp = Date.now();
+
+    await page.goto("/seasons");
+    await page.getByRole("button", { name: "Tambah Musim" }).click();
+    await page.getByLabel("Nama Musim", { exact: true }).fill(`E2E Musim Temuan ${stamp}`);
+    await page.getByLabel("Varietas Benih", { exact: true }).fill("E2E Rawit");
+    await page.getByLabel("Jumlah Populasi", { exact: true }).fill("100");
+    await page.getByLabel("Tanggal Tanam", { exact: true }).fill("2026-01-01");
+    await page.getByRole("button", { name: "Simpan Musim" }).click();
+    await expect(page).toHaveURL(/season=/);
+    const season = new URL(page.url()).searchParams.get("season");
+
+    // Laporan Admin, tanpa pelapor tertentu.
+    await page.goto(`/health?season=${season}`);
+    await page.getByRole("button", { name: "Catat Temuan" }).click();
+    const adminDialog = page.getByRole("dialog");
+    await adminDialog.getByLabel("Gejala yang terlihat").fill(`E2E daun admin ${stamp}`);
+    await expect(adminDialog.getByLabel("Ditemukan oleh")).toBeVisible();
+    await adminDialog.getByRole("button", { name: "Simpan Temuan" }).click();
+    await expect(adminDialog).toBeHidden();
+
+    const salesContext = await contextFor(browser, "SALES");
+    const sales = await salesContext.newPage();
+    await sales.goto(`/health?season=${season}`);
+
+    // Yang bukan pengurus selalu melapor atas namanya sendiri.
+    await sales.getByRole("button", { name: "Catat Temuan" }).click();
+    const salesDialog = sales.getByRole("dialog");
+    await expect(salesDialog.getByLabel("Ditemukan oleh")).toHaveCount(0);
+    await expect(salesDialog.getByText("Dilaporkan atas nama kamu.")).toBeVisible();
+    await salesDialog.getByLabel("Gejala yang terlihat").fill(`E2E daun sales ${stamp}`);
+    await salesDialog.getByRole("button", { name: "Simpan Temuan" }).click();
+    await expect(salesDialog).toBeHidden();
+
+    const card = (text: string) =>
+      sales.locator('[data-slot="card"]').filter({ hasText: text });
+
+    await expect(card(`E2E daun sales ${stamp}`).getByRole("button", { name: "Edit temuan" })).toBeVisible();
+    await expect(card(`E2E daun admin ${stamp}`).getByRole("button", { name: "Edit temuan" })).toHaveCount(0);
+
+    // Status dan diagnosa milik pengurus — di laporannya sendiri pun tidak.
+    await expect(sales.getByRole("button", { name: "Diagnosa" })).toHaveCount(0);
+    await expect(sales.getByRole("button", { name: /^Tandai (ditangani|selesai)$/ })).toHaveCount(0);
+
+    await salesContext.close();
+
+    const agroContext = await contextFor(browser, "AGRONOMIST");
+    const agro = await agroContext.newPage();
+    await agro.goto(`/health?season=${season}`);
+
+    // Pengurus mengurus semuanya.
+    for (const text of [`E2E daun sales ${stamp}`, `E2E daun admin ${stamp}`]) {
+      const row = agro.locator('[data-slot="card"]').filter({ hasText: text });
+      await expect(row.getByRole("button", { name: "Edit temuan" })).toBeVisible();
+      await expect(row.getByRole("button", { name: "Diagnosa" })).toBeVisible();
+    }
+
+    await agroContext.close();
+  });
+});
+
+test.describe("tombol di dalam tabel", () => {
+  test("transaksi keuangan tidak bisa diedit selain oleh Admin", async ({
+    page,
+    browser,
+  }) => {
+    const stamp = Date.now();
+
+    await page.goto("/seasons");
+    await page.getByRole("button", { name: "Tambah Musim" }).click();
+    await page.getByLabel("Nama Musim", { exact: true }).fill(`E2E Musim Uang ${stamp}`);
+    await page.getByLabel("Varietas Benih", { exact: true }).fill("E2E Rawit");
+    await page.getByLabel("Jumlah Populasi", { exact: true }).fill("100");
+    await page.getByLabel("Tanggal Tanam", { exact: true }).fill("2026-01-01");
+    await page.getByRole("button", { name: "Simpan Musim" }).click();
+    await expect(page).toHaveURL(/season=/);
+    const season = new URL(page.url()).searchParams.get("season");
+
+    await page.goto(`/finance?season=${season}`);
+    await page.getByRole("button", { name: "Catat Pengeluaran" }).click();
+    const dialog = page.getByRole("dialog");
+    await dialog.getByLabel("Jumlah (Rp)").fill("12000");
+    await dialog.getByLabel("Keterangan").fill(`E2E ongkos ${stamp}`);
+    await dialog.getByRole("button", { name: "Simpan Catatan" }).click();
+    await expect(dialog).toBeHidden();
+
+    await page.getByRole("tab", { name: /Catatan/ }).click();
+    await expect(page.getByRole("button", { name: "Edit catatan" }).first()).toBeVisible();
+
+    const context = await contextFor(browser, "SALES");
+    const sales = await context.newPage();
+    await sales.goto(`/finance?season=${season}`);
+    await sales.getByRole("tab", { name: /Catatan/ }).click();
+
+    await expect(sales.getByText(`E2E ongkos ${stamp}`)).toBeVisible();
+    await expect(sales.getByRole("button", { name: "Edit catatan" })).toHaveCount(0);
+
+    await context.close();
+  });
+
+  /** Semua boleh membaca profil kebun; hanya Admin yang menyimpannya. */
+  test("profil kebun terkunci untuk yang bukan Admin", async ({ browser }) => {
+    const context = await contextFor(browser, "LOGISTICS");
+    const page = await context.newPage();
+    await page.goto("/settings");
+
+    await expect(page.getByRole("heading", { name: "Profil Kebun" })).toBeVisible();
+    await expect(page.getByRole("button", { name: "Simpan Profil" })).toHaveCount(0);
+    await expect(page.getByText("Cuma Admin yang bisa mengubah profil kebun.")).toBeVisible();
 
     await context.close();
   });

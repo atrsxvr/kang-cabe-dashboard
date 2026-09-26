@@ -44,6 +44,7 @@ yarn-error.log*
 # setiap kali dev server jalan dan tree jadi kotor terus-menerus.
 *.md
 !AGENTS.md
+!README.md
 
 # vercel
 .vercel

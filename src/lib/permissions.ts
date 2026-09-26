@@ -56,6 +56,17 @@ export const AREAS = [
   "population",
   /** Stok, harga, opname, alat, dan daftar belanja. */
   "inventory",
+  /**
+   * Mencatat bahan dari sebuah tugas benar-benar dipakai — yang mengurangi
+   * stok dan membekukan biayanya ke musim.
+   *
+   * Terpisah dari `inventory` karena yang tahu racikan benar-benar diterapkan
+   * adalah yang menyemprot, dan itu biasanya Agronomis. Memaksanya melapor ke
+   * Logistik dulu membuat stok salah sampai Logistik sempat mencatat — jeda
+   * yang justru ingin dihilangkan oleh pencatatan yang eksplisit. Agronomis
+   * tetap tidak mendapat stok, harga, atau opname.
+   */
+  "usage",
   /** Panen, penjualan, dan penagihan. */
   "harvest",
   /**
@@ -108,6 +119,7 @@ const WRITERS: Record<Area, readonly Role[]> = {
   materials: ["ADMIN", "AGRONOMIST", "LOGISTICS"],
   population: ["ADMIN", "AGRONOMIST"],
   inventory: ["ADMIN", "LOGISTICS"],
+  usage: ["ADMIN", "AGRONOMIST", "LOGISTICS"],
   harvest: ["ADMIN", "SALES"],
   // Semuanya. Yang menemukan cabai membusuk bukan selalu yang menjualnya.
   losses: ["ADMIN", "AGRONOMIST", "LOGISTICS", "SALES"],
@@ -143,3 +155,28 @@ export function denialMessage(area: Area): string {
 
   return `Bagian ini diurus ${allowed.join(" atau ")}. Minta tolong mereka, atau Admin.`;
 }
+
+/**
+ * Boleh mengubah atau menghapus sebuah laporan temuan.
+ *
+ * Laporan adalah klaim tentang apa yang seseorang lihat, dan yang melihatnya
+ * satu-satunya yang tahu isinya benar — jadi pelapornya boleh membetulkan
+ * laporannya sendiri. Tidak ada yang boleh menulis ulang klaim orang lain,
+ * kecuali yang memang mengurus catatan kesehatan kebun: peran yang boleh
+ * mendiagnosa.
+ *
+ * Laporan tanpa pelapor tercatat hanya bisa diubah pengurusnya. Tidak ada
+ * pemilik untuk dicocokkan, dan membukanya ke semua orang akan mengembalikan
+ * celah yang sedang ditutup.
+ */
+export function canManageFinding(
+  actor: { id: string; role: Role },
+  reportedById: string | null
+): boolean {
+  if (canWrite(actor.role, "diagnosis")) return true;
+  if (!canWrite(actor.role, "findings")) return false;
+  return reportedById !== null && reportedById === actor.id;
+}
+
+export const findingOwnershipMessage =
+  "Ini laporan orang lain. Minta Agronomis atau Admin kalau perlu diubah.";

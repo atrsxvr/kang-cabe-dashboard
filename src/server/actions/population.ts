@@ -180,10 +180,18 @@ export async function createHarvestLoss(
   return { ok: true };
 }
 
+/**
+ * Mencatat susut terbuka untuk semua; menghapusnya tidak.
+ *
+ * Mencatat kehilangan menambah informasi dan tidak bisa dipakai menguntungkan
+ * diri sendiri. Menghapusnya menghilangkan informasi dan langsung menaikkan sisa
+ * stok — satu-satunya arah di modul ini yang bisa menutupi kekurangan barang.
+ * Jadi ia ikut yang mengurus panen, bukan yang kebetulan lewat.
+ */
 export async function deleteHarvestLoss(
   formData: FormData
 ): Promise<ActionResult> {
-  const allowed = await guardWrite("losses");
+  const allowed = await guardWrite("harvest");
   if (!allowed.ok) return allowed;
 
   const lossId = String(formData.get("lossId") ?? "");

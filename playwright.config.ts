@@ -1,6 +1,21 @@
 import { defineConfig, devices } from "@playwright/test";
 
 /**
+ * Port sendiri, bukan 3000.
+ *
+ * Dulu suite ini memakai ulang apa pun yang sedang mendengarkan di 3000, dan
+ * itu dua kesalahan sekaligus: yang di sana biasanya `next dev`, padahal
+ * `webServer` di bawah sengaja meminta build produksi — dan proses yang sudah
+ * berjam-jam hidup memegang `.env` versi lama. Yang kedua nyaris membuat
+ * seluruh suite menulis ke basis data produksi beberapa menit setelah
+ * DATABASE_URL dipindah ke proyek pengembangan: penjaga di package.json
+ * memeriksa env milik shell, sementara servernya memegang env miliknya
+ * sendiri.
+ */
+const PORT = Number(process.env.E2E_PORT ?? 3100);
+const BASE_URL = `http://localhost:${PORT}`;
+
+/**
  * These cover what the unit tests structurally cannot: a form submitting to a
  * Server Action, a season filter surviving a page change, stock actually
  * leaving the shed and turning up as a cost. Every one of those crosses the
@@ -40,7 +55,7 @@ export default defineConfig({
   ],
 
   use: {
-    baseURL: "http://localhost:3000",
+    baseURL: BASE_URL,
     trace: "on-first-retry",
     // The dashboard is built for a phone in a garden, so that is what it is
     // checked on.
@@ -51,9 +66,16 @@ export default defineConfig({
     // Production build, not `next dev`: dev-only behaviour (looser caching,
     // no prerender pass) would hide exactly the class of bug this suite is
     // meant to catch.
-    command: "pnpm build && pnpm start",
-    url: "http://localhost:3000",
-    reuseExistingServer: !process.env.CI,
+    command: `pnpm build && pnpm start --port ${PORT}`,
+    url: BASE_URL,
+    // Selalu bangun yang baru. Memakai ulang server yang sudah jalan berarti
+    // mengujinya dengan kode dan environment sebagaimana adanya saat ia
+    // dinyalakan, bukan sebagaimana adanya sekarang — dan tidak ada satu pun
+    // di keluarannya yang menyebutkan itu.
+    reuseExistingServer: false,
+    // better-auth menyusun URL-nya dari sini. Dibiarkan menunjuk 3000, ia
+    // menolak permintaan yang datang dari port ini sebagai lintas-asal.
+    env: { BETTER_AUTH_URL: BASE_URL },
     timeout: 180_000,
   },
 });

@@ -239,7 +239,11 @@ test.describe.serial("bahan masuk gudang lalu jadi biaya musim", () => {
       .click();
     await page.getByRole("button", { name: "Arsipkan", exact: true }).click();
 
-    await expect(page.getByText(MATERIAL)).toHaveCount(0);
+    // Nama persis, bukan potongan: toast "… diarsipkan." juga memuat namanya.
+    // Yang diuji barisnya hilang dari daftar, bukan tidak ada teks yang
+    // menyebutnya — dan toast yang masih tampil empat detik membuat versi lama
+    // tes ini lolos atau gagal tergantung seberapa jauh basis datanya.
+    await expect(page.getByText(MATERIAL, { exact: true })).toHaveCount(0);
 
     // The history it carries is why it is archived rather than deleted, so it
     // has to be reachable again.

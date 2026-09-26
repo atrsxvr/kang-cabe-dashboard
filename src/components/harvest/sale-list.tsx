@@ -1,5 +1,6 @@
 import { Coins } from "lucide-react";
 
+import { CanWrite } from "@/components/auth/can-write";
 import { ConfirmDelete } from "@/components/common/confirm-delete";
 import { SaleDialog } from "@/components/harvest/sale-dialog";
 import { SalePaidAction } from "@/components/harvest/sale-paid-action";
@@ -104,6 +105,7 @@ export function SaleList({
               <p className="text-muted-foreground text-xs">{sale.notes}</p>
             ) : null}
 
+            <CanWrite area="harvest">
             <div className="flex items-center gap-1 border-t pt-2">
               <SalePaidAction sale={sale} seasonId={seasonId} />
               <div className="ml-auto flex items-center gap-1">
@@ -124,6 +126,7 @@ export function SaleList({
                 />
               </div>
             </div>
+            </CanWrite>
           </CardContent>
         </Card>
       ))}

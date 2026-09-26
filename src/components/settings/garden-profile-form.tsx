@@ -16,7 +16,18 @@ import type { GardenProfileRow } from "@/server/queries/users";
  * and what size tank gets mixed. Repeating either per season would only invite
  * them to drift apart.
  */
-export function GardenProfileForm({ profile }: { profile: GardenProfileRow }) {
+export function GardenProfileForm({
+  profile,
+  readOnly = false,
+}: {
+  profile: GardenProfileRow;
+  /**
+   * Semua boleh melihat profil kebun — kode wilayah BMKG-nya yang menentukan
+   * kartu cuaca semua orang. Yang bukan Admin melihatnya terkunci, bukan
+   * disembunyikan, dan tanpa tombol Simpan yang cuma akan ditolak.
+   */
+  readOnly?: boolean;
+}) {
   const [errors, setErrors] = useState<Record<string, string>>({});
   const router = useRouter();
 
@@ -37,7 +48,8 @@ export function GardenProfileForm({ profile }: { profile: GardenProfileRow }) {
   return (
     <Card>
       <CardContent className="py-5">
-        <form action={onSubmit} className="grid gap-4">
+        <form action={onSubmit}>
+          <fieldset disabled={readOnly} className="grid gap-4">
           <Field id="garden-name" label="Nama Kebun" error={errors.name}>
             <Input
               id="garden-name"
@@ -126,9 +138,16 @@ export function GardenProfileForm({ profile }: { profile: GardenProfileRow }) {
             />
           </Field>
 
-          <div className="flex justify-end">
-            <SubmitButton>Simpan Profil</SubmitButton>
-          </div>
+          {readOnly ? (
+            <p className="text-muted-foreground text-xs">
+              Cuma Admin yang bisa mengubah profil kebun.
+            </p>
+          ) : (
+            <div className="flex justify-end">
+              <SubmitButton>Simpan Profil</SubmitButton>
+            </div>
+          )}
+          </fieldset>
         </form>
       </CardContent>
     </Card>
