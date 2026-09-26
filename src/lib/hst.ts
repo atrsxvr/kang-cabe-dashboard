@@ -16,7 +16,7 @@ const dayFormatter = new Intl.DateTimeFormat("en-CA", {
 });
 
 /** Midnight of the given instant, as seen in Jakarta, in UTC milliseconds. */
-function startOfDayInJakarta(date: Date): number {
+export function startOfDayInJakarta(date: Date): number {
   // en-CA renders as YYYY-MM-DD, which Date.parse reads as midnight UTC.
   return Date.parse(dayFormatter.format(date));
 }
