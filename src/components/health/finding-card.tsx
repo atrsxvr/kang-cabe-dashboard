@@ -1,6 +1,7 @@
 import { ImageIcon, MapPin, User as UserIcon } from "lucide-react";
 
 import { ConfirmDelete } from "@/components/common/confirm-delete";
+import { canManageFinding, canWrite, type Role } from "@/lib/permissions";
 import { DiagnoseDialog } from "@/components/health/diagnose-dialog";
 import { FindingDialog } from "@/components/health/finding-dialog";
 import { PhotoViewer } from "@/components/health/photo-viewer";
@@ -27,6 +28,7 @@ export function FindingCard({
   treatmentRecipes,
   currentHst,
   photoEnabled,
+  actor,
 }: {
   finding: FindingRow;
   seasonId: string;
@@ -34,7 +36,16 @@ export function FindingCard({
   treatmentRecipes: RecipeRow[];
   currentHst: number;
   photoEnabled: boolean;
+  /** Yang sedang membuka halaman. Null berarti tidak ada tombol apa pun. */
+  actor: { id: string; role: Role } | null;
 }) {
+  // Tombol cuma kerapian; penegakannya di Server Action. Tapi tombol yang
+  // menolak saat ditekan mengajari orang bahwa aplikasinya suka gagal, jadi
+  // yang tidak berhak tidak diberi tombolnya sama sekali.
+  const curates = actor ? canWrite(actor.role, "diagnosis") : false;
+  const manages = actor
+    ? canManageFinding(actor, finding.reportedBy?.id ?? null)
+    : false;
   return (
     <Card className="overflow-hidden py-0">
       <div>
@@ -124,7 +135,7 @@ export function FindingCard({
           ) : null}
 
           <div className="mt-3 flex flex-wrap items-center gap-2">
-            {finding.status !== "RESOLVED" ? (
+            {curates && finding.status !== "RESOLVED" ? (
               <DiagnoseDialog
                 finding={finding}
                 seasonId={seasonId}
@@ -132,11 +143,14 @@ export function FindingCard({
                 treatmentRecipes={treatmentRecipes}
               />
             ) : null}
-            <FindingStatusAction
-              findingId={finding.id}
-              seasonId={seasonId}
-              status={finding.status}
-            />
+            {curates ? (
+              <FindingStatusAction
+                findingId={finding.id}
+                seasonId={seasonId}
+                status={finding.status}
+              />
+            ) : null}
+            {manages ? (
             <div className="ml-auto flex items-center gap-1">
               <FindingDialog
                 seasonId={seasonId}
@@ -144,6 +158,7 @@ export function FindingCard({
                 currentHst={currentHst}
                 photoEnabled={photoEnabled}
                 finding={finding}
+                canChooseReporter={curates}
               />
               <ConfirmDelete
                 title="Hapus temuan ini?"
@@ -156,6 +171,7 @@ export function FindingCard({
                 iconOnly
               />
             </div>
+            ) : null}
           </div>
         </CardContent>
       </div>

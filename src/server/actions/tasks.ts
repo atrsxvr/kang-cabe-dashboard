@@ -248,7 +248,7 @@ export async function recordTaskUsage(
    * ke `tasks`, yang cuma Admin, berarti Logistik tidak bisa memotong stok untuk
    * tugas yang sudah selesai — padahal itu pekerjaannya sehari-hari.
    */
-  const allowed = await guardWrite("inventory");
+  const allowed = await guardWrite("usage");
   if (!allowed.ok) return allowed;
 
   const parsed = recordTaskUsageSchema.safeParse({

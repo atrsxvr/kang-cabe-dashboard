@@ -13,7 +13,9 @@ import {
 } from "@/components/settings/settings-labels";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
+import { canWrite } from "@/lib/permissions";
 import { cn } from "@/lib/utils";
+import { currentActor } from "@/server/auth/guard";
 import { capitalSummary } from "@/server/queries/capital";
 import { formatRupiah } from "@/lib/money";
 import { getGardenProfile, listMembers } from "@/server/queries/users";
@@ -25,10 +27,11 @@ export default async function SettingsPage() {
   // rarely but must never be served from a build-time snapshot.
   await connection();
 
-  const [members, profile, capital] = await Promise.all([
+  const [members, profile, capital, actor] = await Promise.all([
     listMembers(),
     getGardenProfile(),
     capitalSummary(),
+    currentActor(),
   ]);
 
   const paidIn = new Map(capital.contributors.map((row) => [row.id, row]));
@@ -102,12 +105,15 @@ export default async function SettingsPage() {
                 </span>
               </div>
 
-              <div className="flex w-full items-center gap-1 border-t pt-2 sm:w-auto sm:border-0 sm:pt-0">
-                <CanWrite area="settings">
+              {/* Satu penjaga untuk seluruh baris aksi, bukan per tombol: kalau
+                  tombolnya saja yang hilang, garis pemisahnya tetap tergambar
+                  di ponsel sebagai baris kosong. */}
+              <CanWrite area="settings">
+                <div className="flex w-full items-center gap-1 border-t pt-2 sm:w-auto sm:border-0 sm:pt-0">
                   <MemberDialog member={member} />
-                </CanWrite>
-                <MemberActiveAction member={member} />
-              </div>
+                  <MemberActiveAction member={member} />
+                </div>
+              </CanWrite>
             </CardContent>
           </Card>
         ))}
@@ -134,7 +140,9 @@ export default async function SettingsPage() {
                     penjualan.
                   </p>
                 </div>
-                <MemberActiveAction member={member} />
+                <CanWrite area="settings">
+                  <MemberActiveAction member={member} />
+                </CanWrite>
               </CardContent>
             </Card>
           ))}
@@ -143,7 +151,10 @@ export default async function SettingsPage() {
 
       <section className="grid gap-3">
         <h2 className="text-sm font-medium">Profil Kebun</h2>
-        <GardenProfileForm profile={profile} />
+        <GardenProfileForm
+          profile={profile}
+          readOnly={!actor || !canWrite(actor.role, "settings")}
+        />
       </section>
     </>
   );

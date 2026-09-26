@@ -10,6 +10,8 @@ import { RecipeDialog } from "@/components/health/recipe-dialog";
 import { RecipeBrowser } from "@/components/health/recipe-browser";
 import { materialCategoryLabels } from "@/components/inventory/inventory-labels";
 import { Card, CardContent } from "@/components/ui/card";
+import { canWrite } from "@/lib/permissions";
+import { currentActor } from "@/server/auth/guard";
 import { listStock } from "@/server/queries/inventory";
 import { listRecipes } from "@/server/queries/recipes";
 
@@ -20,7 +22,11 @@ export default async function RecipeLibraryPage() {
   // but the read is still live, hence connection().
   await connection();
 
-  const [recipes, materials] = await Promise.all([listRecipes(), listStock()]);
+  const [recipes, materials, actor] = await Promise.all([
+    listRecipes(),
+    listStock(),
+    currentActor(),
+  ]);
 
   return (
     <>
@@ -42,7 +48,11 @@ export default async function RecipeLibraryPage() {
       {recipes.length === 0 ? (
         <EmptyState hasMaterials={materials.length > 0} />
       ) : (
-        <RecipeBrowser recipes={recipes} materials={materials} />
+        <RecipeBrowser
+          recipes={recipes}
+          materials={materials}
+          canEdit={actor ? canWrite(actor.role, "recipes") : false}
+        />
       )}
 
       {materials.length > 0 ? (
@@ -66,7 +76,11 @@ export default async function RecipeLibraryPage() {
                 <CanWrite area="materials">
                   <MaterialDialog material={material} compact />
                 </CanWrite>
-                <MaterialArchiveAction material={material} compact />
+                {/* Mengarsipkan itu keputusan gudang, bukan penyusun racikan —
+                    Agronomis bisa mendaftarkan dan mengedit, tapi tidak ini. */}
+                <CanWrite area="inventory">
+                  <MaterialArchiveAction material={material} compact />
+                </CanWrite>
               </span>
             ))}
           </div>

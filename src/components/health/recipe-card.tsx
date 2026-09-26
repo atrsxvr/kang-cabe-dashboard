@@ -37,9 +37,12 @@ import type { RecipeRow } from "@/server/queries/recipes";
 export function RecipeCard({
   recipe,
   materials,
+  canEdit,
 }: {
   recipe: RecipeRow;
   materials: StockRow[];
+  /** Prop, bukan `<CanWrite>`: berkas ini komponen klien. */
+  canEdit: boolean;
 }) {
   const [open, setOpen] = useState(false);
   const Method = recipe.method === "KOCOR" ? Droplets : SprayCan;
@@ -140,6 +143,7 @@ export function RecipeCard({
 
           <DoseCalculator recipe={recipe} />
 
+          {canEdit ? (
           <div className="flex items-center gap-1 border-t pt-3">
             <RecipeDialog materials={materials} recipe={recipe} />
             <ConfirmDelete
@@ -150,6 +154,7 @@ export function RecipeCard({
               fields={{ recipeId: recipe.id }}
             />
           </div>
+          ) : null}
         </CardContent>
       ) : null}
     </Card>

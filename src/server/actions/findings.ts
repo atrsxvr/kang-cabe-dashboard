@@ -2,6 +2,11 @@
 
 import { revalidatePath } from "next/cache";
 
+import {
+  canManageFinding,
+  canWrite,
+  findingOwnershipMessage,
+} from "@/lib/permissions";
 import { prisma } from "@/lib/prisma";
 import { invalidForm, type ActionResult } from "@/server/actions/result";
 import { guardWrite } from "@/server/auth/guard";
@@ -37,6 +42,17 @@ export async function createFinding(formData: FormData): Promise<ActionResult> {
 
   const { seasonId, location, reportedById, ...rest } = parsed.data;
 
+  // Yang bukan pengurus selalu melaporkan atas namanya sendiri. Laporan tanpa
+  // pelapor tidak bisa ia betulkan lagi nanti — kepemilikan dicocokkan dengan
+  // kolom ini — dan laporan atas nama orang lain menaruh klaim di mulut orang
+  // yang tidak membuatnya. Pengurus tetap boleh memilih: Admin yang menutupi
+  // temannya perlu bisa mencatat atas nama yang benar-benar melihat.
+  const reporter = canWrite(allowed.actor.role, "diagnosis")
+    ? reportedById
+      ? reportedById
+      : null
+    : allowed.actor.id;
+
   const season = await prisma.season.findUnique({
     where: { id: seasonId },
     select: { id: true },
@@ -59,7 +75,7 @@ export async function createFinding(formData: FormData): Promise<ActionResult> {
       seasonId,
       photoUrl,
       location: location ? location : null,
-      reportedById: reportedById ? reportedById : null,
+      reportedById: reporter,
     },
   });
 
@@ -105,10 +121,16 @@ export async function diagnoseFinding(
   return { ok: true };
 }
 
+/**
+ * "Selesai" bukan pernyataan tentang pengamatan, melainkan penilaian bahwa
+ * tanamannya sudah aman — keputusan yang boleh mendiagnosa, bukan pelapor.
+ * Membiarkan siapa pun menutupnya berarti masalah bisa hilang dari daftar tanpa
+ * pernah ada yang menanganinya.
+ */
 export async function updateFindingStatus(
   formData: FormData
 ): Promise<ActionResult> {
-  const allowed = await guardWrite("findings");
+  const allowed = await guardWrite("diagnosis");
   if (!allowed.ok) return allowed;
 
   const parsed = updateFindingStatusSchema.safeParse({
@@ -173,12 +195,26 @@ export async function updateFinding(formData: FormData): Promise<ActionResult> {
 
   const existing = await prisma.healthLog.findFirst({
     where: { id: findingId, seasonId },
-    select: { photoUrl: true },
+    select: { photoUrl: true, reportedById: true },
   });
 
   if (!existing) {
     return { ok: false, message: "Temuan tidak ditemukan pada musim ini." };
   }
+
+  // Dicocokkan dengan pelapor yang tersimpan, bukan yang dikirim formulir —
+  // kalau tidak, siapa pun bisa mengaku pemiliknya dengan mengisi kolom itu.
+  if (!canManageFinding(allowed.actor, existing.reportedById)) {
+    return { ok: false, message: findingOwnershipMessage };
+  }
+
+  // Pelapor biasa tidak bisa memindahkan laporannya ke nama orang lain: itu
+  // sama dengan menaruh klaim di mulut orang yang tidak pernah membuatnya.
+  const reporter = canWrite(allowed.actor.role, "diagnosis")
+    ? reportedById
+      ? reportedById
+      : null
+    : existing.reportedById;
 
   // Only touch the photo when a new one is supplied. Submitting the form with
   // the file input untouched must not wipe the picture already attached.
@@ -200,7 +236,7 @@ export async function updateFinding(formData: FormData): Promise<ActionResult> {
       ...rest,
       photoUrl,
       location: location ? location : null,
-      reportedById: reportedById ? reportedById : null,
+      reportedById: reporter,
     },
   });
 
@@ -221,11 +257,15 @@ export async function deleteFinding(formData: FormData): Promise<ActionResult> {
 
   const existing = await prisma.healthLog.findFirst({
     where: { id: findingId, seasonId },
-    select: { photoUrl: true },
+    select: { photoUrl: true, reportedById: true },
   });
 
   if (!existing) {
     return { ok: false, message: "Temuan tidak ditemukan pada musim ini." };
+  }
+
+  if (!canManageFinding(allowed.actor, existing.reportedById)) {
+    return { ok: false, message: findingOwnershipMessage };
   }
 
   await prisma.healthLog.deleteMany({ where: { id: findingId, seasonId } });

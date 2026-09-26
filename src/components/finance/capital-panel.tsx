@@ -1,5 +1,6 @@
 import { HandCoins } from "lucide-react";
 
+import { CanWrite } from "@/components/auth/can-write";
 import { ConfirmDelete } from "@/components/common/confirm-delete";
 import { ContributionDialog } from "@/components/finance/contribution-dialog";
 import { Badge } from "@/components/ui/badge";
@@ -121,11 +122,13 @@ export function CapitalPanel({
 
       <div className="flex items-center justify-between gap-2">
         <h2 className="text-sm font-medium">Riwayat setoran</h2>
-        <ContributionDialog
-          members={members}
-          seasons={seasons}
-          photoEnabled={photoEnabled}
-        />
+        <CanWrite area="capital">
+          <ContributionDialog
+            members={members}
+            seasons={seasons}
+            photoEnabled={photoEnabled}
+          />
+        </CanWrite>
       </div>
 
       {contributions.length === 0 ? (
@@ -173,6 +176,7 @@ export function CapitalPanel({
                   {formatRupiah(row.amount)}
                 </p>
 
+                <CanWrite area="capital">
                 <div className="flex items-center gap-1">
                   <ContributionDialog
                     members={members}
@@ -189,6 +193,7 @@ export function CapitalPanel({
                     iconOnly
                   />
                 </div>
+                </CanWrite>
               </CardContent>
             </Card>
           ))}

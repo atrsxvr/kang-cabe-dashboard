@@ -1,5 +1,6 @@
 import { Wheat } from "lucide-react";
 
+import { CanWrite } from "@/components/auth/can-write";
 import { ConfirmDelete } from "@/components/common/confirm-delete";
 import { HarvestDialog } from "@/components/harvest/harvest-dialog";
 import { Badge } from "@/components/ui/badge";
@@ -63,6 +64,7 @@ export function HarvestList({
                 <p className="text-muted-foreground text-xs">{row.notes}</p>
               ) : null}
 
+              <CanWrite area="harvest">
               <div className="flex items-center gap-1 border-t pt-2">
                 <HarvestDialog
                   seasonId={seasonId}
@@ -78,6 +80,7 @@ export function HarvestList({
                   iconOnly
                 />
               </div>
+              </CanWrite>
             </CardContent>
           </Card>
         ))}
@@ -96,7 +99,9 @@ export function HarvestList({
                 </TableHead>
                 <TableHead className="text-right">Total</TableHead>
                 <TableHead>Dicatat</TableHead>
-                <TableHead className="w-24 text-right">Aksi</TableHead>
+                <CanWrite area="harvest">
+                  <TableHead className="w-24 text-right">Aksi</TableHead>
+                </CanWrite>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -125,6 +130,7 @@ export function HarvestList({
                   <TableCell className="text-muted-foreground text-sm">
                     {row.recordedBy?.name ?? "—"}
                   </TableCell>
+                  <CanWrite area="harvest">
                   <TableCell className="w-24">
                     <div className="flex items-center justify-end gap-1">
                       <HarvestDialog
@@ -142,6 +148,7 @@ export function HarvestList({
                       />
                     </div>
                   </TableCell>
+                  </CanWrite>
                 </TableRow>
               ))}
             </TableBody>

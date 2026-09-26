@@ -36,9 +36,11 @@ function matchesGroup(recipe: RecipeRow, group: Group) {
 export function RecipeBrowser({
   recipes,
   materials,
+  canEdit,
 }: {
   recipes: RecipeRow[];
   materials: StockRow[];
+  canEdit: boolean;
 }) {
   const [group, setGroup] = useState<Group>("ALL");
   const [query, setQuery] = useState("");
@@ -132,7 +134,12 @@ export function RecipeBrowser({
       ) : (
         <div className="grid gap-3">
           {visible.map((recipe) => (
-            <RecipeCard key={recipe.id} recipe={recipe} materials={materials} />
+            <RecipeCard
+              key={recipe.id}
+              recipe={recipe}
+              materials={materials}
+              canEdit={canEdit}
+            />
           ))}
         </div>
       )}

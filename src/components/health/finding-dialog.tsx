@@ -33,12 +33,19 @@ export function FindingDialog({
   currentHst,
   photoEnabled,
   finding,
+  canChooseReporter = true,
 }: {
   seasonId: string;
   members: MemberOption[];
   currentHst: number;
   photoEnabled: boolean;
   finding?: FindingRow;
+  /**
+   * Hanya pengurus catatan kesehatan yang boleh melapor atas nama orang lain.
+   * Untuk yang lain server selalu memakai namanya sendiri, jadi pilihannya
+   * disembunyikan alih-alih ditampilkan lalu diam-diam diabaikan.
+   */
+  canChooseReporter?: boolean;
 }) {
   const editing = Boolean(finding);
   const [open, setOpen] = useState(false);
@@ -263,6 +270,7 @@ export function FindingDialog({
             />
           </Field>
 
+          {canChooseReporter ? (
           <Field
             id="reportedById"
             label="Ditemukan oleh"
@@ -281,6 +289,11 @@ export function FindingDialog({
               ))}
             </NativeSelect>
           </Field>
+          ) : (
+            <p className="text-muted-foreground text-xs">
+              Dilaporkan atas nama kamu.
+            </p>
+          )}
 
           <DialogFooter>
             <Button type="button" variant="secondary" onClick={close}>
