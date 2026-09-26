@@ -36,6 +36,22 @@ describe("summariseCash", () => {
     expect(cash.bySource.PROFIT_SHARE).toBe(200_000);
   });
 
+  /**
+   * Saldo awal menambah kas tapi bukan setoran siapa pun — ia punya barisnya
+   * sendiri supaya tidak pernah terhitung sebagai modal seseorang.
+   */
+  it("counts an opening balance as money in, apart from capital", () => {
+    const cash = summariseCash([
+      entry("awal", "2026-09-01", "OPENING", 3_000_000),
+      entry("pupuk", "2026-09-02", "PURCHASE", 500_000),
+    ]);
+
+    expect(cash.balance).toBe(2_500_000);
+    expect(cash.bySource.OPENING).toBe(3_000_000);
+    expect(cash.bySource.CAPITAL).toBe(0);
+    expect(cash.ledger.at(-1)?.direction).toBe("IN");
+  });
+
   it("starts at zero with nothing recorded", () => {
     const cash = summariseCash([]);
     expect(cash.balance).toBe(0);

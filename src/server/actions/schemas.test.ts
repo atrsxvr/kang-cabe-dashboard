@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import {
   createMaterialSchema,
+  createOpeningSchema,
   createPayoutSchema,
   createSeasonSchema,
   createTaskSchema,
@@ -329,5 +330,25 @@ describe("expenseCategories", () => {
 
   it("keeps seed, which goes straight into the ground", () => {
     expect(expenseCategories).toContain("Benih");
+  });
+});
+
+describe("createOpeningSchema", () => {
+  it("takes an amount, a date and an optional note — and no member", () => {
+    const result = createOpeningSchema.safeParse({
+      amount: "3000000",
+      countedAt: "2026-09-26",
+      note: "",
+      userId: "diabaikan",
+    });
+    expect(result.success).toBe(true);
+    expect(result.data).not.toHaveProperty("userId");
+  });
+
+  it("refuses nothing at all", () => {
+    expect(
+      createOpeningSchema.safeParse({ amount: "0", countedAt: "2026-09-26" })
+        .success
+    ).toBe(false);
   });
 });

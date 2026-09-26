@@ -35,7 +35,7 @@ import {
 } from "@/server/queries/finance";
 import type { CostLine, SeasonComparison } from "@/server/queries/finance";
 import { capitalSummary, listContributions } from "@/server/queries/capital";
-import { cashReport, listPayouts } from "@/server/queries/cash";
+import { cashReport, listOpenings, listPayouts } from "@/server/queries/cash";
 import { listSeasons, resolveSeason } from "@/server/queries/seasons";
 import { listActiveMembers } from "@/server/queries/users";
 import { isPhotoUploadEnabled } from "@/server/storage";
@@ -63,6 +63,7 @@ export default async function FinancePage(props: PageProps<"/finance">) {
     seasonList,
     pricing,
     cash,
+    openings,
     payouts,
   ] = await Promise.all([
     seasonMaterialCost(season.id),
@@ -77,6 +78,7 @@ export default async function FinancePage(props: PageProps<"/finance">) {
     listSeasons(),
     pricingGuide(season.id),
     cashReport(),
+    listOpenings(),
     listPayouts(),
   ]);
 
@@ -249,6 +251,7 @@ export default async function FinancePage(props: PageProps<"/finance">) {
         cash={
           <CashPanel
             report={cash}
+            openings={openings}
             payouts={payouts}
             members={members}
             seasons={seasonList}

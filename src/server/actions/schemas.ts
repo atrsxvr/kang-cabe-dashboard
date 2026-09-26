@@ -645,6 +645,20 @@ export const updateContributionSchema = z.object({
   contributionId: z.string().min(1),
 });
 
+/** Uang yang sudah ada di kas saat aplikasi mulai dipakai. */
+const openingFields = {
+  amount: rupiah.refine((value) => value > 0, "Isi jumlahnya"),
+  countedAt: z.coerce.date("Tanggal tidak valid"),
+  note: z.string().trim().max(300).optional().or(z.literal("")),
+};
+
+export const createOpeningSchema = z.object(openingFields);
+
+export const updateOpeningSchema = z.object({
+  ...openingFields,
+  openingId: z.string().min(1),
+});
+
 export const payoutTypes = ["PROFIT_SHARE", "CAPITAL_RETURN"] as const;
 
 /**

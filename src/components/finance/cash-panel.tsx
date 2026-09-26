@@ -2,6 +2,7 @@ import { ArrowDownLeft, ArrowUpRight, BookOpen, HandCoins, Wallet } from "lucide
 
 import { CanWrite } from "@/components/auth/can-write";
 import { ConfirmDelete } from "@/components/common/confirm-delete";
+import { OpeningDialog } from "@/components/finance/opening-dialog";
 import { PayoutDialog } from "@/components/finance/payout-dialog";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
@@ -14,8 +15,13 @@ import {
 import { formatDate } from "@/lib/hst";
 import { formatRupiah } from "@/lib/money";
 import { cn } from "@/lib/utils";
+import { deleteOpening } from "@/server/actions/openings";
 import { deletePayout } from "@/server/actions/payouts";
-import type { CashReport, PayoutRow } from "@/server/queries/cash";
+import type {
+  CashReport,
+  OpeningRow,
+  PayoutRow,
+} from "@/server/queries/cash";
 import type { SeasonSummary } from "@/server/queries/seasons";
 import type { MemberOption } from "@/server/queries/users";
 
@@ -33,12 +39,14 @@ const payoutLabels: Record<PayoutRow["type"], string> = {
  */
 export function CashPanel({
   report,
+  openings,
   payouts,
   members,
   seasons,
   photoEnabled,
 }: {
   report: CashReport;
+  openings: OpeningRow[];
   payouts: PayoutRow[];
   members: MemberOption[];
   seasons: SeasonSummary[];
@@ -59,7 +67,7 @@ export function CashPanel({
               {formatRupiah(report.balance)}
             </p>
             <p className="text-muted-foreground mx-auto max-w-md text-xs">
-              Semua musim, bukan cuma yang dipilih. Dihitung dari setoran,
+              Semua musim, bukan cuma yang dipilih. Dihitung dari saldo awal, setoran,
               jualan yang udah lunas, belanja, dan uang yang dibayarkan ke
               anggota. Cocokkan sesekali sama uang di tangan dan rekening.
             </p>
@@ -95,6 +103,52 @@ export function CashPanel({
           </div>
         </CardContent>
       </Card>
+
+      <div className="grid gap-3">
+        <div className="flex items-center justify-between gap-2">
+          <h2 className="text-sm font-medium">Saldo awal</h2>
+          <CanWrite area="capital">
+            <OpeningDialog />
+          </CanWrite>
+        </div>
+
+        {openings.length === 0 ? (
+          <p className="text-muted-foreground rounded-md border border-dashed px-3 py-3 text-xs">
+            Uang yang udah ada di kas sebelum aplikasi dipakai — misalnya sisa
+            kas musim pertama — dicatat di sini sebagai milik bersama, bukan
+            setoran siapa-siapa.
+          </p>
+        ) : (
+          openings.map((row) => (
+            <Card key={row.id} className="py-3">
+              <CardContent className="flex flex-wrap items-center gap-3 px-4">
+                <div className="min-w-0 flex-1">
+                  <p className="font-medium">{row.note ?? "Saldo awal kas"}</p>
+                  <p className="text-muted-foreground text-xs">
+                    Mulai dihitung {formatDate(row.countedAt)} · milik bersama
+                  </p>
+                </div>
+                <p className="font-semibold tabular-nums">
+                  {formatRupiah(row.amount)}
+                </p>
+                <CanWrite area="capital">
+                  <div className="flex items-center gap-1">
+                    <OpeningDialog opening={row} />
+                    <ConfirmDelete
+                      title="Hapus saldo awal ini?"
+                      itemName={formatRupiah(row.amount)}
+                      consequence="Saldo kas ikut berkurang sebesar ini."
+                      action={deleteOpening}
+                      fields={{ openingId: row.id }}
+                      iconOnly
+                    />
+                  </div>
+                </CanWrite>
+              </CardContent>
+            </Card>
+          ))
+        )}
+      </div>
 
       <div className="flex items-center justify-between gap-2">
         <h2 className="text-sm font-medium">Uang keluar ke anggota</h2>

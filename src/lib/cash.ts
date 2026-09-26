@@ -14,9 +14,14 @@
  *   pupuk sisa musim sebelum aplikasi dipakai dibayar dengan uang yang juga
  *   tidak pernah tercatat masuk.
  * - Penjualan yang belum lunas. Itu piutang, bukan uang di tangan.
+ *
+ * Saldo awal masuk sebagai sumbernya sendiri, bukan setoran: uang yang sudah
+ * ada sebelum aplikasi dipakai milik kebun bersama, dan menaruhnya atas nama
+ * seseorang akan memutuskan pembagian yang belum disepakati.
  */
 
 export const CASH_SOURCES = [
+  "OPENING",
   "CAPITAL",
   "SALE",
   "OTHER_INCOME",
@@ -32,6 +37,7 @@ export type CashSource = (typeof CASH_SOURCES)[number];
 export type CashDirection = "IN" | "OUT";
 
 const DIRECTION: Record<CashSource, CashDirection> = {
+  OPENING: "IN",
   CAPITAL: "IN",
   SALE: "IN",
   OTHER_INCOME: "IN",
@@ -43,6 +49,7 @@ const DIRECTION: Record<CashSource, CashDirection> = {
 };
 
 export const cashSourceLabels: Record<CashSource, string> = {
+  OPENING: "Saldo awal",
   CAPITAL: "Setoran modal",
   SALE: "Penjualan lunas",
   OTHER_INCOME: "Pemasukan lain",

@@ -57,6 +57,9 @@ async function cleanup() {
     const payouts = await prisma.memberPayout.deleteMany({
       where: { note: { startsWith: "E2E " } },
     });
+    const openings = await prisma.cashOpening.deleteMany({
+      where: { note: { startsWith: "E2E " } },
+    });
     const contributions = await prisma.capitalContribution.deleteMany({
       where: { note: { startsWith: "E2E " } },
     });
@@ -74,7 +77,7 @@ async function cleanup() {
     });
 
     console.log(
-      `Teardown: ${materialIds.length} bahan, ${taskIds.length} tugas, ${seasons.count} musim, ${contributions.count} setoran, ${payouts.count} uang keluar, ${sessions.count} sesi E2E dibersihkan.`
+      `Teardown: ${materialIds.length} bahan, ${taskIds.length} tugas, ${seasons.count} musim, ${contributions.count} setoran, ${payouts.count} uang keluar, ${openings.count} saldo awal, ${sessions.count} sesi E2E dibersihkan.`
     );
   } finally {
     await prisma.$disconnect();

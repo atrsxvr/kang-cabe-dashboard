@@ -31,6 +31,7 @@ const toolEventLabels: Record<string, string> = {
 
 export async function cashReport(): Promise<CashReport> {
   const [
+    openings,
     contributions,
     sales,
     financeEntries,
@@ -39,6 +40,9 @@ export async function cashReport(): Promise<CashReport> {
     toolEvents,
     payouts,
   ] = await Promise.all([
+    prisma.cashOpening.findMany({
+      select: { id: true, amount: true, countedAt: true, note: true },
+    }),
     prisma.capitalContribution.findMany({
       select: {
         id: true,
@@ -109,6 +113,17 @@ export async function cashReport(): Promise<CashReport> {
   const entries: CashEntry[] = [];
   let receivable = 0;
   let receivableCount = 0;
+
+  for (const row of openings) {
+    entries.push({
+      id: `opening:${row.id}`,
+      date: row.countedAt,
+      source: "OPENING",
+      amount: row.amount,
+      label: row.note ?? "Saldo awal kas",
+      detail: null,
+    });
+  }
 
   for (const row of contributions) {
     entries.push({
@@ -223,5 +238,19 @@ export async function listPayouts(): Promise<PayoutRow[]> {
       user: { select: { id: true, name: true } },
       season: { select: { id: true, name: true } },
     },
+  });
+}
+
+export type OpeningRow = {
+  id: string;
+  amount: number;
+  countedAt: Date;
+  note: string | null;
+};
+
+export async function listOpenings(): Promise<OpeningRow[]> {
+  return prisma.cashOpening.findMany({
+    orderBy: [{ countedAt: "desc" }, { createdAt: "desc" }],
+    select: { id: true, amount: true, countedAt: true, note: true },
   });
 }

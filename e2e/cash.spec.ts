@@ -72,6 +72,33 @@ test("setoran menambah kas, bagi hasil menguranginya", async ({ page }) => {
 });
 
 /**
+ * Saldo awal menambah kas tanpa menjadi modal siapa pun. Yang dibuktikan dua
+ * sisi: saldo kas naik, dan total modal bersih tidak bergerak sama sekali.
+ */
+test("saldo awal menambah kas, bukan modal siapa pun", async ({ page }) => {
+  await openFinance(page, "Modal");
+  const modal = page
+    .getByText("Total modal bersih", { exact: true })
+    .locator("xpath=following-sibling::p[1]");
+  const capitalBefore = rupiahOf(await modal.innerText());
+
+  await page.getByRole("tab", { name: "Kas" }).click();
+  const before = await balance(page);
+
+  await page.getByRole("button", { name: "Catat Saldo Awal" }).click();
+  const dialog = page.getByRole("dialog");
+  await dialog.getByLabel("Jumlah (Rp)").fill("3000000");
+  await dialog.getByLabel("Catatan (opsional)").fill(`E2E saldo awal ${stamp}`);
+  await dialog.getByRole("button", { name: "Simpan Saldo Awal" }).click();
+  await expect(dialog).toBeHidden();
+
+  await expect.poll(() => balance(page)).toBe(before + 3_000_000);
+
+  await page.getByRole("tab", { name: "Modal" }).click();
+  expect(rupiahOf(await modal.innerText())).toBe(capitalBefore);
+});
+
+/**
  * Tanpa batas ini porsi modal bisa minus. Ditolak di server, dan pesannya
  * menyebut berapa yang masih bisa ditarik.
  */

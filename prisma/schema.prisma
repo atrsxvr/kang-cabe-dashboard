@@ -326,6 +326,30 @@ model MemberPayout {
   @@index([seasonId])
 }
 
+/// Uang yang sudah ada di kas saat aplikasi mulai dipakai.
+///
+/// Milik kebun bersama, belum milik siapa-siapa. Bukan setoran — setoran selalu
+/// atas nama satu orang, dan membaginya ke empat nama berarti memutuskan
+/// pembagian yang disepakati untuk belum diputuskan. Bukan pemasukan musim mana
+/// pun — Musim 2 akan terlihat untung dari uang yang bukan hasil panennya.
+///
+/// Sisa kas Musim 1 masuk ke sini sebagai satu angka. Rincian musim itu memang
+/// tidak ada di aplikasi, dan tidak perlu diketik ulang untuk mengetahui berapa
+/// uang yang tersisa.
+model CashOpening {
+  id        String   @id @default(uuid())
+  /// Rupiah bulat. Lihat catatan di SaleTransaction.
+  amount    Int
+  /// Hari uang ini mulai dihitung di kas.
+  countedAt DateTime
+  note      String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([countedAt])
+}
+
 enum PayoutType {
   PROFIT_SHARE // bagi hasil
   CAPITAL_RETURN // tarik modal
