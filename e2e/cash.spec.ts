@@ -81,7 +81,11 @@ test("tarik modal melebihi setoran ditolak", async ({ page }) => {
   await page.getByRole("button", { name: "Catat Uang Keluar" }).click();
   const keluar = page.getByRole("dialog");
   await keluar.getByLabel("Jenis").selectOption("CAPITAL_RETURN");
-  await keluar.getByLabel("Jumlah (Rp)").fill("999999999999");
+  // Di bawah batas Rp 1 miliar milik validasi rupiah — di atasnya formulir
+  // ditolak lebih dulu dengan pesan lain, dan penjaga modal tidak pernah
+  // tersentuh. Versi pertama tes ini memakai 999 miliar dan menguji hal yang
+  // salah.
+  await keluar.getByLabel("Jumlah (Rp)").fill("900000000");
   await keluar.getByLabel("Catatan (opsional)").fill(`E2E tarik ${stamp}`);
   await keluar.getByRole("button", { name: "Simpan", exact: true }).click();
 
