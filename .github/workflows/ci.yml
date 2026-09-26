@@ -82,8 +82,14 @@ jobs:
       # menandatangani cookie sesi, dan e2e/session.ts memakainya membuat cookie
       # yang bisa diterima aplikasi. Nilai bohongan cukup — asal keduanya sama.
       #
-      # Kredensial Google sengaja tidak ada: tidak ada spec yang menyentuh layar
-      # Google, dan sesinya ditulis langsung ke tabel Session.
+      # Kredensial Google tetap harus ada meski tidak ada spec yang menyentuh
+      # layar Google (sesinya ditulis langsung ke tabel Session): webServer
+      # menjalankan `next build`, yang menyetel NODE_ENV=production, dan
+      # `parseEnv` menolak boot produksi tanpa ketiganya. Dulu di sini tertulis
+      # "sengaja tidak ada" — benar sampai penjaga itu dipasang, lalu diam-diam
+      # membuat server e2e tidak pernah bisa menyala.
+      GOOGLE_CLIENT_ID: ci-bohongan.apps.googleusercontent.com
+      GOOGLE_CLIENT_SECRET: GOCSPX-ci-bohongan
       BETTER_AUTH_SECRET: ci-hanya-untuk-pengujian-cukup-panjang-32
       BETTER_AUTH_URL: http://localhost:3000
 
