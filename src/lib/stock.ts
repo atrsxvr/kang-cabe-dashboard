@@ -155,3 +155,25 @@ export function unitLocked(count: {
 }): boolean {
   return count.recipeItems + count.movements + count.taskUsages > 0;
 }
+
+/**
+ * Whether a material can be deleted outright instead of archived.
+ *
+ * Only a registration that went nowhere — a typo, a duplicate. No recipe uses
+ * it, no task has drawn on it, and the only movement on record is the opening
+ * count typed when it was registered. That opening row is a CORRECTION, not a
+ * purchase: it never touched cash and was never charged to a season, so
+ * nothing anyone has reported on goes with it.
+ *
+ * Anything more and it has a history, and history is archived, never deleted.
+ */
+export function canDeleteMaterial(
+  count: { recipeItems: number; movements: number; taskUsages: number },
+  hasOpening: boolean
+): boolean {
+  return (
+    count.recipeItems === 0 &&
+    count.taskUsages === 0 &&
+    count.movements <= (hasOpening ? 1 : 0)
+  );
+}

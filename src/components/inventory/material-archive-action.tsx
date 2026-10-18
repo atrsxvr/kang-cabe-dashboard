@@ -16,8 +16,10 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
+import { ConfirmDelete } from "@/components/common/confirm-delete";
 import { Button } from "@/components/ui/button";
-import { archiveMaterial } from "@/server/actions/inventory";
+import { canDeleteMaterial } from "@/lib/stock";
+import { archiveMaterial, deleteMaterial } from "@/server/actions/inventory";
 import type { StockRow } from "@/server/queries/inventory";
 
 /**
@@ -76,6 +78,26 @@ export function MaterialArchiveAction({
         <ArchiveRestore className="size-4" aria-hidden />
         Kembalikan
       </Button>
+    );
+  }
+
+  // A registration that went nowhere has no history to protect, so it is
+  // deleted rather than left to clutter the archive. The moment it is used,
+  // this same spot offers Arsipkan instead.
+  if (canDeleteMaterial(material._count, material.opening !== null)) {
+    return (
+      <ConfirmDelete
+        title="Hapus bahan ini?"
+        itemName={material.name}
+        consequence={
+          material.opening
+            ? "belum pernah dipakai, jadi yang ikut terhapus cuma catatan stok awalnya. Namanya bisa langsung dipakai lagi."
+            : "belum pernah dipakai, jadi tidak ada riwayat yang ikut hilang. Namanya bisa langsung dipakai lagi."
+        }
+        action={deleteMaterial}
+        fields={{ materialId: material.id }}
+        iconOnly={compact}
+      />
     );
   }
 

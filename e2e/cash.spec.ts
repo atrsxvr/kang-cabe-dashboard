@@ -75,6 +75,26 @@ test("setoran menambah kas, bagi hasil menguranginya", async ({ page }) => {
  * Saldo awal menambah kas tanpa menjadi modal siapa pun. Yang dibuktikan dua
  * sisi: saldo kas naik, dan total modal bersih tidak bergerak sama sekali.
  */
+/**
+ * Mencatat saldo awal lewat dialognya, dan menunggu sampai halamannya memuat
+ * catatan itu — baru sesudah itu saldo yang terbaca adalah saldo yang baru.
+ */
+async function recordOpening(
+  page: Page,
+  amount: string,
+  countedAt: string,
+  note: string
+) {
+  await page.getByRole("button", { name: "Catat Saldo Awal" }).click();
+  const dialog = page.getByRole("dialog");
+  await dialog.getByLabel("Jumlah (Rp)").fill(amount);
+  await dialog.getByLabel("Mulai dihitung").fill(countedAt);
+  await dialog.getByLabel("Catatan (opsional)").fill(note);
+  await dialog.getByRole("button", { name: "Simpan Saldo Awal" }).click();
+  await expect(dialog).toBeHidden();
+  await expect(page.getByText(note, { exact: true }).first()).toBeVisible();
+}
+
 test("saldo awal menambah kas, bukan modal siapa pun", async ({ page }) => {
   await openFinance(page, "Modal");
   const modal = page
@@ -83,18 +103,21 @@ test("saldo awal menambah kas, bukan modal siapa pun", async ({ page }) => {
   const capitalBefore = rupiahOf(await modal.innerText());
 
   await page.getByRole("tab", { name: "Kas" }).click();
+
+  // Jangkar dulu, sebelum saldo diukur. Kas dihitung mulai dari saldo awal
+  // yang **paling awal**, dan catatan sebelum itu dianggap sudah termasuk di
+  // dalamnya. Basis data pengembangan bisa sudah berisi saldo awal sungguhan;
+  // kalau saldo awal buatan tes ini langsung jadi yang paling awal, batasnya
+  // mundur dan catatan lama yang tadinya tidak dihitung ikut terhitung lagi —
+  // selisihnya jadi 3 juta ditambah apa pun yang kebetulan ada di sana.
+  //
+  // Dengan jangkar Rp 1 di 1 Januari 2000 yang dipasang sebelum mengukur,
+  // batasnya sudah di situ dan tidak bergeser lagi, apa pun isi basis datanya.
+  await recordOpening(page, "1", "2000-01-01", `E2E jangkar ${stamp}`);
   const before = await balance(page);
 
-  await page.getByRole("button", { name: "Catat Saldo Awal" }).click();
-  const dialog = page.getByRole("dialog");
-  await dialog.getByLabel("Jumlah (Rp)").fill("3000000");
-  // Tanggal yang jauh di belakang, supaya tidak ada catatan lain di basis data
-  // uji yang mendadak "sudah termasuk saldo awal" — selisihnya harus tepat
-  // jumlah yang dicatat, apa pun isi basis datanya.
-  await dialog.getByLabel("Mulai dihitung").fill("2000-01-01");
-  await dialog.getByLabel("Catatan (opsional)").fill(`E2E saldo awal ${stamp}`);
-  await dialog.getByRole("button", { name: "Simpan Saldo Awal" }).click();
-  await expect(dialog).toBeHidden();
+  // Bukan yang paling awal lagi, jadi ia tambahan biasa: tepat 3 juta.
+  await recordOpening(page, "3000000", "2000-01-02", `E2E saldo awal ${stamp}`);
 
   await expect.poll(() => balance(page)).toBe(before + 3_000_000);
 
@@ -105,7 +128,7 @@ test("saldo awal menambah kas, bukan modal siapa pun", async ({ page }) => {
 /**
  * Setoran yang lebih tua dari saldo awal: tercatat untuk porsi modal, tapi
  * tidak menambah saldo — sisanya sudah ada di dalam saldo awal. Bergantung pada
- * saldo awal 1 Januari 2000 dari tes sebelumnya; file ini berjalan berurutan.
+ * jangkar 1 Januari 2000 dari tes sebelumnya; file ini berjalan berurutan.
  */
 test("setoran sebelum saldo awal masuk modal, bukan saldo", async ({ page }) => {
   await openFinance(page, "Modal");

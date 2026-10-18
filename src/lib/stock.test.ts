@@ -4,6 +4,7 @@ import {
   describePurchase,
   describeShortfall,
   expiryStatus,
+  canDeleteMaterial,
   formatStock,
   isDosable,
   needsRestock,
@@ -160,5 +161,25 @@ describe("isDosable", () => {
     }
     expect(isDosable("AMELIORANT")).toBe(false);
     expect(isDosable("MULCH")).toBe(false);
+  });
+});
+
+describe("canDeleteMaterial", () => {
+  const none = { recipeItems: 0, movements: 0, taskUsages: 0 };
+
+  it("deletes a registration that went nowhere", () => {
+    expect(canDeleteMaterial(none, false)).toBe(true);
+  });
+
+  it("still deletes when the only movement is the opening count", () => {
+    expect(canDeleteMaterial({ ...none, movements: 1 }, true)).toBe(true);
+  });
+
+  it("archives once anything else has happened to it", () => {
+    expect(canDeleteMaterial({ ...none, movements: 2 }, true)).toBe(false);
+    // One movement that is not the opening — a purchase.
+    expect(canDeleteMaterial({ ...none, movements: 1 }, false)).toBe(false);
+    expect(canDeleteMaterial({ ...none, recipeItems: 1 }, false)).toBe(false);
+    expect(canDeleteMaterial({ ...none, taskUsages: 1 }, false)).toBe(false);
   });
 });
