@@ -351,6 +351,52 @@ test.describe.serial("harga bahan bisa dikoreksi", () => {
 
     await expect(dialog).toContainText("Bayar Rp 60.000");
   });
+
+  test("bahan yang sudah ada belanjanya cuma bisa diarsipkan", async ({
+    page,
+  }) => {
+    await openInventory(page);
+
+    // PRICED punya belanja dari tes sebelumnya: riwayat yang nyata.
+    await expect(
+      page.getByRole("button", { name: `Arsipkan ${PRICED}` }).first()
+    ).toBeVisible();
+    await expect(
+      page.getByRole("button", { name: `Hapus ${PRICED}` })
+    ).toHaveCount(0);
+  });
+
+  test("salah ketik dengan stok awal bisa dihapus, dan namanya bebas lagi", async ({
+    page,
+  }) => {
+    const TYPO = `E2E Salah Ketik ${Date.now()}`;
+
+    const register = async () => {
+      await page.getByRole("button", { name: "Tambah Bahan" }).click();
+      await page.getByLabel("Nama Bahan", { exact: true }).fill(TYPO);
+      await page.getByLabel("Stok Awal", { exact: true }).fill("500");
+      await page.getByLabel("Batas Minimum", { exact: true }).fill("0");
+      await page.getByRole("button", { name: "Simpan Bahan" }).click();
+      await expect(page.getByText(TYPO, { exact: true }).first()).toBeVisible();
+    };
+
+    await openInventory(page);
+    await register();
+
+    // Satu-satunya riwayatnya catatan stok awal, jadi tombolnya Hapus.
+    await expect(
+      page.getByRole("button", { name: `Arsipkan ${TYPO}` })
+    ).toHaveCount(0);
+    await page.getByRole("button", { name: `Hapus ${TYPO}` }).first().click();
+    await page.getByRole("button", { name: "Hapus", exact: true }).click();
+
+    await expect(page.getByText(`${TYPO} dihapus.`)).toBeVisible();
+    await expect(page.getByText(TYPO, { exact: true })).toHaveCount(0);
+
+    // Benar-benar hilang, bukan disembunyikan: nama yang unik bisa dipakai
+    // lagi, dan tidak ada yang tertinggal di arsip.
+    await register();
+  });
 });
 
 test("musim yang dipilih ikut terbawa pindah halaman", async ({ page }) => {

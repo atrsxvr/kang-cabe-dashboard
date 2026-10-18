@@ -243,6 +243,10 @@ export const adjustStockSchema = z
     { message: "Musim hanya untuk bahan yang keluar", path: ["seasonId"] }
   );
 
+export const deleteMaterialSchema = z.object({
+  materialId: z.string().min(1),
+});
+
 export const archiveMaterialSchema = z.object({
   materialId: z.string().min(1),
   /// Mengembalikan bahan yang sudah diarsipkan.

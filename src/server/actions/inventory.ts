@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 
 import { prisma } from "@/lib/prisma";
 import { nextAvgCost } from "@/lib/money";
-import { OPNAME_PREFIX } from "@/lib/stock";
+import { OPENING_NOTE, OPNAME_PREFIX } from "@/lib/stock";
 import { listMovements, type MovementRow } from "@/server/queries/inventory";
 import { invalidForm, type ActionResult } from "@/server/actions/result";
 import { guardWrite } from "@/server/auth/guard";
@@ -16,6 +16,7 @@ import {
   createShoppingNoteSchema,
   createToolSchema,
   archiveMaterialSchema,
+  deleteMaterialSchema,
   recordToolEventSchema,
   setMovementCostSchema,
   stockOpnameSchema,
@@ -149,6 +150,51 @@ export async function archiveMaterial(
 
   if (result.count === 0) {
     return { ok: false, message: "Bahan tidak ditemukan." };
+  }
+
+  revalidatePath("/inventory");
+  revalidatePath("/health/racikan");
+  return { ok: true };
+}
+
+/**
+ * Deletes a material that was never used — a typo or a duplicate.
+ *
+ * One conditional statement rather than a check followed by a delete: the
+ * rule from `canDeleteMaterial` is the WHERE clause itself, so a purchase
+ * recorded by someone else in the same second makes this delete nothing
+ * instead of taking that purchase with it. The opening movement, if any, goes
+ * by cascade. Recipes and tasks are also held back by the database
+ * (`onDelete: Restrict`), but they are named here so the refusal can say why.
+ */
+export async function deleteMaterial(
+  formData: FormData
+): Promise<ActionResult> {
+  const allowed = await guardWrite("inventory");
+  if (!allowed.ok) return allowed;
+
+  const parsed = deleteMaterialSchema.safeParse({
+    materialId: formData.get("materialId"),
+  });
+
+  if (!parsed.success) return invalidForm(parsed.error);
+
+  const result = await prisma.material.deleteMany({
+    where: {
+      id: parsed.data.materialId,
+      recipeItems: { none: {} },
+      taskUsages: { none: {} },
+      // `every` holds for none at all, and for the opening count alone.
+      movements: { every: { reason: "CORRECTION", note: OPENING_NOTE } },
+    },
+  });
+
+  if (result.count === 0) {
+    return {
+      ok: false,
+      message:
+        "Bahan ini sudah punya riwayat — dipakai racikan, tugas, atau sudah ada belanja. Arsipkan saja.",
+    };
   }
 
   revalidatePath("/inventory");
