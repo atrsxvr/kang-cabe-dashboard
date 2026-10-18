@@ -227,6 +227,7 @@ export function FindingDialog({
               error={errors.severity}
             >
               <NativeSelect
+                required
                 id="severity"
                 name="severity"
                 defaultValue={finding?.severity ?? "MEDIUM"}

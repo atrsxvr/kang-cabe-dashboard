@@ -385,6 +385,7 @@ export function TaskDialog({
 
           <Field id="status" label="Status" error={errors.status}>
             <NativeSelect
+              required
               id="status"
               name="status"
               defaultValue={task?.status ?? "TODO"}

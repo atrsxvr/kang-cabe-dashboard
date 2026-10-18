@@ -66,7 +66,9 @@ export function ToolDialog({ tool }: { tool?: ToolRow }) {
             <Pencil className="size-4" aria-hidden />
           </Button>
         ) : (
-          <Button size="sm">
+          // Outline, so the page has one primary action: materials move every
+          // week, a new hoe a few times a year.
+          <Button size="sm" variant="outline">
             <Wrench className="size-4" aria-hidden />
             Tambah Alat
           </Button>
@@ -112,6 +114,7 @@ export function ToolDialog({ tool }: { tool?: ToolRow }) {
 
             <Field id="tool-condition" label="Kondisi" error={errors.condition}>
               <NativeSelect
+                required
                 id="tool-condition"
                 name="condition"
                 defaultValue={tool?.condition ?? "GOOD"}

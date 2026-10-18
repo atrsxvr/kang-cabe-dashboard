@@ -30,9 +30,17 @@ const SCALES: Record<string, { to: string; per: number }> = {
   ml: { to: "liter", per: 1000 },
 };
 
-export function formatStock(value: number, unit: string): string {
+export function formatStock(
+  value: number,
+  unit: string,
+  /**
+   * Picks the scale instead of `value`. Pass the larger of two figures shown
+   * side by side, so "1 kg / min 100 gram" reads "1 kg / min 0,1 kg".
+   */
+  scaleFrom: number = value
+): string {
   const scale = SCALES[unit];
-  const useScale = scale && Math.abs(value) >= scale.per;
+  const useScale = scale && Math.abs(scaleFrom) >= scale.per;
 
   const amount = useScale ? value / scale.per : value;
   const shown = useScale ? scale.to : unit;
@@ -47,7 +55,8 @@ export function describeShortfall(
   unit: string
 ): string {
   if (stock <= 0) return "HABIS";
-  return `sisa ${formatStock(stock, unit)} (min ${formatStock(minStock, unit)})`;
+  const larger = Math.max(stock, minStock);
+  return `sisa ${formatStock(stock, unit, larger)} (min ${formatStock(minStock, unit, larger)})`;
 }
 
 /** Field-name prefix for one material's counted amount in an opname form. */
@@ -61,14 +70,23 @@ export const OPNAME_PREFIX = "count:";
  * tank — offering them where a dose is expected invites a number that means
  * nothing and cannot be caught later.
  *
+ * Amelioran is left out with them: dolomite and lime are spread on the soil
+ * by the sack, not mixed into a tank. A sticker (perekat) and biological
+ * agents are in — both go into the sprayer by the millilitre.
+ *
  * OTHER stays in: it is the escape hatch for something real that has no
  * category yet, and closing it would be worse than the odd wrong pick.
  */
 const DOSABLE = new Set([
   "FERTILIZER",
+  "BOOSTER",
+  "BIOLOGICAL",
   "PESTICIDE",
+  "INSECTICIDE",
+  "ACARICIDE",
   "FUNGICIDE",
   "GROWTH_REGULATOR",
+  "ADHESIVE",
   "OTHER",
 ]);
 
@@ -115,4 +133,25 @@ export function expiryStatus(
   const days = daysUntil(expiresAt, now);
   if (days < 0) return "EXPIRED";
   return days <= EXPIRY_SOON_DAYS ? "SOON" : "OK";
+}
+
+/**
+ * Note on the movement written when a material is registered with stock.
+ * It is how that one row is found again when its value is corrected from the
+ * edit dialog — the reason alone is shared with every opname correction.
+ */
+export const OPENING_NOTE = "Saldo awal saat bahan didaftarkan";
+
+/**
+ * Whether a material's unit can still change. Once any quantity has been
+ * written against it — stock moved, a recipe dose, a task's copied amount —
+ * every one of those numbers means the old unit, and a new one would silently
+ * reinterpret them all.
+ */
+export function unitLocked(count: {
+  recipeItems: number;
+  movements: number;
+  taskUsages: number;
+}): boolean {
+  return count.recipeItems + count.movements + count.taskUsages > 0;
 }

@@ -19,7 +19,7 @@ export function Field({
   children: React.ReactNode;
 }) {
   return (
-    <div className="grid content-start gap-2">
+    <div data-slot="field" className="grid content-start gap-2">
       <Label htmlFor={id}>{label}</Label>
       {children}
       {hint && !error ? (

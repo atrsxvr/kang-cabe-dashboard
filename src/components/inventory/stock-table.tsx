@@ -218,10 +218,10 @@ export function StockTable({
                       {materialCategoryLabels[row.category]}
                     </TableCell>
                     <TableCell className="text-right tabular-nums">
-                      {formatStock(row.stock, row.unit)}
+                      {formatStock(row.stock, row.unit, Math.max(row.stock, row.minStock))}
                     </TableCell>
                     <TableCell className="text-muted-foreground text-right tabular-nums">
-                      {formatStock(row.minStock, row.unit)}
+                      {formatStock(row.minStock, row.unit, Math.max(row.stock, row.minStock))}
                     </TableCell>
                     <TableCell className="w-28">
                       <Badge
@@ -314,11 +314,11 @@ function StockCard({
         <div className="flex items-center justify-between gap-2">
           <p className="text-sm tabular-nums">
             <span className="font-semibold">
-              {formatStock(row.stock, row.unit)}
+              {formatStock(row.stock, row.unit, Math.max(row.stock, row.minStock))}
             </span>
             <span className="text-muted-foreground text-xs">
               {" "}
-              / min {formatStock(row.minStock, row.unit)}
+              / min {formatStock(row.minStock, row.unit, Math.max(row.stock, row.minStock))}
             </span>
           </p>
           <div className={canWrite ? "flex items-center gap-1" : "hidden"}>

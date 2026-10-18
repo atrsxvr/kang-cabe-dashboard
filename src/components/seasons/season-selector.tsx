@@ -53,14 +53,24 @@ export function SeasonSelector({
 
   return (
     <Select value={selectedId} onValueChange={onChange}>
-      <SelectTrigger className="w-47.5 sm:w-60" aria-label="Pilih musim tanam">
+      {/* On a phone the status is dropped from the closed trigger only, so
+          the name gets the room. Truncated, "Musim Tanam 1" and "Musim Tanam
+          2" both read "Musim Tan…" — and this is the control that decides
+          which season every number below belongs to. The open list keeps it. */}
+      <SelectTrigger
+        className="w-47.5 sm:w-60 [&_[data-season-status]]:hidden sm:[&_[data-season-status]]:inline"
+        aria-label="Pilih musim tanam"
+      >
         <SelectValue placeholder="Pilih musim" />
       </SelectTrigger>
       <SelectContent>
         {seasons.map((season) => (
           <SelectItem key={season.id} value={season.id}>
             <span className="truncate">{season.name}</span>
-            <span className="text-muted-foreground ml-2 text-xs">
+            <span
+              data-season-status
+              className="text-muted-foreground ml-2 text-xs"
+            >
               {statusLabel[season.status] ?? season.status}
             </span>
           </SelectItem>

@@ -151,6 +151,7 @@ export function RecipeDialog({
           <div className="grid gap-4 sm:grid-cols-2">
             <Field id="kind" label="Jenis" error={errors.kind}>
               <NativeSelect
+                required
                 id="kind"
                 name="kind"
                 value={kind}
@@ -166,6 +167,7 @@ export function RecipeDialog({
 
             <Field id="method" label="Cara Aplikasi" error={errors.method}>
               <NativeSelect
+                required
                 id="method"
                 name="method"
                 defaultValue={recipe?.method ?? "SEMPROT"}
@@ -185,6 +187,7 @@ export function RecipeDialog({
             <div className="grid gap-4 sm:grid-cols-2">
               <Field id="phase" label="Fase" error={errors.phase}>
                 <NativeSelect
+                  required
                   id="phase"
                   name="phase"
                   defaultValue={recipe?.phase ?? "PRODUCTION"}
@@ -222,6 +225,8 @@ export function RecipeDialog({
               <Input
                 id="targetIssue"
                 name="targetIssue"
+                // Only rendered for a treatment, where the server demands it.
+                required
                 defaultValue={recipe?.targetIssue ?? ""}
                 placeholder="Antraknosa"
                 aria-invalid={Boolean(errors.targetIssue)}

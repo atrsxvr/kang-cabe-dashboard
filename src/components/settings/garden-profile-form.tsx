@@ -69,7 +69,7 @@ export function GardenProfileForm({
               id="garden-locationName"
               name="locationName"
               defaultValue={profile.locationName ?? ""}
-              placeholder="Cisarua, Bogor"
+              placeholder="contoh: Cisarua, Bogor"
               aria-invalid={Boolean(errors.locationName)}
             />
           </Field>
@@ -81,7 +81,7 @@ export function GardenProfileForm({
                 name="latitude"
                 inputMode="decimal"
                 defaultValue={profile.latitude ?? ""}
-                placeholder="-6.7"
+                placeholder="contoh: -6.7"
                 aria-invalid={Boolean(errors.latitude)}
               />
             </Field>
@@ -92,7 +92,7 @@ export function GardenProfileForm({
                 name="longitude"
                 inputMode="decimal"
                 defaultValue={profile.longitude ?? ""}
-                placeholder="106.9"
+                placeholder="contoh: 106.9"
                 aria-invalid={Boolean(errors.longitude)}
               />
             </Field>
@@ -115,7 +115,7 @@ export function GardenProfileForm({
               name="bmkgAdm4"
               inputMode="numeric"
               defaultValue={profile.bmkgAdm4 ?? ""}
-              placeholder="32.76.07.1005"
+              placeholder="contoh: 32.01.xx.xxxx"
               aria-invalid={Boolean(errors.bmkgAdm4)}
             />
           </Field>

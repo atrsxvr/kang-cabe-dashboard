@@ -124,7 +124,7 @@ export function DiagnoseDialog({
           <input type="hidden" name="findingId" value={finding.id} />
           <input type="hidden" name="seasonId" value={seasonId} />
 
-          <div className="grid gap-2">
+          <div data-slot="field" className="grid gap-2">
             <Label htmlFor={`diagnosis-${finding.id}`}>Diagnosa</Label>
             <Textarea
               id={`diagnosis-${finding.id}`}
@@ -142,7 +142,7 @@ export function DiagnoseDialog({
             ) : null}
           </div>
 
-          <div className="grid gap-2">
+          <div data-slot="field" className="grid gap-2">
             <Label htmlFor={`treatment-${finding.id}`}>
               Perlakuan yang disarankan
             </Label>

@@ -16,6 +16,15 @@ export function formatRupiah(value: number): string {
   }).format(Math.round(value));
 }
 
+/**
+ * "1500000" → "1.500.000", for a field being typed into. Anything that is not
+ * a digit is dropped, so pasting "Rp 1.500.000" lands as the same number.
+ */
+export function groupThousands(digits: string): string {
+  const clean = digits.replace(/[^0-9]/g, "").replace(/^0+(?=\d)/, "");
+  return clean.replace(/\B(?=(\d{3})+(?!\d))/g, ".");
+}
+
 /** "Rp 32/gram" — the unit price behind a purchase, shown back as a check. */
 export function formatUnitPrice(value: number, unit: string): string {
   const rounded =

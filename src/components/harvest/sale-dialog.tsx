@@ -7,6 +7,7 @@ import { toast } from "sonner";
 
 import { dateInputValue, Field } from "@/components/common/form-field";
 import { NativeSelect } from "@/components/common/native-select";
+import { RupiahInput } from "@/components/common/rupiah-input";
 import { SubmitButton } from "@/components/common/submit-button";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -236,12 +237,11 @@ export function SaleDialog({
                       aria-label={`Bobot ${gradeLabels[grade]}`}
                     />
                     <span className="text-muted-foreground text-sm">kg ×</span>
-                    <Input
+                    <RupiahInput
                       value={lines[grade].pricePerKg}
-                      onChange={(event) =>
-                        set(grade, "pricePerKg", event.target.value)
+                      onValueChange={(digits) =>
+                        set(grade, "pricePerKg", digits)
                       }
-                      inputMode="numeric"
                       className="w-28"
                       placeholder="harga/kg"
                       aria-label={`Harga ${gradeLabels[grade]} per kg`}

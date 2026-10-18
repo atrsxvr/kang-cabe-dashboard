@@ -166,9 +166,15 @@ export const recipeKinds = ["ROUTINE", "TREATMENT"] as const;
 export const applicationMethods = ["KOCOR", "SEMPROT"] as const;
 export const materialCategories = [
   "FERTILIZER",
+  "BOOSTER",
+  "AMELIORANT",
+  "BIOLOGICAL",
   "PESTICIDE",
+  "INSECTICIDE",
+  "ACARICIDE",
   "FUNGICIDE",
   "GROWTH_REGULATOR",
+  "ADHESIVE",
   "SEED",
   "MULCH",
   "SUPPLIES",
@@ -384,7 +390,9 @@ export const updateRecipeSchema = createRecipeSchema.safeExtend({
  * change the shed with nothing in the log saying who or why.
  */
 export const updateMaterialSchema = createMaterialSchema
-  .omit({ stock: true, openingCost: true })
+  // `openingCost` stays: it is a price, not a quantity, and it corrects the
+  // value on the opening movement rather than adding a new one.
+  .omit({ stock: true })
   .extend({ materialId: z.string().min(1) });
 
 export const updateTaskStatusSchema = z.object({

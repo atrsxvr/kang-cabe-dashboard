@@ -7,6 +7,7 @@ import { toast } from "sonner";
 
 import { dateInputValue, Field } from "@/components/common/form-field";
 import { NativeSelect } from "@/components/common/native-select";
+import { RupiahInput } from "@/components/common/rupiah-input";
 import { SubmitButton } from "@/components/common/submit-button";
 import { Button } from "@/components/ui/button";
 import {
@@ -106,7 +107,7 @@ export function FinanceEntryDialog({
         ) : (
           <Button size="sm">
             <Plus className="size-4" aria-hidden />
-            Catat Pengeluaran
+            Catat Uang Masuk / Keluar
           </Button>
         )}
       </DialogTrigger>
@@ -131,6 +132,7 @@ export function FinanceEntryDialog({
           <div className="grid gap-4 sm:grid-cols-2">
             <Field id="entry-type" label="Jenis" error={errors.type}>
               <NativeSelect
+                required
                 id="entry-type"
                 name="type"
                 defaultValue={entry?.type ?? "EXPENSE"}
@@ -142,6 +144,7 @@ export function FinanceEntryDialog({
 
             <Field id="entry-category" label="Kategori" error={errors.category}>
               <NativeSelect
+                required
                 id="entry-category"
                 name="category"
                 defaultValue={entry?.category ?? "Upah"}
@@ -157,16 +160,13 @@ export function FinanceEntryDialog({
 
           <div className="grid gap-4 sm:grid-cols-2">
             <Field id="entry-amount" label="Jumlah (Rp)" error={errors.amount}>
-              <Input
+              <RupiahInput
                 id="entry-amount"
                 name="amount"
-                inputMode="numeric"
                 required
                 value={amount}
-                onChange={(event) =>
-                  setAmount(event.target.value.replace(/[^0-9]/g, ""))
-                }
-                placeholder="150000"
+                onValueChange={setAmount}
+                placeholder="150.000"
                 aria-invalid={Boolean(errors.amount)}
               />
               {parsed > 0 ? (

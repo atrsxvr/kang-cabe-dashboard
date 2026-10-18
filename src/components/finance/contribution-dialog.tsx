@@ -7,6 +7,7 @@ import { toast } from "sonner";
 
 import { dateInputValue, Field } from "@/components/common/form-field";
 import { NativeSelect } from "@/components/common/native-select";
+import { RupiahInput } from "@/components/common/rupiah-input";
 import { SubmitButton } from "@/components/common/submit-button";
 import { Button } from "@/components/ui/button";
 import {
@@ -137,6 +138,7 @@ export function ContributionDialog({
 
           <Field id="contrib-user" label="Anggota" error={errors.userId}>
             <NativeSelect
+              required
               id="contrib-user"
               name="userId"
               defaultValue={contribution?.user.id ?? members[0]?.id ?? ""}
@@ -155,16 +157,13 @@ export function ContributionDialog({
               label="Jumlah (Rp)"
               error={errors.amount}
             >
-              <Input
+              <RupiahInput
                 id="contrib-amount"
                 name="amount"
-                inputMode="numeric"
                 required
                 value={amount}
-                onChange={(event) =>
-                  setAmount(event.target.value.replace(/[^0-9]/g, ""))
-                }
-                placeholder="2500000"
+                onValueChange={setAmount}
+                placeholder="2.500.000"
                 aria-invalid={Boolean(errors.amount)}
               />
               {parsed > 0 ? (

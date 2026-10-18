@@ -164,7 +164,7 @@ test("tarik modal melebihi setoran ditolak", async ({ page }) => {
 /** Satu jalan masuk untuk belanja alat: lewat Inventaris, bukan Keuangan. */
 test("Keuangan tidak lagi menawarkan kategori Peralatan", async ({ page }) => {
   await page.goto("/finance");
-  await page.getByRole("button", { name: "Catat Pengeluaran" }).click();
+  await page.getByRole("button", { name: "Catat Uang Masuk / Keluar" }).click();
 
   const dialog = page.getByRole("dialog");
   await expect(dialog.getByLabel("Kategori")).toBeVisible();

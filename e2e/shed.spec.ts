@@ -257,6 +257,102 @@ test.describe.serial("bahan masuk gudang lalu jadi biaya musim", () => {
   });
 });
 
+/**
+ * Harga yang salah ketik harus bisa dibetulkan dari tempat ia diketik: nilai
+ * stok awal dari dialog Edit, harga belanja dari Riwayat. Bahannya sendiri,
+ * supaya rata-rata harga yang diubah di sini tidak menggeser angka biaya musim
+ * yang diperiksa blok di atas.
+ */
+test.describe.serial("harga bahan bisa dikoreksi", () => {
+  const PRICED = `E2E Harga ${Date.now()}`;
+
+  test("dialog Edit membawa isian nilai stok awal", async ({ page }) => {
+    await openInventory(page);
+
+    await page.getByRole("button", { name: "Tambah Bahan" }).click();
+    await page.getByLabel("Nama Bahan", { exact: true }).fill(PRICED);
+    await page.getByLabel("Satuan", { exact: true }).selectOption("pcs");
+    await page.getByLabel("Kategori", { exact: true }).selectOption("SUPPLIES");
+    await page.getByLabel("Stok Awal", { exact: true }).fill("10");
+    await page.getByLabel("Batas Minimum", { exact: true }).fill("0");
+    await page.getByLabel("Nilai stok awal (Rp)", { exact: true }).fill("100000");
+    await page.getByRole("button", { name: "Simpan Bahan" }).click();
+    await expect(page.getByText(PRICED, { exact: true }).first()).toBeVisible();
+
+    await page.getByRole("button", { name: `Edit ${PRICED}` }).first().click();
+    const opening = page.getByLabel("Nilai stok awal (Rp)", { exact: true });
+    await expect(opening).toHaveValue("100.000");
+    // Stok awalnya sudah tertulis dalam pcs; mengganti satuan akan
+    // membacanya ulang diam-diam.
+    await expect(page.getByLabel("Satuan", { exact: true })).toBeDisabled();
+
+    await opening.fill("150000");
+    await page.getByRole("button", { name: "Simpan Perubahan" }).click();
+    await expect(page.getByText("Bahan diperbarui.")).toBeVisible();
+
+    // Dibuka ulang dari server, bukan sisa isian tadi.
+    await page.reload();
+    await page.getByRole("button", { name: `Edit ${PRICED}` }).first().click();
+    await expect(
+      page.getByLabel("Nilai stok awal (Rp)", { exact: true })
+    ).toHaveValue("150.000");
+  });
+
+  test("kategori baru bisa dipilih di form dan muncul di saringan", async ({
+    page,
+  }) => {
+    const MITE = `E2E Akarisida ${Date.now()}`;
+    await openInventory(page);
+
+    await page.getByRole("button", { name: "Tambah Bahan" }).click();
+    await page.getByLabel("Nama Bahan", { exact: true }).fill(MITE);
+    await page.getByLabel("Satuan", { exact: true }).selectOption("ml");
+    await page.getByLabel("Kategori", { exact: true }).selectOption("ACARICIDE");
+    await page.getByLabel("Stok Awal", { exact: true }).fill("0");
+    await page.getByLabel("Batas Minimum", { exact: true }).fill("0");
+    await page.getByRole("button", { name: "Simpan Bahan" }).click();
+    await expect(page.getByText(MITE, { exact: true }).first()).toBeVisible();
+
+    // Saringannya cuma menawarkan kategori yang ada isinya, jadi Akarisida
+    // baru muncul setelah bahan pertamanya terdaftar.
+    await page
+      .getByLabel("Saring berdasarkan kategori")
+      .selectOption({ label: "Akarisida" });
+    await expect(page.getByText(MITE, { exact: true }).first()).toBeVisible();
+    await expect(page.getByText(PRICED, { exact: true })).toHaveCount(0);
+  });
+
+  test("harga belanja yang sudah terisi bisa diubah di Riwayat", async ({
+    page,
+  }) => {
+    await openInventory(page);
+
+    await page
+      .getByRole("button", { name: `Tambah stok ${PRICED}` })
+      .first()
+      .click();
+    await page.getByLabel("Jumlah (pcs)", { exact: true }).fill("5");
+    await page.getByLabel("Total bayar (Rp)", { exact: true }).fill("50000");
+    await page.getByRole("button", { name: "Tambah", exact: true }).click();
+    await expect(page.getByRole("dialog")).toHaveCount(0);
+
+    await page
+      .getByRole("button", { name: `Riwayat stok ${PRICED}` })
+      .first()
+      .click();
+    const dialog = page.getByRole("dialog");
+    await expect(dialog).toContainText("Bayar Rp 50.000");
+
+    await dialog.getByRole("button", { name: "Ubah harga belanja" }).click();
+    const input = dialog.getByLabel("Total bayar", { exact: true });
+    await expect(input).toHaveValue("50.000");
+    await input.fill("60000");
+    await dialog.getByRole("button", { name: "Simpan" }).click();
+
+    await expect(dialog).toContainText("Bayar Rp 60.000");
+  });
+});
+
 test("musim yang dipilih ikut terbawa pindah halaman", async ({ page }) => {
   // Makes its own season rather than leaning on whatever happens to be in the
   // database: with a single selectable season, picking it again fires no

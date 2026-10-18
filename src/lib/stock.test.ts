@@ -5,8 +5,10 @@ import {
   describeShortfall,
   expiryStatus,
   formatStock,
+  isDosable,
   needsRestock,
   stockStatus,
+  unitLocked,
 } from "@/lib/stock";
 
 describe("stockStatus", () => {
@@ -73,6 +75,24 @@ describe("formatStock", () => {
   });
 });
 
+describe("formatStock beside another figure", () => {
+  it("follows the larger figure, so a pair never mixes gram and kg", () => {
+    expect(formatStock(100, "gram", 1000)).toBe("0,1 kg");
+    expect(formatStock(1000, "gram", 1000)).toBe("1 kg");
+    expect(formatStock(100, "gram", 500)).toBe("100 gram");
+  });
+});
+
+describe("unitLocked", () => {
+  it("frees the unit only while nothing has been written in it", () => {
+    const none = { recipeItems: 0, movements: 0, taskUsages: 0 };
+    expect(unitLocked(none)).toBe(false);
+    expect(unitLocked({ ...none, movements: 1 })).toBe(true);
+    expect(unitLocked({ ...none, recipeItems: 1 })).toBe(true);
+    expect(unitLocked({ ...none, taskUsages: 1 })).toBe(true);
+  });
+});
+
 describe("describeShortfall", () => {
   it("says HABIS rather than a quantity when empty", () => {
     expect(describeShortfall(0, 1000, "gram")).toBe("HABIS");
@@ -80,7 +100,7 @@ describe("describeShortfall", () => {
 
   it("states what is left against the threshold", () => {
     expect(describeShortfall(500, 1000, "gram")).toBe(
-      "sisa 500 gram (min 1 kg)"
+      "sisa 0,5 kg (min 1 kg)"
     );
   });
 });
@@ -129,5 +149,16 @@ describe("expiryStatus", () => {
 
   it("counts today itself as still usable", () => {
     expect(expiryStatus(new Date("2026-08-15T00:00:00Z"), today)).toBe("SOON");
+  });
+});
+
+describe("isDosable", () => {
+  it("offers what goes into a tank, and not what is spread by the sack", () => {
+    const tank = ["BOOSTER", "BIOLOGICAL", "INSECTICIDE", "ACARICIDE", "ADHESIVE"];
+    for (const category of tank) {
+      expect(isDosable(category), category).toBe(true);
+    }
+    expect(isDosable("AMELIORANT")).toBe(false);
+    expect(isDosable("MULCH")).toBe(false);
   });
 });

@@ -116,6 +116,7 @@ export function ProgramDialog({
 
           <Field id="program-recipe" label="Racikan" error={errors.recipeId}>
             <NativeSelect
+              required
               id="program-recipe"
               name="recipeId"
               value={recipe?.id ?? ""}

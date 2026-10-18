@@ -3,9 +3,11 @@
 import { revalidatePath } from "next/cache";
 
 import { prisma } from "@/lib/prisma";
-import { isDosable } from "@/lib/stock";
+import { isDosable, OPENING_NOTE, unitLocked } from "@/lib/stock";
 import { invalidForm, type ActionResult } from "@/server/actions/result";
 import { guardWrite } from "@/server/auth/guard";
+import { refreshAvgCost } from "@/server/actions/avg-cost";
+import { revalidateSeasonMoney } from "@/server/actions/revalidate";
 import {
   createMaterialSchema,
   createRecipeSchema,
@@ -99,7 +101,7 @@ export async function createMaterial(
         delta: material.stock,
         reason: "CORRECTION",
         totalCost: openingCost ?? null,
-        note: "Saldo awal saat bahan didaftarkan",
+        note: OPENING_NOTE,
       },
     });
   }
@@ -279,17 +281,49 @@ export async function updateMaterial(
     purchaseUnit: formData.get("purchaseUnit") ?? "",
     purchaseSize: formData.get("purchaseSize") || undefined,
     expiresAt: formData.get("expiresAt") || undefined,
+    openingCost: formData.get("openingCost") || undefined,
   });
 
   if (!parsed.success) return invalidForm(parsed.error);
 
-  const { materialId, notes, purchaseUnit, purchaseSize, expiresAt, ...rest } =
-    parsed.data;
+  const {
+    materialId,
+    notes,
+    purchaseUnit,
+    purchaseSize,
+    expiresAt,
+    openingCost,
+    ...rest
+  } = parsed.data;
 
   const clash = await prisma.material.findFirst({
     where: { name: rest.name, id: { not: materialId } },
     select: { id: true },
   });
+
+  const current = await prisma.material.findUnique({
+    where: { id: materialId },
+    select: {
+      unit: true,
+      _count: {
+        select: { recipeItems: true, movements: true, taskUsages: true },
+      },
+    },
+  });
+
+  if (!current) return { ok: false, message: "Bahan tidak ditemukan." };
+
+  // Every quantity already written — the stock, each movement, a recipe's dose
+  // per litre, a task's copied amount — is a number in the old unit. Renaming
+  // the unit underneath them turns 1000 gram into 1000 kg with nothing in the
+  // log saying so.
+  if (rest.unit !== current.unit && unitLocked(current._count)) {
+    return {
+      ok: false,
+      message: `Satuan ${current.unit} sudah dipakai di stok, racikan, atau tugas, jadi tidak bisa diganti.`,
+      fieldErrors: { unit: "Satuan sudah terkunci" },
+    };
+  }
 
   if (clash) {
     return {
@@ -312,6 +346,30 @@ export async function updateMaterial(
 
   if (result.count === 0) {
     return { ok: false, message: "Bahan tidak ditemukan." };
+  }
+
+  // The field is only rendered for a material that has an opening movement,
+  // so its absence means "not offered", while an emptied field means the
+  // value is not known after all.
+  if (formData.has("openingCost")) {
+    const opening = await prisma.stockMovement.findFirst({
+      where: { materialId, reason: "CORRECTION", note: OPENING_NOTE },
+      orderBy: { createdAt: "asc" },
+      select: { id: true, totalCost: true },
+    });
+
+    const nextCost = openingCost ?? null;
+
+    if (opening && opening.totalCost !== nextCost) {
+      await prisma.stockMovement.update({
+        where: { id: opening.id },
+        data: { totalCost: nextCost },
+      });
+      // The opening value sits at the very start of the log, so every average
+      // after it was built on the old figure.
+      await refreshAvgCost(materialId);
+      revalidateSeasonMoney();
+    }
   }
 
   revalidatePath("/health/racikan");

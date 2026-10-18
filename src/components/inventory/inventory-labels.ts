@@ -11,11 +11,19 @@ export const stockStatusTones: Record<string, string> = {
   OUT_OF_STOCK: "bg-rose-500/12 text-rose-700 dark:text-rose-400",
 };
 
+// Order is the order of the form and the filter: what feeds the plant, then
+// what protects it, then what is not dissolved at all.
 export const materialCategoryLabels: Record<string, string> = {
   FERTILIZER: "Pupuk",
+  BOOSTER: "Booster",
+  AMELIORANT: "Amelioran",
+  BIOLOGICAL: "Hayati",
   PESTICIDE: "Pestisida",
+  INSECTICIDE: "Insektisida",
+  ACARICIDE: "Akarisida",
   FUNGICIDE: "Fungisida",
   GROWTH_REGULATOR: "ZPT",
+  ADHESIVE: "Perekat",
   SEED: "Benih",
   MULCH: "Mulsa",
   SUPPLIES: "Perlengkapan",

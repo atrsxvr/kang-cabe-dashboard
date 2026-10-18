@@ -3,12 +3,13 @@
 import { revalidatePath } from "next/cache";
 
 import { prisma } from "@/lib/prisma";
-import { nextAvgCost, rebuildAvgCost } from "@/lib/money";
+import { nextAvgCost } from "@/lib/money";
 import { OPNAME_PREFIX } from "@/lib/stock";
 import { listMovements, type MovementRow } from "@/server/queries/inventory";
 import { invalidForm, type ActionResult } from "@/server/actions/result";
 import { guardWrite } from "@/server/auth/guard";
 import { revalidateSeasonMoney } from "@/server/actions/revalidate";
+import { refreshAvgCost } from "@/server/actions/avg-cost";
 import {
   adjustStockSchema,
   changesQuantity,
@@ -156,7 +157,8 @@ export async function archiveMaterial(
 }
 
 /**
- * Fills in the price of a purchase that was recorded without one.
+ * Fills in the price of a purchase that was recorded without one, or corrects
+ * one that was typed wrong.
  *
  * The average it feeds is rebuilt from the whole movement log rather than
  * nudged, because this price belongs somewhere in the middle of that history —
@@ -188,10 +190,6 @@ export async function setMovementCost(
     return { ok: false, message: "Cuma catatan belanja yang punya harga." };
   }
 
-  if (movement.totalCost !== null) {
-    return { ok: false, message: "Harganya sudah diisi." };
-  }
-
   await prisma.stockMovement.update({
     where: { id: movementId },
     data: { totalCost },
@@ -202,26 +200,6 @@ export async function setMovementCost(
   revalidatePath("/inventory");
   revalidateSeasonMoney();
   return { ok: true };
-}
-
-/**
- * Recomputes a material's average price from its movement log.
- *
- * `Material.avgCost` is a cache of exactly this. Anything that changes history
- * rather than appending to it has to call this, or the stored figure quietly
- * stops matching the rows it claims to summarise.
- */
-async function refreshAvgCost(materialId: string) {
-  const movements = await prisma.stockMovement.findMany({
-    where: { materialId },
-    orderBy: { createdAt: "asc" },
-    select: { delta: true, reason: true, totalCost: true },
-  });
-
-  await prisma.material.update({
-    where: { id: materialId },
-    data: { avgCost: rebuildAvgCost(movements) },
-  });
 }
 
 /**
