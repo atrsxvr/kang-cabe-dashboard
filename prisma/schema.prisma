@@ -64,9 +64,15 @@ enum ApplicationMethod {
 
 enum MaterialCategory {
   FERTILIZER
+  BOOSTER // pupuk pelengkap / perangsang buah, ditakar per liter
+  AMELIORANT // pembenah tanah: dolomit, kapur, biochar — ditabur, bukan dilarutkan
+  BIOLOGICAL // agens hayati: Trichoderma, PGPR, Beauveria
   PESTICIDE
+  INSECTICIDE
+  ACARICIDE // tungau, yang tidak mempan insektisida biasa
   FUNGICIDE
   GROWTH_REGULATOR
+  ADHESIVE // perekat-perata, ikut di tangki semprot
   SEED
   MULCH
   SUPPLIES // polybag, tali, dan sejenisnya

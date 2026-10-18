@@ -7,6 +7,7 @@ import { toast } from "sonner";
 
 import { Field } from "@/components/common/form-field";
 import { NativeSelect } from "@/components/common/native-select";
+import { RupiahInput } from "@/components/common/rupiah-input";
 import { SubmitButton } from "@/components/common/submit-button";
 import { toolEventLabels } from "@/components/inventory/inventory-labels";
 import { Button } from "@/components/ui/button";
@@ -109,6 +110,7 @@ export function ToolEventDialog({
             error={errors.type}
           >
             <NativeSelect
+              required
               id={`event-type-${tool.id}`}
               name="type"
               value={type}
@@ -153,11 +155,10 @@ export function ToolEventDialog({
               error={errors.totalCost}
               hint="Kosongin aja kalau gratis atau notanya belum ada"
             >
-              <Input
+              <RupiahInput
                 id={`event-cost-${tool.id}`}
                 name="totalCost"
-                inputMode="numeric"
-                placeholder="150000"
+                placeholder="150.000"
                 aria-invalid={Boolean(errors.totalCost)}
               />
             </Field>

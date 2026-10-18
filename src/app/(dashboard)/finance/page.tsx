@@ -1,6 +1,13 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { Coins, PackageMinus, Sprout, Users, Wrench } from "lucide-react";
+import {
+  Coins,
+  FileText,
+  PackageMinus,
+  Sprout,
+  Users,
+  Wrench,
+} from "lucide-react";
 
 import { CanWrite } from "@/components/auth/can-write";
 import { PageHeader } from "@/components/common/page-header";
@@ -91,9 +98,22 @@ export default async function FinancePage(props: PageProps<"/finance">) {
           title="Keuangan & Kas"
           description={`${season.name} · uang masuk dari penjualan, uang keluar dari bahan dan catatan manual`}
         />
-        <CanWrite area="finance">
-          <FinanceEntryDialog seasonId={season.id} photoEnabled={photoEnabled} />
-        </CanWrite>
+        <div className="flex flex-wrap gap-2">
+          <CanWrite area="finance">
+            <FinanceEntryDialog
+              seasonId={season.id}
+              photoEnabled={photoEnabled}
+            />
+          </CanWrite>
+          {/* Open to everyone, like every read: the report is what the
+              members check before the margin is split. */}
+          <Button asChild variant="outline" size="sm">
+            <Link href={`/laporan/${season.id}`}>
+              <FileText className="size-4" aria-hidden />
+              Laporan & Unduh
+            </Link>
+          </Button>
+        </div>
       </div>
 
       <Card className="mb-6">

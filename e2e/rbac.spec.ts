@@ -392,7 +392,7 @@ test.describe("tombol di dalam tabel", () => {
     const season = new URL(page.url()).searchParams.get("season");
 
     await page.goto(`/finance?season=${season}`);
-    await page.getByRole("button", { name: "Catat Pengeluaran" }).click();
+    await page.getByRole("button", { name: "Catat Uang Masuk / Keluar" }).click();
     const dialog = page.getByRole("dialog");
     await dialog.getByLabel("Jumlah (Rp)").fill("12000");
     await dialog.getByLabel("Keterangan").fill(`E2E ongkos ${stamp}`);

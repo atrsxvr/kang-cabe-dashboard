@@ -73,13 +73,13 @@ export default async function InventoryPage() {
         />
         <div className="flex flex-wrap gap-2">
           <CanWrite area="inventory">
-            <StockOpnameDialog rows={rows} members={members} />
+            <MaterialDialog />
           </CanWrite>
           <CanWrite area="inventory">
             <ToolDialog />
           </CanWrite>
           <CanWrite area="inventory">
-            <MaterialDialog />
+            <StockOpnameDialog rows={rows} members={members} />
           </CanWrite>
         </div>
       </div>

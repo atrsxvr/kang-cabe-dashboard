@@ -84,7 +84,8 @@ export function LossDialog({
 
           <div className="grid gap-4 sm:grid-cols-2">
             <Field id="loss-grade" label="Mutu" error={errors.grade}>
-              <NativeSelect id="loss-grade" name="grade" defaultValue="GOOD">
+              <NativeSelect
+                required id="loss-grade" name="grade" defaultValue="GOOD">
                 {CHILI_GRADES.map((grade) => (
                   <option key={grade} value={grade}>
                     {gradeLabels[grade]}

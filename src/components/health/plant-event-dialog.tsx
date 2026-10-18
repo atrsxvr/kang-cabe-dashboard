@@ -122,6 +122,7 @@ export function PlantEventDialog({
           <div className="grid gap-4 sm:grid-cols-2">
             <Field id="plant-type" label="Kejadian" error={errors.type}>
               <NativeSelect
+                required
                 id="plant-type"
                 name="type"
                 value={type}

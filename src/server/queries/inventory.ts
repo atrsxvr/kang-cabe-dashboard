@@ -2,7 +2,7 @@ import "server-only";
 
 import { prisma } from "@/lib/prisma";
 import { stockValue } from "@/lib/money";
-import { expiryStatus, needsRestock } from "@/lib/stock";
+import { expiryStatus, needsRestock, OPENING_NOTE } from "@/lib/stock";
 import { serviceStatus } from "@/lib/tools";
 import type {
   MaterialCategory,
@@ -34,9 +34,14 @@ export type StockRow = {
   expiresAt: Date | null;
   archivedAt: Date | null;
   notes: string | null;
+  /**
+   * The movement written when the material was registered with stock, if it
+   * was. Its value is what the edit dialog lets someone correct.
+   */
+  opening: { totalCost: number | null } | null;
   /** Which recipes call for it — what makes the shopping list actionable. */
   usedBy: { id: string; name: string; amountPerLiter: number }[];
-  _count: { recipeItems: number };
+  _count: { recipeItems: number; movements: number; taskUsages: number };
 };
 
 /**
@@ -50,7 +55,15 @@ export async function listStock(
     where: includeArchived ? undefined : { archivedAt: null },
     orderBy: [{ category: "asc" }, { name: "asc" }],
     include: {
-      _count: { select: { recipeItems: true } },
+      _count: {
+        select: { recipeItems: true, movements: true, taskUsages: true },
+      },
+      movements: {
+        where: { reason: "CORRECTION", note: OPENING_NOTE },
+        orderBy: { createdAt: "asc" },
+        take: 1,
+        select: { totalCost: true },
+      },
       recipeItems: {
         select: {
           amountPerLiter: true,
@@ -60,8 +73,9 @@ export async function listStock(
     },
   });
 
-  return materials.map(({ recipeItems, ...material }) => ({
+  return materials.map(({ recipeItems, movements, ...material }) => ({
     ...material,
+    opening: movements[0] ?? null,
     usedBy: recipeItems.map((item) => ({
       id: item.recipe.id,
       name: item.recipe.name,
@@ -135,6 +149,28 @@ export async function listMovements(
       note: true,
       createdAt: true,
       actor: { select: { id: true, name: true } },
+    },
+  });
+}
+
+/**
+ * Every movement in the shed, oldest first, for the spreadsheet export.
+ *
+ * Not season-scoped, like the rest of the shed. Archived materials are
+ * included: their history is exactly what archiving exists to keep.
+ */
+export async function listAllMovements() {
+  return prisma.stockMovement.findMany({
+    orderBy: { createdAt: "asc" },
+    select: {
+      createdAt: true,
+      delta: true,
+      reason: true,
+      totalCost: true,
+      note: true,
+      material: { select: { name: true, unit: true, category: true } },
+      season: { select: { name: true } },
+      actor: { select: { name: true } },
     },
   });
 }

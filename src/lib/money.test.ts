@@ -4,6 +4,7 @@ import {
   formatRupiah,
   roundUpToCash,
   formatUnitPrice,
+  groupThousands,
   nextAvgCost,
   rebuildAvgCost,
   stockValue,
@@ -29,6 +30,24 @@ describe("formatRupiah", () => {
 
   it("rounds rather than showing cents", () => {
     expect(formatRupiah(1500.6)).toContain("1.501");
+  });
+});
+
+describe("groupThousands", () => {
+  it("puts a dot every three digits", () => {
+    expect(groupThousands("1500000")).toBe("1.500.000");
+    expect(groupThousands("500")).toBe("500");
+    expect(groupThousands("1000")).toBe("1.000");
+  });
+
+  it("drops anything that is not a digit, so a pasted price survives", () => {
+    expect(groupThousands("Rp 1.500.000")).toBe("1.500.000");
+  });
+
+  it("drops leading zeros but keeps a lone zero", () => {
+    expect(groupThousands("007500")).toBe("7.500");
+    expect(groupThousands("0")).toBe("0");
+    expect(groupThousands("")).toBe("");
   });
 });
 

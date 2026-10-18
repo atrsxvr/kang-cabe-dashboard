@@ -122,6 +122,7 @@ export function MemberDialog({ member }: { member?: MemberRow }) {
 
           <Field id="member-role" label="Peran" error={errors.role}>
             <NativeSelect
+              required
               id="member-role"
               name="role"
               value={role}

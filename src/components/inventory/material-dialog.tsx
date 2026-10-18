@@ -7,6 +7,7 @@ import { toast } from "sonner";
 
 import { dateInputValue, Field } from "@/components/common/form-field";
 import { NativeSelect } from "@/components/common/native-select";
+import { RupiahInput } from "@/components/common/rupiah-input";
 import { SubmitButton } from "@/components/common/submit-button";
 import {
   materialCategoryLabels,
@@ -24,7 +25,7 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { formatStock } from "@/lib/stock";
+import { formatStock, unitLocked } from "@/lib/stock";
 import { createMaterial, updateMaterial } from "@/server/actions/recipes";
 import type { StockRow } from "@/server/queries/inventory";
 
@@ -43,6 +44,7 @@ export function MaterialDialog({
   compact?: boolean;
 }) {
   const editing = Boolean(material);
+  const unitFixed = material ? unitLocked(material._count) : false;
   const [open, setOpen] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const router = useRouter();
@@ -117,10 +119,26 @@ export function MaterialDialog({
           </Field>
 
           <div className="grid gap-4 sm:grid-cols-2">
-            <Field id="material-unit" label="Satuan" error={errors.unit}>
+            <Field
+              id="material-unit"
+              label="Satuan"
+              error={errors.unit}
+              hint={
+                unitFixed
+                  ? "Terkunci: angka stok dan racikannya sudah ditulis dalam satuan ini"
+                  : undefined
+              }
+            >
+              {/* A disabled select is not submitted, so the unit rides along
+                  in a hidden field and the server still sees no change. */}
+              {unitFixed ? (
+                <input type="hidden" name="unit" value={material!.unit} />
+              ) : null}
               <NativeSelect
+                required
                 id="material-unit"
-                name="unit"
+                name={unitFixed ? undefined : "unit"}
+                disabled={unitFixed}
                 defaultValue={material?.unit ?? "gram"}
               >
                 {UNIT_OPTIONS.map((unit) => (
@@ -137,6 +155,7 @@ export function MaterialDialog({
               error={errors.category}
             >
               <NativeSelect
+                required
                 id="material-category"
                 name="category"
                 defaultValue={material?.category ?? "FERTILIZER"}
@@ -209,22 +228,33 @@ export function MaterialDialog({
 
           {/* Without this the opening pile counts as free, and the first
               priced purchase drags the average down to something nobody can
-              account for. */}
-          {editing ? null : (
+              account for. When editing it corrects that same opening value;
+              a material registered empty has none, and its prices live on
+              its purchases in Riwayat. */}
+          {!editing || material!.opening ? (
             <Field
               id="material-openingCost"
               label="Nilai stok awal (Rp)"
               error={errors.openingCost}
-              hint="Kira-kira segitu senilai berapa. Boleh dikosongkan."
+              hint={
+                editing
+                  ? "Harga rata-rata dihitung ulang. Pemakaian yang sudah dicatat tidak ikut berubah."
+                  : "Kira-kira segitu senilai berapa. Boleh dikosongkan."
+              }
             >
-              <Input
+              <RupiahInput
                 id="material-openingCost"
                 name="openingCost"
-                inputMode="numeric"
-                placeholder="160000"
+                placeholder="160.000"
+                defaultValue={material?.opening?.totalCost ?? ""}
                 aria-invalid={Boolean(errors.openingCost)}
               />
             </Field>
+          ) : (
+            <p className="text-muted-foreground text-xs">
+              Bahan ini didaftarkan tanpa stok awal, jadi harganya ada di tiap
+              catatan belanja. Ubah lewat tombol Riwayat.
+            </p>
           )}
 
           <div className="grid gap-4 sm:grid-cols-2">

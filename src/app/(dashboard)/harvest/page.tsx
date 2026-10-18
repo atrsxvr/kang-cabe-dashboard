@@ -70,9 +70,11 @@ export default async function HarvestPage(props: PageProps<"/harvest">) {
               : "belum ada panen tercatat"
           }`}
         />
+        {/* Most used first: on a phone the last button wraps to a line of its
+            own, and it used to be Catat Panen. */}
         <div className="flex flex-wrap gap-2">
-          <CanWrite area="losses">
-            <LossDialog seasonId={season.id} members={members} />
+          <CanWrite area="harvest">
+            <HarvestDialog seasonId={season.id} members={members} />
           </CanWrite>
           <CanWrite area="harvest">
             <SaleDialog
@@ -82,8 +84,8 @@ export default async function HarvestPage(props: PageProps<"/harvest">) {
               projectedBep={pricing.projectedBep}
             />
           </CanWrite>
-          <CanWrite area="harvest">
-            <HarvestDialog seasonId={season.id} members={members} />
+          <CanWrite area="losses">
+            <LossDialog seasonId={season.id} members={members} />
           </CanWrite>
         </div>
       </div>

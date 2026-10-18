@@ -6,6 +6,7 @@ import { Pencil, PiggyBank } from "lucide-react";
 import { toast } from "sonner";
 
 import { dateInputValue, Field } from "@/components/common/form-field";
+import { RupiahInput } from "@/components/common/rupiah-input";
 import { SubmitButton } from "@/components/common/submit-button";
 import { Button } from "@/components/ui/button";
 import {
@@ -104,16 +105,13 @@ export function OpeningDialog({ opening }: { opening?: OpeningRow }) {
 
           <div className="grid gap-4 sm:grid-cols-2">
             <Field id="opening-amount" label="Jumlah (Rp)" error={errors.amount}>
-              <Input
+              <RupiahInput
                 id="opening-amount"
                 name="amount"
-                inputMode="numeric"
                 required
                 value={amount}
-                onChange={(event) =>
-                  setAmount(event.target.value.replace(/[^0-9]/g, ""))
-                }
-                placeholder="3000000"
+                onValueChange={setAmount}
+                placeholder="3.000.000"
                 aria-invalid={Boolean(errors.amount)}
               />
               {parsed > 0 ? (

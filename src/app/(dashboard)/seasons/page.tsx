@@ -42,9 +42,67 @@ export default async function SeasonsPage() {
       {seasons.length === 0 ? (
         <EmptyState />
       ) : (
-        <Card className="overflow-hidden py-0">
-          {/* The table is wider than a phone; let it scroll rather than
-              squeezing columns into illegibility. */}
+        <>
+          {/* Cards on a phone. Eight columns at 360px left only the name and
+              the variety on screen, with Edit and Arsip at the far end of a
+              scroll nothing hinted at. */}
+          <div className="grid gap-3 md:hidden">
+            {seasons.map((season) => (
+              <Card key={season.id} className="py-4">
+                <CardContent className="grid gap-3 px-4">
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="min-w-0">
+                      <p className="font-medium">{season.name}</p>
+                      <p className="text-muted-foreground text-sm">
+                        {season.variety}
+                      </p>
+                    </div>
+                    <StatusBadge status={season.status} kind="season" />
+                  </div>
+
+                  {season.notes ? (
+                    <p className="text-muted-foreground text-xs">
+                      {season.notes}
+                    </p>
+                  ) : null}
+
+                  <dl className="grid grid-cols-3 gap-2 text-sm">
+                    <div>
+                      <dt className="text-muted-foreground text-xs">Tanam</dt>
+                      <dd className="whitespace-nowrap">
+                        {formatDate(season.startDate)}
+                      </dd>
+                    </div>
+                    <div>
+                      <dt className="text-muted-foreground text-xs">HST</dt>
+                      <dd className="tabular-nums">
+                        {season.status === "PLANNING"
+                          ? "—"
+                          : calculateHst(season.startDate)}
+                      </dd>
+                    </div>
+                    <div>
+                      <dt className="text-muted-foreground text-xs">
+                        Populasi · Tugas
+                      </dt>
+                      <dd className="tabular-nums">
+                        {season.plantCount.toLocaleString("id-ID")} ·{" "}
+                        {season._count.tasks}
+                      </dd>
+                    </div>
+                  </dl>
+
+                  <CanWrite area="seasons">
+                    <div className="border-t pt-2">
+                      <SeasonActions season={season} />
+                    </div>
+                  </CanWrite>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+
+        <Card className="hidden overflow-hidden py-0 md:block">
           <div className="overflow-x-auto">
             <Table>
               <TableHeader>
@@ -96,20 +154,7 @@ export default async function SeasonsPage() {
                     </TableCell>
                     <CanWrite area="seasons">
                       <TableCell className="text-right">
-                        <div className="flex items-center justify-end gap-1">
-                          <SeasonStatusAction
-                            seasonId={season.id}
-                            status={season.status}
-                          />
-                          <SeasonDialog season={season} />
-                          {season.status !== "ARCHIVED" ? (
-                            <SeasonArchiveAction
-                              seasonId={season.id}
-                              name={season.name}
-                              taskCount={season._count.tasks}
-                            />
-                          ) : null}
-                        </div>
+                        <SeasonActions season={season} />
                       </TableCell>
                     </CanWrite>
                   </TableRow>
@@ -118,8 +163,29 @@ export default async function SeasonsPage() {
             </Table>
           </div>
         </Card>
+        </>
       )}
     </>
+  );
+}
+
+function SeasonActions({
+  season,
+}: {
+  season: Awaited<ReturnType<typeof listSeasonRows>>[number];
+}) {
+  return (
+    <div className="flex items-center justify-end gap-1">
+      <SeasonStatusAction seasonId={season.id} status={season.status} />
+      <SeasonDialog season={season} />
+      {season.status !== "ARCHIVED" ? (
+        <SeasonArchiveAction
+          seasonId={season.id}
+          name={season.name}
+          taskCount={season._count.tasks}
+        />
+      ) : null}
+    </div>
   );
 }
 

@@ -7,6 +7,7 @@ import { toast } from "sonner";
 
 import { Field } from "@/components/common/form-field";
 import { NativeSelect } from "@/components/common/native-select";
+import { RupiahInput } from "@/components/common/rupiah-input";
 import { SubmitButton } from "@/components/common/submit-button";
 import { stockReasonLabels } from "@/components/inventory/inventory-labels";
 import { Button } from "@/components/ui/button";
@@ -166,6 +167,7 @@ export function AdjustStockDialog({
             error={errors.reason}
           >
             <NativeSelect
+              required
               id={`reason-${material.id}-${direction}`}
               name="reason"
               value={reason}
@@ -192,15 +194,12 @@ export function AdjustStockDialog({
               label="Total bayar (Rp)"
               error={errors.totalCost}
             >
-              <Input
+              <RupiahInput
                 id={`cost-${material.id}`}
                 name="totalCost"
-                inputMode="numeric"
                 value={cost}
-                onChange={(event) =>
-                  setCost(event.target.value.replace(/[^0-9]/g, ""))
-                }
-                placeholder="320000"
+                onValueChange={setCost}
+                placeholder="320.000"
                 aria-invalid={Boolean(errors.totalCost)}
               />
               <p className="text-muted-foreground text-xs">

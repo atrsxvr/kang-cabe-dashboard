@@ -7,6 +7,7 @@ import { toast } from "sonner";
 
 import { dateInputValue, Field } from "@/components/common/form-field";
 import { NativeSelect } from "@/components/common/native-select";
+import { RupiahInput } from "@/components/common/rupiah-input";
 import { SubmitButton } from "@/components/common/submit-button";
 import { Button } from "@/components/ui/button";
 import {
@@ -141,6 +142,7 @@ export function PayoutDialog({
 
           <Field id="payout-type" label="Jenis" error={errors.type}>
             <NativeSelect
+              required
               id="payout-type"
               name="type"
               value={type}
@@ -154,6 +156,7 @@ export function PayoutDialog({
 
           <Field id="payout-user" label="Anggota" error={errors.userId}>
             <NativeSelect
+              required
               id="payout-user"
               name="userId"
               defaultValue={payout?.user.id ?? members[0]?.id ?? ""}
@@ -168,16 +171,13 @@ export function PayoutDialog({
 
           <div className="grid gap-4 sm:grid-cols-2">
             <Field id="payout-amount" label="Jumlah (Rp)" error={errors.amount}>
-              <Input
+              <RupiahInput
                 id="payout-amount"
                 name="amount"
-                inputMode="numeric"
                 required
                 value={amount}
-                onChange={(event) =>
-                  setAmount(event.target.value.replace(/[^0-9]/g, ""))
-                }
-                placeholder="500000"
+                onValueChange={setAmount}
+                placeholder="500.000"
                 aria-invalid={Boolean(errors.amount)}
               />
               {parsed > 0 ? (
@@ -207,6 +207,8 @@ export function PayoutDialog({
             <NativeSelect
               id="payout-season"
               name="seasonId"
+              // A profit share without a season has nothing to be a share of.
+              required={needsSeason}
               defaultValue={payout?.season?.id ?? ""}
               aria-invalid={Boolean(errors.seasonId)}
             >

@@ -11,7 +11,9 @@ const tabs = [
   { href: "/health", label: "Temuan", icon: Leaf, seasonAware: true },
   {
     href: "/health/racikan",
-    label: "Pustaka Racikan",
+    // "Racikan", not "Pustaka Racikan": at 360px the long label pushed
+    // Populasi off the edge, cut to "Pop" with nothing hinting it scrolls.
+    label: "Racikan",
     icon: ScrollText,
     // Recipes are not season-scoped, but the link still carries the season so
     // going back to Temuan lands in the same context.

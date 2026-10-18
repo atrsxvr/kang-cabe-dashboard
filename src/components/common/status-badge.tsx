@@ -1,7 +1,7 @@
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 
-const seasonLabels: Record<string, string> = {
+export const seasonLabels: Record<string, string> = {
   PLANNING: "Perencanaan",
   ACTIVE: "Berjalan",
   HARVESTING: "Panen",

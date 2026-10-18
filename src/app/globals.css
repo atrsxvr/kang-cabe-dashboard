@@ -127,4 +127,23 @@
   html {
     @apply font-sans;
   }
+
+  /* A red asterisk on every field that must be filled, and only on those.
+     Read off the control's own `required`, so the mark and the browser's
+     check cannot drift apart. The "/ ''" alt text keeps screen readers from
+     announcing "star" — `required` already tells them. */
+  /* The season report is the one page meant for paper. */
+  @media print {
+    @page {
+      margin: 15mm;
+    }
+  }
+
+  [data-slot="field"]:has(:required) > [data-slot="label"]::after {
+    content: "*" / "";
+    /* The label is a flex row with gap-2; pull back so the mark sits beside
+       the word rather than half a word away. */
+    margin-left: -0.375rem;
+    color: var(--destructive);
+  }
 }

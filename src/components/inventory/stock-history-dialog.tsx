@@ -1,9 +1,10 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { History } from "lucide-react";
+import { History, Pencil } from "lucide-react";
 import { toast } from "sonner";
 
+import { RupiahInput } from "@/components/common/rupiah-input";
 import { stockReasonLabels } from "@/components/inventory/inventory-labels";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -15,7 +16,6 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
 import { formatDate } from "@/lib/hst";
 import { formatRupiah } from "@/lib/money";
 import { formatStock } from "@/lib/stock";
@@ -115,13 +115,11 @@ export function StockHistoryDialog({
                 {row.note ? <p className="text-xs">{row.note}</p> : null}
 
                 {row.reason === "PURCHASE" ? (
-                  row.totalCost === null ? (
-                    <PriceForm movementId={row.id} onSaved={load} />
-                  ) : (
-                    <p className="text-xs font-medium tabular-nums">
-                      Bayar {formatRupiah(row.totalCost)}
-                    </p>
-                  )
+                  <PriceForm
+                    movementId={row.id}
+                    totalCost={row.totalCost}
+                    onSaved={load}
+                  />
                 ) : null}
               </li>
             ))}
@@ -147,16 +145,20 @@ function Skeleton() {
 }
 
 /**
- * Fills in a price that was skipped at the shed. Inline rather than another
- * dialog: it is one number, and the row it belongs to is the context.
+ * Fills in a price that was skipped at the shed, or corrects one typed wrong.
+ * Inline rather than another dialog: it is one number, and the row it belongs
+ * to is the context.
  */
 function PriceForm({
   movementId,
+  totalCost,
   onSaved,
 }: {
   movementId: string;
+  totalCost: number | null;
   onSaved: () => void;
 }) {
+  const [editing, setEditing] = useState(false);
   const [value, setValue] = useState("");
   const [pending, startTransition] = useTransition();
 
@@ -175,20 +177,43 @@ function PriceForm({
 
       toast.success("Harga tersimpan, rata-ratanya ikut dihitung ulang.");
       setValue("");
+      setEditing(false);
       onSaved();
     });
   };
 
+  if (totalCost !== null && !editing) {
+    return (
+      <div className="flex items-center gap-1">
+        <p className="text-xs font-medium tabular-nums">
+          Bayar {formatRupiah(totalCost)}
+        </p>
+        <Button
+          type="button"
+          variant="ghost"
+          size="icon"
+          className="size-8"
+          aria-label="Ubah harga belanja"
+          onClick={() => {
+            setValue(String(totalCost));
+            setEditing(true);
+          }}
+        >
+          <Pencil className="size-4" aria-hidden />
+        </Button>
+      </div>
+    );
+  }
+
   return (
     <div className="grid gap-1">
-      <p className="text-muted-foreground text-xs">Harganya belum diisi</p>
-      <div className="flex items-center gap-2">
-        <Input
+      <p className="text-muted-foreground text-xs">
+        {totalCost === null ? "Harganya belum diisi" : "Ubah total bayar"}
+      </p>
+      <div className="flex flex-wrap items-center gap-2">
+        <RupiahInput
           value={value}
-          onChange={(event) =>
-            setValue(event.target.value.replace(/[^0-9]/g, ""))
-          }
-          inputMode="numeric"
+          onValueChange={setValue}
           placeholder="Rp berapa?"
           className="h-8 w-32"
           aria-label="Total bayar"
@@ -202,6 +227,17 @@ function PriceForm({
         >
           Simpan
         </Button>
+        {editing ? (
+          <Button
+            type="button"
+            size="sm"
+            variant="ghost"
+            disabled={pending}
+            onClick={() => setEditing(false)}
+          >
+            Batal
+          </Button>
+        ) : null}
       </div>
     </div>
   );
