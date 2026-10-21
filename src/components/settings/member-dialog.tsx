@@ -140,24 +140,6 @@ export function MemberDialog({ member }: { member?: MemberRow }) {
             {roleDescriptions[role]}
           </p>
 
-          <Field
-            id="member-profitShare"
-            label="Porsi Bagi Hasil (%)"
-            error={errors.profitShare}
-            hint="Boleh dikosongkan dulu. Totalnya nggak dipaksa 100 — selisihnya ditampilkan apa adanya."
-          >
-            <Input
-              id="member-profitShare"
-              name="profitShare"
-              type="number"
-              min={0}
-              max={100}
-              step="any"
-              defaultValue={member?.profitShare ?? 0}
-              aria-invalid={Boolean(errors.profitShare)}
-            />
-          </Field>
-
           <DialogFooter>
             <Button
               type="button"

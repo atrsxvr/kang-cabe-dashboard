@@ -1,13 +1,13 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
 import { Pencil, PiggyBank } from "lucide-react";
 import { toast } from "sonner";
 
 import { dateInputValue, Field } from "@/components/common/form-field";
 import { RupiahInput } from "@/components/common/rupiah-input";
 import { SubmitButton } from "@/components/common/submit-button";
+import { useSaveAndRefresh } from "@/components/common/use-save-and-refresh";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -34,7 +34,7 @@ export function OpeningDialog({ opening }: { opening?: OpeningRow }) {
   const [open, setOpen] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [amount, setAmount] = useState(opening ? String(opening.amount) : "");
-  const router = useRouter();
+  const { refreshing, finish } = useSaveAndRefresh();
 
   const reset = () => {
     setErrors({});
@@ -52,10 +52,10 @@ export function OpeningDialog({ opening }: { opening?: OpeningRow }) {
       return;
     }
 
-    setOpen(false);
-    reset();
-    toast.success(editing ? "Saldo awal diperbarui." : "Saldo awal tercatat.");
-    router.refresh();
+    finish(editing ? "Saldo awal diperbarui." : "Saldo awal tercatat.", () => {
+      setOpen(false);
+      reset();
+    });
   }
 
   const parsed = Number(amount.replace(/[^0-9]/g, ""));
@@ -158,7 +158,7 @@ export function OpeningDialog({ opening }: { opening?: OpeningRow }) {
             >
               Batal
             </Button>
-            <SubmitButton>
+            <SubmitButton busy={refreshing}>
               {editing ? "Simpan Perubahan" : "Simpan Saldo Awal"}
             </SubmitButton>
           </DialogFooter>

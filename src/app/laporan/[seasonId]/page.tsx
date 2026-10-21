@@ -438,17 +438,20 @@ async function Report({ seasonId }: { seasonId: string }) {
             </Table>
           ) : null}
 
-          {/* Not normalised, here as on screen: the gap is for the members
-              to settle, and printing it is how it gets settled. */}
-          {sharing.totalShare !== 100 ? (
-            <p className="text-xs text-amber-800">
-              Porsi yang disepakati baru {sharing.totalShare}%, belum genap 100%
-              {sharing.unallocated > 0
-                ? ` — ${formatRupiah(sharing.unallocated)} belum ada pemiliknya`
-                : ""}
-              .
+          {sharing.capitalTotal > 0 ? (
+            <p className="text-xs text-neutral-600">
+              Porsi = modal bersih tiap anggota{" "}
+              {sharing.closed
+                ? `saat musim ditutup (${formatDate(sharing.asOf)})`
+                : `per ${formatDate(sharing.asOf)}`}
+              , dari total {formatRupiah(sharing.capitalTotal)}.
             </p>
-          ) : null}
+          ) : (
+            <p className="text-xs text-amber-800">
+              Belum ada modal yang disetor, jadi belum ada yang berhak atas
+              bagi hasil.
+            </p>
+          )}
         </Section>
 
         <Section title="Disetujui oleh">

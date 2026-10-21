@@ -1,5 +1,7 @@
 import "server-only";
 
+import { cache } from "react";
+
 import { prisma } from "@/lib/prisma";
 import { calculateHst, formatDate } from "@/lib/hst";
 import { roundUpToCash } from "@/lib/money";
@@ -165,7 +167,7 @@ export type HarvestSummary = {
   plantCount: number;
 };
 
-export async function harvestSummary(
+async function harvestSummaryUncached(
   seasonId: string
 ): Promise<HarvestSummary> {
   const [harvests, sales, season, losses, plantEvents] = await Promise.all([
@@ -396,3 +398,6 @@ export async function listHarvestLosses(
     },
   });
 }
+
+/** Memoised per request — see the note at the end of `finance.ts`. */
+export const harvestSummary = cache(harvestSummaryUncached);

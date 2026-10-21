@@ -23,7 +23,6 @@ export type MemberRow = {
   name: string;
   email: string;
   role: Role;
-  profitShare: number;
   deletedAt: Date | null;
   /** Berapa banyak jejaknya, buat menjelaskan kenapa ia tidak bisa dihapus. */
   counts: { tasks: number; harvests: number; sales: number };
@@ -38,7 +37,6 @@ export async function listMembers(): Promise<MemberRow[]> {
       name: true,
       email: true,
       role: true,
-      profitShare: true,
       deletedAt: true,
       _count: {
         select: {

@@ -12,9 +12,16 @@ import { Button } from "@/components/ui/button";
 export function SubmitButton({
   children,
   pendingLabel,
+  busy = false,
   ...props
-}: React.ComponentProps<typeof Button> & { pendingLabel?: string }) {
-  const { pending } = useFormStatus();
+}: React.ComponentProps<typeof Button> & {
+  pendingLabel?: string;
+  /** Still busy after the action returned — e.g. waiting for the refresh
+   *  that will show what was saved. */
+  busy?: boolean;
+}) {
+  const { pending: submitting } = useFormStatus();
+  const pending = submitting || busy;
 
   return (
     <Button type="submit" disabled={pending} {...props}>

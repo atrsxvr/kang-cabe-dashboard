@@ -1,6 +1,7 @@
 import "server-only";
 
 import { netCapital } from "@/lib/cash";
+import type { CapitalHolder } from "@/lib/profit-share";
 import { prisma } from "@/lib/prisma";
 
 /**
@@ -46,8 +47,6 @@ export type ContributorRow = {
   count: number;
   /** Porsi modal, persen dari seluruh setoran. */
   capitalShare: number;
-  /** Porsi bagi hasil yang disepakati, buat dibandingkan. */
-  profitShare: number;
   lastPaidAt: Date | null;
 };
 
@@ -57,12 +56,8 @@ export type CapitalSummary = {
 };
 
 /**
- * Per-member totals, with each one's share of the capital next to the share of
- * the profit they agreed to.
- *
- * The two are shown side by side and never reconciled automatically. Putting
- * in more money and taking a smaller cut is a perfectly reasonable thing for
- * four friends to agree; what is not reasonable is nobody noticing.
+ * Per-member totals and each one's share of the capital — which is also
+ * their share of the profit, since the margin is split by capital.
  *
  * Deactivated members are included — their money is still in the pot.
  */
@@ -81,7 +76,7 @@ export async function capitalSummary(): Promise<CapitalSummary> {
     }),
     prisma.user.findMany({
       orderBy: { name: "asc" },
-      select: { id: true, name: true, profitShare: true, deletedAt: true },
+      select: { id: true, name: true, deletedAt: true },
     }),
   ]);
 
@@ -115,11 +110,48 @@ export async function capitalSummary(): Promise<CapitalSummary> {
         returned,
         count: row?._count._all ?? 0,
         capitalShare: total > 0 ? Math.round((amount / total) * 1000) / 10 : 0,
-        profitShare: member.profitShare,
         lastPaidAt: row?._max.paidAt ?? null,
       };
     })
     .sort((a, b) => b.total - a.total || a.name.localeCompare(b.name));
 
   return { total, contributors };
+}
+
+/**
+ * Each member's net capital as it stood at `cutoff`: paid in, less taken
+ * back, counting only what happened on or before that moment.
+ *
+ * This is what a season's profit is split by. A closed season is split by the
+ * capital on the day it closed, so a top-up next month cannot rewrite a split
+ * that was already signed — and since every contribution and return carries
+ * its date, the figure can always be recomputed rather than stored.
+ *
+ * Deactivated members are included: their money is still in the pot.
+ */
+export async function netCapitalAsOf(cutoff: Date): Promise<CapitalHolder[]> {
+  const [paid, returned, members] = await Promise.all([
+    prisma.capitalContribution.groupBy({
+      by: ["userId"],
+      where: { paidAt: { lte: cutoff } },
+      _sum: { amount: true },
+    }),
+    prisma.memberPayout.groupBy({
+      by: ["userId"],
+      where: { type: "CAPITAL_RETURN", paidAt: { lte: cutoff } },
+      _sum: { amount: true },
+    }),
+    prisma.user.findMany({ select: { id: true, name: true } }),
+  ]);
+
+  const paidBy = new Map(paid.map((row) => [row.userId, row._sum.amount ?? 0]));
+  const returnedBy = new Map(
+    returned.map((row) => [row.userId, row._sum.amount ?? 0])
+  );
+
+  return members.map((member) => ({
+    id: member.id,
+    name: member.name,
+    net: netCapital(paidBy.get(member.id) ?? 0, returnedBy.get(member.id) ?? 0),
+  }));
 }

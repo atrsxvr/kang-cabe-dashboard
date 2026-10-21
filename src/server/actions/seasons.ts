@@ -2,13 +2,20 @@
 
 import { revalidatePath } from "next/cache";
 
+import { formatKg } from "@/lib/harvest";
+import { formatRupiah } from "@/lib/money";
 import { prisma } from "@/lib/prisma";
+import {
+  canCloseSeason,
+  closingChecklist,
+  type ClosingCheck,
+} from "@/lib/season-close";
 import { invalidForm, type ActionResult } from "@/server/actions/result";
-import { guardWrite } from "@/server/auth/guard";
+import { currentActor, guardWrite } from "@/server/auth/guard";
+import { closingFacts } from "@/server/queries/season-close";
 import {
   createSeasonSchema,
   nextSeasonStatus,
-  seasonStatuses,
   updateSeasonSchema,
 } from "@/server/actions/schemas";
 
@@ -64,6 +71,25 @@ export async function advanceSeasonStatus(
     return { ok: false, message: "Musim sudah pada tahap terakhir." };
   }
 
+  // Selesai is when the margin is split, and the owner's rule is that it
+  // happens only once everything is settled. Checked here, not just by a
+  // disabled button: a Server Action can be called without its page.
+  if (next === "COMPLETED") {
+    const checks = closingChecklist(await closingFacts(seasonId), seasonId, {
+      rupiah: formatRupiah,
+      kg: formatKg,
+    });
+    if (!canCloseSeason(checks)) {
+      const pending = checks.filter((check) => !check.ok);
+      return {
+        ok: false,
+        message: `Musim belum bisa ditutup — ${pending.length} hal belum beres: ${pending
+          .map((check) => check.title)
+          .join("; ")}.`,
+      };
+    }
+  }
+
   await prisma.season.update({
     where: { id: seasonId },
     // COMPLETED closes the season, so stamp when it ended.
@@ -74,30 +100,28 @@ export async function advanceSeasonStatus(
   return { ok: true, seasonId };
 }
 
-export async function setSeasonStatus(
-  formData: FormData
-): Promise<ActionResult> {
-  const allowed = await guardWrite("seasons");
-  if (!allowed.ok) return allowed;
+/**
+ * The closing checklist for one season, fetched when its dialog opens.
+ *
+ * Read-only, and open to anyone signed in, like every read in this app — but
+ * a Server Action is a public endpoint, so it still checks there is a live
+ * session before touching the books.
+ */
+export async function getClosingChecklist(
+  seasonId: string
+): Promise<ClosingCheck[] | null> {
+  if (!seasonId || !(await currentActor())) return null;
 
-  const seasonId = String(formData.get("seasonId") ?? "");
-  const status = String(formData.get("status") ?? "");
-
-  if (!seasonId) return { ok: false, message: "Musim tidak dikenali." };
-  if (!seasonStatuses.includes(status as (typeof seasonStatuses)[number])) {
-    return { ok: false, message: "Status tidak dikenali." };
-  }
-
-  await prisma.season.update({
+  const season = await prisma.season.findUnique({
     where: { id: seasonId },
-    data: {
-      status: status as (typeof seasonStatuses)[number],
-      endDate: status === "COMPLETED" ? new Date() : null,
-    },
+    select: { id: true },
   });
+  if (!season) return null;
 
-  revalidatePath("/", "layout");
-  return { ok: true, seasonId };
+  return closingChecklist(await closingFacts(seasonId), seasonId, {
+    rupiah: formatRupiah,
+    kg: formatKg,
+  });
 }
 
 export async function updateSeason(formData: FormData): Promise<ActionResult> {
@@ -111,7 +135,6 @@ export async function updateSeason(formData: FormData): Promise<ActionResult> {
     plantCount: formData.get("plantCount"),
     projectedHarvestKg: formData.get("projectedHarvestKg"),
     startDate: formData.get("startDate"),
-    status: formData.get("status"),
     notes: formData.get("notes") ?? "",
   });
 
@@ -119,14 +142,14 @@ export async function updateSeason(formData: FormData): Promise<ActionResult> {
 
   const { seasonId, notes, ...rest } = parsed.data;
 
+  // Neither the status nor the end date: both belong to closing. Writing the
+  // end date here used to restamp a closed season as ending "today" every
+  // time its name or notes were corrected.
   const result = await prisma.season.updateMany({
     where: { id: seasonId },
     data: {
       ...rest,
       notes: notes ? notes : null,
-      // Reaching COMPLETED stamps the end; moving back off it clears the stamp
-      // rather than leaving a season "ended" while it is running again.
-      endDate: rest.status === "COMPLETED" ? new Date() : null,
     },
   });
 

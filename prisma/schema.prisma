@@ -145,10 +145,10 @@ model User {
   /// Foto profil dari Google, kalau ada.
   image         String?
   role          Role      @default(ADMIN)
-  /// Porsi bagi hasil, persen. Bebas tidak berjumlah 100 — halaman Keuangan
-  /// menampilkan selisihnya apa adanya daripada diam-diam menormalkan, karena
-  /// pembagian yang tidak genap adalah hal yang perlu dilihat empat orang,
-  /// bukan disembunyikan.
+  /// TIDAK DIPAKAI LAGI. Dulu porsi bagi hasil yang diketik manual; sekarang
+  /// bagi hasil mengikuti modal bersih tiap anggota (`splitByCapital`).
+  /// Dibiarkan supaya angka yang pernah diisi tidak hilang tanpa disadari —
+  /// buang lewat migrasi kalau sudah yakin tidak dibutuhkan.
   profitShare   Float     @default(0)
   deletedAt     DateTime? // Pekerja nonaktif ditandai di sini, barisnya tidak dihapus
   createdAt     DateTime  @default(now())

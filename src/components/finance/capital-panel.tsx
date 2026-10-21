@@ -3,11 +3,9 @@ import { HandCoins } from "lucide-react";
 import { CanWrite } from "@/components/auth/can-write";
 import { ConfirmDelete } from "@/components/common/confirm-delete";
 import { ContributionDialog } from "@/components/finance/contribution-dialog";
-import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { formatDate } from "@/lib/hst";
 import { formatRupiah } from "@/lib/money";
-import { cn } from "@/lib/utils";
 import { deleteContribution } from "@/server/actions/capital";
 import type { CapitalSummary, ContributionRow } from "@/server/queries/capital";
 import type { SeasonSummary } from "@/server/queries/seasons";
@@ -51,14 +49,7 @@ export function CapitalPanel({
             </p>
           ) : (
             <ul className="grid gap-2 border-t pt-4">
-              {summary.contributors.map((row) => {
-                // Shown side by side and never reconciled automatically:
-                // putting in more and taking a smaller cut is a fine thing to
-                // agree on — nobody noticing is not.
-                const gap =
-                  Math.round((row.capitalShare - row.profitShare) * 10) / 10;
-
-                return (
+              {summary.contributors.map((row) => (
                   <li key={row.id} className="grid gap-1 rounded-md border p-3">
                     <div className="flex flex-wrap items-baseline justify-between gap-2">
                       <span className="font-medium">{row.name}</span>
@@ -75,11 +66,9 @@ export function CapitalPanel({
                     </div>
 
                     <div className="text-muted-foreground flex flex-wrap items-center gap-x-3 gap-y-1 text-xs">
+                      {/* One figure for both: the profit is split by capital. */}
                       <span className="tabular-nums">
-                        {row.capitalShare}% dari modal
-                      </span>
-                      <span className="tabular-nums">
-                        bagi hasil {row.profitShare}%
+                        {row.capitalShare}% modal = porsi bagi hasil
                       </span>
                       {row.count > 0 ? (
                         <span className="tabular-nums">
@@ -96,25 +85,9 @@ export function CapitalPanel({
                           {formatRupiah(row.returned)} ditarik
                         </span>
                       ) : null}
-                      {gap !== 0 && row.total > 0 ? (
-                        <Badge
-                          variant="secondary"
-                          className={cn(
-                            "border-transparent tabular-nums",
-                            gap > 0
-                              ? "bg-amber-500/15 text-amber-700 dark:text-amber-400"
-                              : "bg-sky-500/12 text-sky-700 dark:text-sky-400",
-                          )}
-                        >
-                          {gap > 0
-                            ? `setor ${gap}% lebih besar`
-                            : `setor ${Math.abs(gap)}% lebih kecil`}
-                        </Badge>
-                      ) : null}
                     </div>
                   </li>
-                );
-              })}
+              ))}
             </ul>
           )}
         </CardContent>

@@ -26,12 +26,11 @@ export async function createMember(formData: FormData): Promise<ActionResult> {
     name: formData.get("name"),
     email: formData.get("email"),
     role: formData.get("role"),
-    profitShare: formData.get("profitShare") || 0,
   });
 
   if (!parsed.success) return invalidForm(parsed.error);
 
-  const { email, profitShare, ...rest } = parsed.data;
+  const { email, ...rest } = parsed.data;
 
   const clash = await prisma.user.findUnique({
     where: { email },
@@ -50,7 +49,6 @@ export async function createMember(formData: FormData): Promise<ActionResult> {
     data: {
       ...rest,
       email,
-      profitShare: profitShare ?? 0,
       // Tidak ada password di sini. Login lewat Google, dan better-auth
       // menyimpan kredensial di tabel Account — bukan di baris anggota.
       // Emailnya yang jadi undangan: mendaftarkan seseorang di sini adalah
@@ -71,12 +69,11 @@ export async function updateMember(formData: FormData): Promise<ActionResult> {
     name: formData.get("name"),
     email: formData.get("email"),
     role: formData.get("role"),
-    profitShare: formData.get("profitShare") || 0,
   });
 
   if (!parsed.success) return invalidForm(parsed.error);
 
-  const { memberId, email, profitShare, ...rest } = parsed.data;
+  const { memberId, email, ...rest } = parsed.data;
 
   const clash = await prisma.user.findFirst({
     where: { email, id: { not: memberId } },
@@ -93,7 +90,7 @@ export async function updateMember(formData: FormData): Promise<ActionResult> {
 
   const result = await prisma.user.updateMany({
     where: { id: memberId },
-    data: { ...rest, email, profitShare: profitShare ?? 0 },
+    data: { ...rest, email },
   });
 
   if (result.count === 0) {

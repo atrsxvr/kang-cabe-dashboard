@@ -5,6 +5,7 @@ import { ArrowRight } from "lucide-react";
 import { toast } from "sonner";
 
 import { SubmitButton } from "@/components/common/submit-button";
+import { SeasonCloseDialog } from "@/components/seasons/season-close-dialog";
 import { advanceSeasonStatus } from "@/server/actions/seasons";
 import {
   nextSeasonStatus,
@@ -21,13 +22,21 @@ const labels: Record<string, string> = {
 
 export function SeasonStatusAction({
   seasonId,
+  seasonName,
   status,
 }: {
   seasonId: string;
+  seasonName: string;
   status: (typeof seasonStatuses)[number];
 }) {
   const router = useRouter();
   const next = nextSeasonStatus(status);
+
+  // Selesai is when the margin gets split, so that one step goes through the
+  // closing checklist instead of happening on a single tap.
+  if (next === "COMPLETED") {
+    return <SeasonCloseDialog seasonId={seasonId} seasonName={seasonName} />;
+  }
 
   if (!next) {
     return status === "COMPLETED" ? (
