@@ -46,7 +46,16 @@ export default defineConfig({
    * near either limit.
    */
   expect: { timeout: 10_000 },
-  reporter: process.env.CI ? "github" : "list",
+  /**
+   * In CI, two: `github` writes failures into the run's log and annotations,
+   * and `html` is what the workflow uploads as an artifact — with the trace
+   * of the retry and a screenshot, which a log line alone cannot replace.
+   * Before this the artifact step uploaded an empty folder: nothing in CI
+   * wrote one.
+   */
+  reporter: process.env.CI
+    ? [["github"], ["html", { open: "never" }]]
+    : "list",
 
   /**
    * Satu proyek penyiapan yang membuat sesi masuk, lalu semua spec memakainya.
@@ -68,6 +77,8 @@ export default defineConfig({
   use: {
     baseURL: BASE_URL,
     trace: "on-first-retry",
+    // What the page looked like at the moment a test failed.
+    screenshot: "only-on-failure",
     // The dashboard is built for a phone in a garden, so that is what it is
     // checked on.
     ...devices["Pixel 7"],
