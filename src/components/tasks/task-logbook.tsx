@@ -1,6 +1,7 @@
 import { CheckCircle2 } from "lucide-react";
 
 import { Card, CardContent } from "@/components/ui/card";
+import { TaskLaborPaid } from "@/components/tasks/task-labor-paid";
 import { calculateHst, formatDateTime } from "@/lib/hst";
 import type { TaskRow } from "@/server/queries/tasks";
 
@@ -59,6 +60,9 @@ export function TaskLogbook({
                       ? ` · ${task.assignees.map((a) => a.name).join(", ")}`
                       : null}
                   </p>
+                  <div className="mt-1">
+                    <TaskLaborPaid task={task} />
+                  </div>
                 </div>
               </li>
             );

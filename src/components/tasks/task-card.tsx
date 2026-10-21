@@ -3,6 +3,7 @@ import { CalendarDays, Users } from "lucide-react";
 import { ConfirmDelete } from "@/components/common/confirm-delete";
 import { StatusBadge } from "@/components/common/status-badge";
 import { TaskDialog } from "@/components/tasks/task-dialog";
+import { TaskLaborPaid } from "@/components/tasks/task-labor-paid";
 import { TaskStatusButtons } from "@/components/tasks/task-status-buttons";
 import { TaskUsageAction } from "@/components/tasks/task-usage-action";
 import { Card, CardContent } from "@/components/ui/card";
@@ -97,6 +98,8 @@ export function TaskCard({
             </span>
           </p>
         ) : null}
+
+        <TaskLaborPaid task={task} />
 
         {task.materials.length > 0 && canRecordUsage ? (
           <div className="flex flex-wrap items-center gap-2 border-t pt-2">

@@ -10,15 +10,18 @@ import { formatRupiah } from "@/lib/money";
 import { cn } from "@/lib/utils";
 import { deleteFinanceEntry } from "@/server/actions/finance";
 import type { FinanceEntryRow } from "@/server/queries/finance";
+import type { TaskOption } from "@/server/queries/tasks";
 
 export function FinanceEntryList({
   entries,
   seasonId,
   photoEnabled,
+  tasks,
 }: {
   entries: FinanceEntryRow[];
   seasonId: string;
   photoEnabled: boolean;
+  tasks: TaskOption[];
 }) {
   if (entries.length === 0) {
     return (
@@ -49,6 +52,19 @@ export function FinanceEntryList({
             <CardContent className="flex flex-wrap items-center gap-3 px-4">
               <div className="min-w-0 flex-1">
                 <p className="font-medium">{entry.description}</p>
+                {entry.laborJob || entry.payee ? (
+                  <p className="text-xs">
+                    {[entry.laborJob, entry.payee ? `ke ${entry.payee}` : null]
+                      .filter(Boolean)
+                      .join(" · ")}
+                    {entry.task ? (
+                      <span className="text-muted-foreground">
+                        {" "}
+                        · tugas {entry.task.title}
+                      </span>
+                    ) : null}
+                  </p>
+                ) : null}
                 <p className="text-muted-foreground text-xs">
                   {formatDate(entry.date)}
                   {entry.proofUrl ? (
@@ -89,6 +105,7 @@ export function FinanceEntryList({
                   seasonId={seasonId}
                   entry={entry}
                   photoEnabled={photoEnabled}
+                  tasks={tasks}
                 />
                 <ConfirmDelete
                   title="Hapus catatan ini?"

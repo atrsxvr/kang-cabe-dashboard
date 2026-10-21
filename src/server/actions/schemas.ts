@@ -1,6 +1,7 @@
 import { z } from "zod";
 
 import { BUYER_KINDS, waNumber } from "@/lib/buyers";
+import { isLaborEntry } from "@/lib/labor";
 
 /**
  * Pure schemas, importable from tests and from client components that want to
@@ -641,14 +642,40 @@ const financeBase = {
   description: z.string().trim().min(2, "Tulis keterangannya").max(300),
   date: z.coerce.date("Tanggal tidak valid"),
   proofUrl: z.url("Tautan bukti tidak valid").optional().or(z.literal("")),
+  /** Wages only — see `isLaborEntry`. */
+  laborJob: z.string().trim().max(120).optional().or(z.literal("")),
+  payee: z.string().trim().max(120).optional().or(z.literal("")),
+  taskId: z.string().optional().or(z.literal("")),
 };
 
-export const createFinanceEntrySchema = z.object(financeBase);
+/**
+ * A wage has to say which job and to whom; anything else leaves both empty.
+ * Required here rather than only by the form, because the form only shows the
+ * fields for Upah and a category switched afterwards would otherwise slip by.
+ */
+function requireLaborFields(
+  entry: { type: string; category: string; laborJob?: string; payee?: string },
+  ctx: z.RefinementCtx
+) {
+  if (!isLaborEntry(entry.type, entry.category)) return;
+  if (!entry.laborJob || entry.laborJob.length < 2) {
+    ctx.addIssue({ code: "custom", path: ["laborJob"], message: "Pekerjaan apa yang dibayar?" });
+  }
+  if (!entry.payee || entry.payee.length < 2) {
+    ctx.addIssue({ code: "custom", path: ["payee"], message: "Dibayar ke siapa?" });
+  }
+}
 
-export const updateFinanceEntrySchema = z.object({
-  ...financeBase,
-  entryId: z.string().min(1),
-});
+export const createFinanceEntrySchema = z
+  .object(financeBase)
+  .superRefine(requireLaborFields);
+
+export const updateFinanceEntrySchema = z
+  .object({
+    ...financeBase,
+    entryId: z.string().min(1),
+  })
+  .superRefine(requireLaborFields);
 
 /**
  * Menjadwalkan racikan rutin berulang di rentang HST tertentu.

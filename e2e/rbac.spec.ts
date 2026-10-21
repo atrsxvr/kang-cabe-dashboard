@@ -394,6 +394,8 @@ test.describe("tombol di dalam tabel", () => {
     await page.goto(`/finance?season=${season}`);
     await page.getByRole("button", { name: "Catat Uang Masuk / Keluar" }).click();
     const dialog = page.getByRole("dialog");
+    // Not a wage: Upah, the default, also asks for the job and the payee.
+    await dialog.getByLabel("Kategori", { exact: true }).selectOption("Operasional");
     await dialog.getByLabel("Jumlah (Rp)").fill("12000");
     await dialog.getByLabel("Keterangan").fill(`E2E ongkos ${stamp}`);
     await dialog.getByRole("button", { name: "Simpan Catatan" }).click();

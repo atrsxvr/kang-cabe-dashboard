@@ -371,7 +371,13 @@ async function Report({ seasonId }: { seasonId: string }) {
                     <td className="py-1.5">
                       {entry.description}
                       <span className="block text-xs text-neutral-500">
-                        {entry.category}
+                        {[
+                          entry.category,
+                          entry.laborJob,
+                          entry.payee ? `ke ${entry.payee}` : null,
+                        ]
+                          .filter(Boolean)
+                          .join(" · ")}
                       </span>
                     </td>
                     <td className="py-1.5 text-right tabular-nums">

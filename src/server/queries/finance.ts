@@ -4,6 +4,7 @@ import { cache } from "react";
 
 import { prisma } from "@/lib/prisma";
 import { perPlantGrams } from "@/lib/harvest";
+import { isLaborEntry, LABOR_CATEGORY, laborBreakdown } from "@/lib/labor";
 import { projectedBep } from "@/lib/pricing";
 import { splitByCapital, type ShareRow } from "@/lib/profit-share";
 import { netCapitalAsOf } from "@/server/queries/capital";
@@ -191,6 +192,10 @@ export type FinanceEntryRow = {
   description: string;
   date: Date;
   proofUrl: string | null;
+  /** Wages only: the job, who was paid, and the task it paid for. */
+  laborJob: string | null;
+  payee: string | null;
+  task: { id: string; title: string } | null;
 };
 
 export async function listFinanceEntries(
@@ -207,6 +212,9 @@ export async function listFinanceEntries(
       description: true,
       date: true,
       proofUrl: true,
+      laborJob: true,
+      payee: true,
+      task: { select: { id: true, title: true } },
     },
   });
 
@@ -329,7 +337,14 @@ async function seasonResultUncached(seasonId: string): Promise<SeasonResult> {
           key: category,
           label: category,
           amount,
-          detail: "dicatat manual",
+          // The wage bill is read by job — what did preparing the land cost
+          // this time — so Upah says it instead of the generic line.
+          detail:
+            category === LABOR_CATEGORY
+              ? laborBreakdown(
+                  entries.filter((entry) => isLaborEntry(entry.type, entry.category))
+                )
+              : "dicatat manual",
         }))
         .sort((a, b) => b.amount - a.amount),
     ],
