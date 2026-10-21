@@ -102,6 +102,26 @@ test.describe.serial("daftar pembeli", () => {
     );
   });
 
+  test("harga jual dari hari ke hari tergambar di tab Penjualan", async ({ page }) => {
+    await page.goto(`/harvest?season=${seasonId}`);
+    await page.getByRole("tab", { name: "Penjualan" }).click();
+
+    const chart = page
+      .locator('[data-slot="card"]')
+      .filter({ hasText: "Harga jual Bagus per kg" });
+    await expect(chart).toContainText("Satu titik per hari penjualan");
+    // This season has no projected harvest, so no break-even line — and the
+    // card says where it would come from.
+    await expect(chart).toContainText("proyeksi panen");
+
+    // The two sales above, on two days: one point each.
+    const dots = chart.locator(".recharts-line-dots circle");
+    await expect(dots).toHaveCount(2);
+
+    await dots.first().hover();
+    await expect(chart.getByText("Rp 30.000/kg")).toBeVisible();
+  });
+
   test("nama yang sudah ada ditolak, apa pun huruf besarnya", async ({ page }) => {
     const dialog = await openSale(page);
     await chooseNewBuyer(dialog, REGULAR.toUpperCase());
