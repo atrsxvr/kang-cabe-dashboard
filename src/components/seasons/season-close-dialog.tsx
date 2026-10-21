@@ -42,9 +42,17 @@ import {
 export function SeasonCloseDialog({
   seasonId,
   seasonName,
+  done = false,
 }: {
   seasonId: string;
   seasonName: string;
+  /**
+   * Already Selesai: no button, only "Tahap akhir". Rendered by this same
+   * component rather than in its place, because closing revalidates the page
+   * and the season comes back Selesai while "… ditutup" is still on screen —
+   * swapping the component out unmounted the dialog with its report link.
+   */
+  done?: boolean;
 }) {
   const [open, setOpen] = useState(false);
   const [checks, setChecks] = useState<ClosingCheck[] | null>(null);
@@ -96,12 +104,16 @@ export function SeasonCloseDialog({
         }
       }}
     >
-      <DialogTrigger asChild>
-        <Button size="sm" variant="secondary" className="h-8">
-          <Flag className="size-3.5" aria-hidden />
-          Tutup Musim
-        </Button>
-      </DialogTrigger>
+      {done ? (
+        <span className="text-muted-foreground text-xs">Tahap akhir</span>
+      ) : (
+        <DialogTrigger asChild>
+          <Button size="sm" variant="secondary" className="h-8">
+            <Flag className="size-3.5" aria-hidden />
+            Tutup Musim
+          </Button>
+        </DialogTrigger>
+      )}
 
       <DialogContent className="max-h-[90dvh] overflow-y-auto sm:max-w-lg">
         {closed ? (

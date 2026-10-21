@@ -34,15 +34,19 @@ export function SeasonStatusAction({
 
   // Selesai is when the margin gets split, so that one step goes through the
   // closing checklist instead of happening on a single tap.
-  if (next === "COMPLETED") {
-    return <SeasonCloseDialog seasonId={seasonId} seasonName={seasonName} />;
+  //
+  // Selesai itself goes through the same component: see `done`.
+  if (next === "COMPLETED" || status === "COMPLETED") {
+    return (
+      <SeasonCloseDialog
+        seasonId={seasonId}
+        seasonName={seasonName}
+        done={status === "COMPLETED"}
+      />
+    );
   }
 
-  if (!next) {
-    return status === "COMPLETED" ? (
-      <span className="text-muted-foreground text-xs">Tahap akhir</span>
-    ) : null;
-  }
+  if (!next) return null;
 
   async function onSubmit(formData: FormData) {
     const result = await advanceSeasonStatus(formData);
