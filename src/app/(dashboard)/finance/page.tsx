@@ -45,6 +45,7 @@ import type { CostLine, SeasonComparison } from "@/server/queries/finance";
 import { capitalSummary, listContributions } from "@/server/queries/capital";
 import { cashReport, listOpenings, listPayouts } from "@/server/queries/cash";
 import { listSeasons, resolveSeason } from "@/server/queries/seasons";
+import { listDoneTaskOptions } from "@/server/queries/tasks";
 import { listActiveMembers } from "@/server/queries/users";
 import { isPhotoUploadEnabled } from "@/server/storage";
 
@@ -73,6 +74,7 @@ export default async function FinancePage(props: PageProps<"/finance">) {
     cash,
     openings,
     payouts,
+    doneTasks,
   ] = await Promise.all([
     seasonMaterialCost(season.id),
     toolSpend(),
@@ -88,6 +90,7 @@ export default async function FinancePage(props: PageProps<"/finance">) {
     cashReport(),
     listOpenings(),
     listPayouts(),
+    listDoneTaskOptions(season.id),
   ]);
 
   const photoEnabled = isPhotoUploadEnabled();
@@ -104,6 +107,7 @@ export default async function FinancePage(props: PageProps<"/finance">) {
             <FinanceEntryDialog
               seasonId={season.id}
               photoEnabled={photoEnabled}
+              tasks={doneTasks}
             />
           </CanWrite>
           {/* Open to everyone, like every read: the report is what the
@@ -284,6 +288,7 @@ export default async function FinancePage(props: PageProps<"/finance">) {
             entries={entries}
             seasonId={season.id}
             photoEnabled={photoEnabled}
+            tasks={doneTasks}
           />
         }
         capital={

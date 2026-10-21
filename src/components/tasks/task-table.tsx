@@ -2,6 +2,7 @@ import { ConfirmDelete } from "@/components/common/confirm-delete";
 import { StatusBadge } from "@/components/common/status-badge";
 import { TaskCard } from "@/components/tasks/task-card";
 import { TaskDialog } from "@/components/tasks/task-dialog";
+import { TaskLaborPaid } from "@/components/tasks/task-labor-paid";
 import { TaskStatusButtons } from "@/components/tasks/task-status-buttons";
 import { TaskUsageAction } from "@/components/tasks/task-usage-action";
 import { Card } from "@/components/ui/card";
@@ -102,6 +103,9 @@ export function TaskTable({
                           {task.description}
                         </span>
                       ) : null}
+                      <div className="mt-1 font-normal">
+                        <TaskLaborPaid task={task} />
+                      </div>
                       {/* Sits with the task rather than in Aksi: that column
                           is pinned to a fixed width so the row never
                           re-measures on a status change. */}

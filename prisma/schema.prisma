@@ -427,6 +427,8 @@ model Task {
   // memakainya — salinan takarannya tetap utuh.
   recipe    Recipe?        @relation("RecipeTasks", fields: [recipeId], references: [id], onDelete: SetNull)
   materials TaskMaterial[]
+  /// Upah borongan yang dibayar untuk tugas ini.
+  laborPayments FinanceTransaction[]
 
   @@index([seasonId])
   @@index([status, dueDate]) // Papan tugas: filter status, urut jatuh tempo
@@ -945,9 +947,20 @@ model FinanceTransaction {
   date        DateTime        @default(now())
   createdAt   DateTime        @default(now())
 
+  /// Hanya untuk kategori Upah: pekerjaan yang dibayar (olah lahan, cabut
+  /// tanam…) dan kepada siapa. Buruh di kebun ini dibayar borongan per
+  /// pekerjaan, jadi dua hal inilah yang ditanyakan saat menengok biaya upah.
+  laborJob String?
+  payee    String?
+  /// Tugas yang upahnya dibayar ini, kalau ada. SetNull: menghapus tugas
+  /// tidak boleh menghapus uang yang sudah keluar.
+  taskId   String?
+
   season Season @relation(fields: [seasonId], references: [id], onDelete: Cascade)
+  task   Task?  @relation(fields: [taskId], references: [id], onDelete: SetNull)
 
   @@index([seasonId])
   @@index([seasonId, type]) // Rekap pemasukan vs pengeluaran per musim
   @@index([date])
+  @@index([taskId])
 }

@@ -20,6 +20,12 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
+import { formatDate } from "@/lib/hst";
+import {
+  isLaborEntry,
+  LABOR_CATEGORY,
+  LABOR_JOB_SUGGESTIONS,
+} from "@/lib/labor";
 import { formatRupiah } from "@/lib/money";
 import {
   createFinanceEntry,
@@ -27,6 +33,7 @@ import {
 } from "@/server/actions/finance";
 import { expenseCategories } from "@/server/actions/schemas";
 import type { FinanceEntryRow } from "@/server/queries/finance";
+import type { TaskOption } from "@/server/queries/tasks";
 
 /**
  * Money that never passes the shed or the scales — wages, rent, the trip to
@@ -37,15 +44,22 @@ export function FinanceEntryDialog({
   seasonId,
   entry,
   photoEnabled,
+  tasks,
 }: {
   seasonId: string;
   entry?: FinanceEntryRow;
   photoEnabled: boolean;
+  /** Finished tasks of this season, for a wage to name what it paid for. */
+  tasks: TaskOption[];
 }) {
   const editing = Boolean(entry);
   const [open, setOpen] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [amount, setAmount] = useState(entry ? String(entry.amount) : "");
+  // Watched so a wage can ask for its job and payee, and nothing else does.
+  const [type, setType] = useState<string>(entry?.type ?? "EXPENSE");
+  const [category, setCategory] = useState<string>(entry?.category ?? LABOR_CATEGORY);
+  const labor = isLaborEntry(type, category);
   // Held in state rather than left in the input: React resets the form after
   // an action returns, including on a validation error, which would silently
   // drop the chosen file while its name still showed.
@@ -57,6 +71,8 @@ export function FinanceEntryDialog({
   const reset = () => {
     setErrors({});
     setAmount(entry ? String(entry.amount) : "");
+    setType(entry?.type ?? "EXPENSE");
+    setCategory(entry?.category ?? LABOR_CATEGORY);
     setProof(null);
     setKeepProof(Boolean(entry?.proofUrl));
     if (inputRef.current) inputRef.current.value = "";
@@ -135,7 +151,8 @@ export function FinanceEntryDialog({
                 required
                 id="entry-type"
                 name="type"
-                defaultValue={entry?.type ?? "EXPENSE"}
+                value={type}
+                onChange={(event) => setType(event.target.value)}
               >
                 <option value="EXPENSE">Uang keluar</option>
                 <option value="INCOME">Uang masuk</option>
@@ -147,7 +164,8 @@ export function FinanceEntryDialog({
                 required
                 id="entry-category"
                 name="category"
-                defaultValue={entry?.category ?? "Upah"}
+                value={category}
+                onChange={(event) => setCategory(event.target.value)}
               >
                 {expenseCategories.map((category) => (
                   <option key={category} value={category}>
@@ -157,6 +175,67 @@ export function FinanceEntryDialog({
               </NativeSelect>
             </Field>
           </div>
+
+          {/* Hired hands are paid per job once it is done, so a wage says
+              which job and to whom — what anyone reading the wage bill asks. */}
+          {labor ? (
+            <fieldset className="grid gap-4 rounded-md border p-3">
+              <legend className="px-1 text-sm font-medium">Upah borongan</legend>
+              <div className="grid gap-4 sm:grid-cols-2">
+                <Field id="entry-laborJob" label="Pekerjaan" error={errors.laborJob}>
+                  <Input
+                    id="entry-laborJob"
+                    name="laborJob"
+                    required
+                    list="labor-job-suggestions"
+                    defaultValue={entry?.laborJob ?? ""}
+                    placeholder="Olah lahan"
+                    aria-invalid={Boolean(errors.laborJob)}
+                  />
+                  <datalist id="labor-job-suggestions">
+                    {LABOR_JOB_SUGGESTIONS.map((job) => (
+                      <option key={job} value={job} />
+                    ))}
+                  </datalist>
+                </Field>
+                <Field id="entry-payee" label="Dibayar ke" error={errors.payee}>
+                  <Input
+                    id="entry-payee"
+                    name="payee"
+                    required
+                    defaultValue={entry?.payee ?? ""}
+                    placeholder="Mang Asep (mandor)"
+                    aria-invalid={Boolean(errors.payee)}
+                  />
+                </Field>
+              </div>
+              <Field
+                id="entry-taskId"
+                label="Untuk tugas (opsional)"
+                error={errors.taskId}
+                hint="Tugas yang sudah selesai di musim ini. Kartu tugasnya ikut menunjukkan upah yang dibayar."
+              >
+                <NativeSelect
+                  id="entry-taskId"
+                  name="taskId"
+                  defaultValue={entry?.task?.id ?? ""}
+                >
+                  <option value="">— tidak untuk tugas tertentu —</option>
+                  {/* A task finished after this wage was first recorded, or
+                      one since reopened, still has to be offered back. */}
+                  {entry?.task && !tasks.some((task) => task.id === entry.task!.id) ? (
+                    <option value={entry.task.id}>{entry.task.title}</option>
+                  ) : null}
+                  {tasks.map((task) => (
+                    <option key={task.id} value={task.id}>
+                      {task.title}
+                      {task.completedAt ? ` · ${formatDate(task.completedAt)}` : ""}
+                    </option>
+                  ))}
+                </NativeSelect>
+              </Field>
+            </fieldset>
+          ) : null}
 
           <div className="grid gap-4 sm:grid-cols-2">
             <Field id="entry-amount" label="Jumlah (Rp)" error={errors.amount}>

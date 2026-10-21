@@ -1,5 +1,6 @@
 "use server";
 
+import { isLaborEntry } from "@/lib/labor";
 import { prisma } from "@/lib/prisma";
 import { invalidForm, type ActionResult } from "@/server/actions/result";
 import { guardWrite } from "@/server/auth/guard";
@@ -18,6 +19,51 @@ import { deletePhoto, uploadPhoto } from "@/server/storage";
 
 const revalidate = revalidateSeasonMoney;
 
+/**
+ * What a wage records beyond the money: the job, the payee, and the task it
+ * paid for. Emptied for every other kind of entry, so a "Sewa" never carries
+ * a payee left over from the form. A task has to belong to the same season —
+ * a wage cannot be pinned on another planting's work.
+ */
+async function laborFields(entry: {
+  type: string;
+  category: string;
+  seasonId: string;
+  laborJob?: string;
+  payee?: string;
+  taskId?: string;
+}): Promise<
+  | { ok: true; data: { laborJob: string | null; payee: string | null; taskId: string | null } }
+  | (ActionResult & { ok: false })
+> {
+  if (!isLaborEntry(entry.type, entry.category)) {
+    return { ok: true, data: { laborJob: null, payee: null, taskId: null } };
+  }
+
+  if (entry.taskId) {
+    const task = await prisma.task.findFirst({
+      where: { id: entry.taskId, seasonId: entry.seasonId },
+      select: { id: true },
+    });
+    if (!task) {
+      return {
+        ok: false,
+        message: "Tugas itu tidak ada di musim ini.",
+        fieldErrors: { taskId: "Pilih lagi dari daftar" },
+      };
+    }
+  }
+
+  return {
+    ok: true,
+    data: {
+      laborJob: entry.laborJob || null,
+      payee: entry.payee || null,
+      taskId: entry.taskId || null,
+    },
+  };
+}
+
 export async function createFinanceEntry(
   formData: FormData
 ): Promise<ActionResult> {
@@ -34,6 +80,9 @@ export async function createFinanceEntry(
     description: formData.get("description"),
     date: formData.get("date"),
     proofUrl: "",
+    laborJob: formData.get("laborJob") ?? "",
+    payee: formData.get("payee") ?? "",
+    taskId: formData.get("taskId") ?? "",
   });
 
   if (!parsed.success) return invalidForm(parsed.error);
@@ -58,8 +107,20 @@ export async function createFinanceEntry(
   // returned; the schema field only exists so create and update share a shape.
   const { seasonId, type, category, amount, description, date } = parsed.data;
 
+  const labor = await laborFields(parsed.data);
+  if (!labor.ok) return labor;
+
   await prisma.financeTransaction.create({
-    data: { seasonId, type, category, amount, description, date, proofUrl },
+    data: {
+      seasonId,
+      type,
+      category,
+      amount,
+      description,
+      date,
+      proofUrl,
+      ...labor.data,
+    },
   });
 
   revalidate();
@@ -81,11 +142,18 @@ export async function updateFinanceEntry(
     description: formData.get("description"),
     date: formData.get("date"),
     proofUrl: formData.get("proofUrl") ?? "",
+    laborJob: formData.get("laborJob") ?? "",
+    payee: formData.get("payee") ?? "",
+    taskId: formData.get("taskId") ?? "",
   });
 
   if (!parsed.success) return invalidForm(parsed.error);
 
-  const { entryId, seasonId, proofUrl, ...rest } = parsed.data;
+  const { entryId, seasonId, proofUrl, laborJob, payee, taskId, ...rest } =
+    parsed.data;
+
+  const labor = await laborFields({ ...rest, seasonId, laborJob, payee, taskId });
+  if (!labor.ok) return labor;
 
   const existing = await prisma.financeTransaction.findFirst({
     where: { id: entryId, seasonId },
@@ -113,7 +181,7 @@ export async function updateFinanceEntry(
 
   await prisma.financeTransaction.update({
     where: { id: entryId },
-    data: { ...rest, seasonId, proofUrl: nextProof },
+    data: { ...rest, seasonId, proofUrl: nextProof, ...labor.data },
   });
 
   revalidate();

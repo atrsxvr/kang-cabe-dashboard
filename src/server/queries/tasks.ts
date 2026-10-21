@@ -36,6 +36,8 @@ export type TaskRow = {
   usageRecordedAt: Date | null;
   /** Amounts as copied when the task was written, not as the recipe reads now. */
   materials: TaskMaterialView[];
+  /** Wages paid for this task — hired hands, paid per job once it is done. */
+  laborPayments: { amount: number; payee: string | null }[];
 };
 
 const taskSelect = {
@@ -58,6 +60,11 @@ const taskSelect = {
       material: { select: { id: true, name: true, unit: true } },
     },
   },
+  laborPayments: {
+    where: { type: "EXPENSE" },
+    orderBy: { date: "asc" },
+    select: { amount: true, payee: true },
+  },
 } as const;
 
 type RawTask = {
@@ -76,6 +83,7 @@ type RawTask = {
     amount: number;
     material: { id: string; name: string; unit: string };
   }[];
+  laborPayments: { amount: number; payee: string | null }[];
 };
 
 function toRow(task: RawTask): TaskRow {
@@ -133,4 +141,18 @@ export async function countTasksByStatus(
 
   for (const row of grouped) counts[row.status] = row._count._all;
   return counts;
+}
+
+export type TaskOption = { id: string; title: string; completedAt: Date | null };
+
+/**
+ * Finished tasks of a season, newest first — what a wage can be paid for.
+ * Only finished ones: borongan is paid once the job is done.
+ */
+export async function listDoneTaskOptions(seasonId: string): Promise<TaskOption[]> {
+  return prisma.task.findMany({
+    where: { seasonId, status: "DONE" },
+    orderBy: [{ completedAt: "desc" }, { dueDate: "desc" }],
+    select: { id: true, title: true, completedAt: true },
+  });
 }

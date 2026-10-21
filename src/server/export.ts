@@ -143,13 +143,26 @@ async function financeCsv(seasonId: string): Promise<string> {
   const entries = (await listFinanceEntries(seasonId)).reverse();
 
   return toCsv(
-    ["Tanggal", "Jenis", "Kategori", "Keterangan", "Jumlah", "Ada bukti foto"],
+    [
+      "Tanggal",
+      "Jenis",
+      "Kategori",
+      "Keterangan",
+      "Jumlah",
+      "Pekerjaan",
+      "Dibayar ke",
+      "Untuk tugas",
+      "Ada bukti foto",
+    ],
     entries.map((entry) => [
       entry.date,
       entry.type === "INCOME" ? "Uang masuk" : "Uang keluar",
       entry.category,
       entry.description,
       entry.amount,
+      entry.laborJob,
+      entry.payee,
+      entry.task?.title ?? null,
       entry.proofUrl ? "Ya" : "Tidak",
     ])
   );
