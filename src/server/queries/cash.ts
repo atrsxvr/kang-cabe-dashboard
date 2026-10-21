@@ -55,7 +55,7 @@ export async function cashReport(): Promise<CashReport> {
     prisma.saleTransaction.findMany({
       select: {
         id: true,
-        buyerName: true,
+        buyer: { select: { name: true } },
         soldAt: true,
         isPaid: true,
         paidAt: true,
@@ -157,7 +157,7 @@ export async function cashReport(): Promise<CashReport> {
       date: sale.paidAt ?? sale.soldAt,
       source: "SALE",
       amount: total,
-      label: sale.buyerName,
+      label: sale.buyer.name,
       detail: sale.season.name,
     });
   }

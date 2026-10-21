@@ -2,6 +2,8 @@ import { readFileSync } from "node:fs";
 
 import { expect, test } from "@playwright/test";
 
+import { chooseNewBuyer } from "./buyer";
+
 /**
  * The season report and the spreadsheet exports.
  *
@@ -45,7 +47,7 @@ test.describe.serial("laporan musim dan unduhan", () => {
 
     await page.getByRole("button", { name: "Catat Penjualan" }).click();
     await page.getByLabel("Tanggal Jual", { exact: true }).fill("2026-06-02");
-    await page.getByLabel("Pembeli", { exact: true }).fill(BUYER);
+    await chooseNewBuyer(page, BUYER);
     await page.getByLabel("Bobot Bagus").fill("10");
     await page.getByLabel("Harga Bagus per kg").fill("30000");
     await page.getByRole("button", { name: "Simpan Penjualan" }).click();
@@ -99,9 +101,11 @@ test.describe.serial("laporan musim dan unduhan", () => {
 
     const lines = csv.slice(1).split("\r\n");
     expect(lines[0]).toBe(
-      "Tanggal;Pembeli;Mutu;Bobot (kg);Harga per kg;Jumlah baris;Pembulatan;Total nota;Status bayar;Tanggal lunas;Dicatat oleh;Catatan"
+      "Tanggal;Pembeli;Jenis pembeli;Lokasi pembeli;Mutu;Bobot (kg);Harga per kg;Jumlah baris;Pembulatan;Total nota;Status bayar;Tanggal lunas;Dicatat oleh;Catatan"
     );
-    expect(lines[1]).toContain(`2026-06-02;${BUYER};Bagus;10;30000;300000;0;300000;Belum`);
+    expect(lines[1]).toContain(
+      `2026-06-02;${BUYER};Pengepul;E2E Pasar Uji;Bagus;10;30000;300000;0;300000;Belum`
+    );
   });
 
   test("riwayat stok gudang bisa diunduh tanpa memilih musim", async ({

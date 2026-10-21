@@ -1,6 +1,6 @@
 "use client";
 
-import { useId, useState } from "react";
+import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Pencil, Plus } from "lucide-react";
 import { toast } from "sonner";
@@ -9,6 +9,7 @@ import { dateInputValue, Field } from "@/components/common/form-field";
 import { NativeSelect } from "@/components/common/native-select";
 import { RupiahInput } from "@/components/common/rupiah-input";
 import { SubmitButton } from "@/components/common/submit-button";
+import { BuyerFields } from "@/components/harvest/buyer-fields";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
@@ -30,11 +31,14 @@ import {
   lineTotal,
   type ChiliGradeValue,
 } from "@/lib/harvest";
+import { buyerKindLabels } from "@/lib/buyers";
 import { parseAmount } from "@/lib/dose";
 import { formatRupiah, roundUpToCash } from "@/lib/money";
 import { verdictFor } from "@/lib/pricing";
 import { cn } from "@/lib/utils";
 import { createSale, updateSale } from "@/server/actions/harvest";
+import { NEW_BUYER } from "@/server/actions/schemas";
+import type { BuyerOption } from "@/server/queries/buyers";
 import type { SaleRow } from "@/server/queries/harvest";
 import type { MemberOption } from "@/server/queries/users";
 
@@ -72,8 +76,8 @@ export function SaleDialog({
 }: {
   seasonId: string;
   members: MemberOption[];
-  /** Nama yang pernah dipakai, buat disarankan. */
-  buyers: string[];
+  /** Daftar pembeli, yang paling baru membeli di atas. */
+  buyers: BuyerOption[];
   sale?: SaleRow;
   /**
    * Modal per kilo buat menakar harga yang sedang diketik. Null kalau proyeksi
@@ -83,7 +87,9 @@ export function SaleDialog({
   projectedBep: number | null;
 }) {
   const editing = Boolean(sale);
-  const listId = useId();
+  // Nobody listed yet: straight to typing the first buyer in.
+  const initialBuyer = sale?.buyer.id ?? (buyers.length === 0 ? NEW_BUYER : "");
+  const [buyerId, setBuyerId] = useState(initialBuyer);
   const [open, setOpen] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [lines, setLines] = useState(fromSale(sale));
@@ -107,6 +113,7 @@ export function SaleDialog({
   const reset = () => {
     setErrors({});
     setLines(fromSale(sale));
+    setBuyerId(initialBuyer);
   };
 
   async function onSubmit(formData: FormData) {
@@ -194,26 +201,39 @@ export function SaleDialog({
               />
             </Field>
 
-            <Field id="buyerName" label="Pembeli" error={errors.buyerName}>
-              <Input
-                id="buyerName"
-                name="buyerName"
+            <Field id="buyerId" label="Pembeli" error={errors.buyerId}>
+              <NativeSelect
+                id="buyerId"
+                name="buyerId"
                 required
-                list={listId}
-                defaultValue={sale?.buyerName ?? ""}
-                placeholder="Pak Dedi (pengepul)"
-                aria-invalid={Boolean(errors.buyerName)}
-              />
-              {/* Suggestions rather than a buyer table: the same few pengepul
-                  come back, but a one-off restaurant should not need anyone
-                  registered first. */}
-              <datalist id={listId}>
-                {buyers.map((name) => (
-                  <option key={name} value={name} />
+                value={buyerId}
+                onChange={(event) => setBuyerId(event.target.value)}
+                aria-invalid={Boolean(errors.buyerId)}
+              >
+                <option value="" disabled>
+                  — pilih pembeli —
+                </option>
+                {buyers.map((buyer) => (
+                  <option key={buyer.id} value={buyer.id}>
+                    {buyer.name}
+                    {buyer.kind ? ` · ${buyerKindLabels[buyer.kind]}` : ""}
+                  </option>
                 ))}
-              </datalist>
+                {/* Last, so the regulars are what the thumb lands on first. */}
+                <option value={NEW_BUYER}>+ Pembeli baru…</option>
+              </NativeSelect>
             </Field>
           </div>
+
+          {/* A one-off buyer is recorded too, without leaving the sale. The
+              buyer is created in the same save, and not at all if the sale
+              is refused. */}
+          {buyerId === NEW_BUYER ? (
+            <fieldset className="grid gap-3 rounded-md border p-3">
+              <legend className="px-1 text-sm font-medium">Pembeli baru</legend>
+              <BuyerFields prefix="buyer" errors={errors} />
+            </fieldset>
+          ) : null}
 
           <fieldset className="grid gap-3 rounded-md border p-3">
             <legend className="px-1 text-sm font-medium">Yang dijual</legend>

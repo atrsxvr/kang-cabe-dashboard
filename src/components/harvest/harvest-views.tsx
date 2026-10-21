@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Coins, ReceiptText, Wheat } from "lucide-react";
+import { Coins, ReceiptText, Users, Wheat } from "lucide-react";
 
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
@@ -14,11 +14,16 @@ export function HarvestViews({
   sales,
   unpaid,
   unpaidCount,
+  buyers,
+  incompleteBuyers,
 }: {
   harvest: React.ReactNode;
   sales: React.ReactNode;
   unpaid: React.ReactNode;
   unpaidCount: number;
+  buyers: React.ReactNode;
+  /** Buyers brought over without location or kind, waiting to be completed. */
+  incompleteBuyers: number;
 }) {
   const [view, setView] = useState("harvest");
 
@@ -43,11 +48,21 @@ export function HarvestViews({
             </span>
           ) : null}
         </TabsTrigger>
+        <TabsTrigger value="buyers">
+          <Users className="size-4" aria-hidden />
+          Pembeli
+          {incompleteBuyers > 0 ? (
+            <span className="ml-1 rounded-full bg-amber-500/20 px-1.5 text-xs tabular-nums text-amber-800 dark:text-amber-300">
+              {incompleteBuyers}
+            </span>
+          ) : null}
+        </TabsTrigger>
       </TabsList>
 
       <TabsContent value="harvest">{harvest}</TabsContent>
       <TabsContent value="sales">{sales}</TabsContent>
       <TabsContent value="unpaid">{unpaid}</TabsContent>
+      <TabsContent value="buyers">{buyers}</TabsContent>
     </Tabs>
   );
 }

@@ -1,5 +1,7 @@
 import { expect, test, type Page } from "@playwright/test";
 
+import { chooseNewBuyer } from "./buyer";
+
 /**
  * Closing a season goes through its checklist.
  *
@@ -38,7 +40,7 @@ test.describe.serial("tutup musim", () => {
 
     await page.getByRole("button", { name: "Catat Penjualan" }).click();
     await page.getByLabel("Tanggal Jual", { exact: true }).fill("2026-06-02");
-    await page.getByLabel("Pembeli", { exact: true }).fill(`E2E Pembeli ${stamp}`);
+    await chooseNewBuyer(page, `E2E Pembeli ${stamp}`);
     await page.getByLabel("Bobot Bagus").fill("5");
     await page.getByLabel("Harga Bagus per kg").fill("30000");
     await page.getByRole("button", { name: "Simpan Penjualan" }).click();
