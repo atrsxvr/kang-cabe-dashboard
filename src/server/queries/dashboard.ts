@@ -40,6 +40,11 @@ export type DueTask = {
   /** Negatif berarti telat sekian hari. */
   daysLeft: number;
   assignees: string[];
+  /**
+   * Membawa bahan yang belum dicatat keluar dari gudang — jadi menandainya
+   * Selesai dari sini perlu mengajak "Catat pemakaian".
+   */
+  usagePending: boolean;
 };
 
 export type MixCapacity = {
@@ -109,6 +114,8 @@ export async function overview(
         title: true,
         status: true,
         dueDate: true,
+        usageRecordedAt: true,
+        _count: { select: { materials: true } },
         assignees: { select: { user: { select: { name: true } } } },
       },
     }),
@@ -179,6 +186,7 @@ export async function overview(
     dueDate: task.dueDate,
     daysLeft: daysUntil(task.dueDate, now),
     assignees: task.assignees.map((row) => row.user.name),
+    usagePending: task._count.materials > 0 && !task.usageRecordedAt,
   });
 
   const due = open.map(toDue);

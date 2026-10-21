@@ -56,6 +56,25 @@ describe("parseEnv", () => {
     ).toThrow(/DATABASE_URL/);
   });
 
+  it("reads an empty value as unset, the way .env.example leaves them", () => {
+    const env = parseEnv({
+      DATABASE_URL: valid.DATABASE_URL,
+      ...auth,
+      SUPABASE_SERVICE_ROLE_KEY: "",
+      NEXT_PUBLIC_VAPID_PUBLIC_KEY: "",
+      VAPID_SUBJECT: "",
+      CRON_SECRET: "",
+      BETTER_AUTH_URL: "",
+    });
+
+    expect(env.CRON_SECRET).toBeUndefined();
+    expect(env.BETTER_AUTH_URL).toBe("http://localhost:3000");
+  });
+
+  it("still names a required variable left empty", () => {
+    expect(() => parseEnv({ DATABASE_URL: "" })).toThrow(/DATABASE_URL/);
+  });
+
   it("rejects a password left wrapped in the docs placeholder brackets", () => {
     // Square brackets are not legal in the userinfo component of a URL.
     expect(() =>

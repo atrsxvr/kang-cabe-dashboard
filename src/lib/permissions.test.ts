@@ -64,6 +64,14 @@ describe("canWrite", () => {
     }
   });
 
+  /** Pengingat tugas besok untuk semua, jadi semua bisa memasangnya di HP-nya. */
+  it("lets every member switch notifications on for their own phone", () => {
+    for (const role of ROLES) {
+      expect(canWrite(role, "notifications"), role).toBe(true);
+    }
+    expect(canWrite("SALES", "settings")).toBe(false);
+  });
+
   /**
    * Dan susut terpisah dari penjualan, yang tetap milik Sales. Kalau keduanya
    * satu wilayah, membuka susut ikut membuka penjualan.

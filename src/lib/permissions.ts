@@ -86,6 +86,15 @@ export const AREAS = [
   /** Setoran modal tiap anggota. */
   "capital",
   "settings",
+  /**
+   * Mendaftarkan HP sendiri untuk notifikasi, dan mencabutnya.
+   *
+   * Semua peran, karena yang diatur cuma HP masing-masing — aksinya sendiri
+   * yang memastikan tidak ada yang menyentuh perangkat orang lain. Bukan bagian
+   * dari `settings`, yang milik Admin: kalau digabung, tiga dari empat orang
+   * tidak akan pernah bisa menerima pengingat tugas besok.
+   */
+  "notifications",
 ] as const;
 
 export type Area = (typeof AREAS)[number];
@@ -126,6 +135,7 @@ const WRITERS: Record<Area, readonly Role[]> = {
   finance: ["ADMIN"],
   capital: ["ADMIN"],
   settings: ["ADMIN"],
+  notifications: ["ADMIN", "AGRONOMIST", "LOGISTICS", "SALES"],
 };
 
 export function canWrite(role: Role, area: Area): boolean {

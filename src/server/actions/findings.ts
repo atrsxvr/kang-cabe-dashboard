@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { after } from "next/server";
 
 import {
   canManageFinding,
@@ -10,6 +11,7 @@ import {
 import { prisma } from "@/lib/prisma";
 import { invalidForm, type ActionResult } from "@/server/actions/result";
 import { guardWrite } from "@/server/auth/guard";
+import { notifyNewFinding } from "@/server/notifications";
 import {
   canAdvanceFinding,
   createFindingSchema,
@@ -69,7 +71,7 @@ export async function createFinding(formData: FormData): Promise<ActionResult> {
     photoUrl = uploaded.url;
   }
 
-  await prisma.healthLog.create({
+  const finding = await prisma.healthLog.create({
     data: {
       ...rest,
       seasonId,
@@ -77,7 +79,17 @@ export async function createFinding(formData: FormData): Promise<ActionResult> {
       location: location ? location : null,
       reportedById: reporter,
     },
+    select: { id: true },
   });
+
+  // After the response, so saving does not wait on push services — and a
+  // phone that cannot be reached never turns a saved finding into an error.
+  const recordedBy = allowed.actor.id;
+  after(() =>
+    notifyNewFinding(finding.id, recordedBy).catch((error) =>
+      console.error("[push] new finding", error)
+    )
+  );
 
   revalidatePath("/health");
   return { ok: true };

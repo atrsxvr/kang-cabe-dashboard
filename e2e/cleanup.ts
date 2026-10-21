@@ -3,6 +3,7 @@ import "dotenv/config";
 import { PrismaPg } from "@prisma/adapter-pg";
 
 import { PrismaClient } from "../src/generated/prisma/client";
+import { FAKE_PUSH_ORIGIN } from "./push";
 
 /**
  * Removes everything the specs made.
@@ -82,8 +83,15 @@ async function cleanup() {
       where: { token: { startsWith: "E2E-session-" } },
     });
 
+    // Langganan notifikasi palsu dari notifications.spec.ts. Ia menempel pada
+    // anggota sungguhan — sesi tes memakai Admin yang ada — jadi dikenali dari
+    // alamatnya, yang tidak mungkin dimiliki HP mana pun.
+    const devices = await prisma.pushSubscription.deleteMany({
+      where: { endpoint: { startsWith: FAKE_PUSH_ORIGIN } },
+    });
+
     console.log(
-      `Teardown: ${materialIds.length} bahan, ${taskIds.length} tugas, ${seasons.count} musim, ${contributions.count} setoran, ${payouts.count} uang keluar, ${openings.count} saldo awal, ${buyers.count} pembeli, ${sessions.count} sesi E2E dibersihkan.`
+      `Teardown: ${materialIds.length} bahan, ${taskIds.length} tugas, ${seasons.count} musim, ${contributions.count} setoran, ${payouts.count} uang keluar, ${openings.count} saldo awal, ${buyers.count} pembeli, ${sessions.count} sesi, ${devices.count} langganan notifikasi E2E dibersihkan.`
     );
   } finally {
     await prisma.$disconnect();

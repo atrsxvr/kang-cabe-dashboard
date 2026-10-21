@@ -69,7 +69,7 @@ export async function createTask(formData: FormData): Promise<ActionResult> {
 
   if (!season) return { ok: false, message: "Musim tidak ditemukan." };
 
-  await prisma.task.create({
+  const task = await prisma.task.create({
     data: {
       ...rest,
       seasonId,
@@ -83,10 +83,11 @@ export async function createTask(formData: FormData): Promise<ActionResult> {
       },
       materials: { create: materials },
     },
+    select: { id: true },
   });
 
   revalidatePath("/tasks");
-  return { ok: true };
+  return { ok: true, taskId: task.id };
 }
 
 export async function updateTaskStatus(

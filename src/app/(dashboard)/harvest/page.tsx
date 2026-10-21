@@ -6,6 +6,7 @@ import { CanWrite } from "@/components/auth/can-write";
 import { PageHeader } from "@/components/common/page-header";
 import { StatusBadge } from "@/components/common/status-badge";
 import { HarvestChart } from "@/components/charts/harvest-chart";
+import { PriceChart } from "@/components/charts/price-chart";
 import { SpreadCard } from "@/components/harvest/spread-card";
 import { HarvestDialog } from "@/components/harvest/harvest-dialog";
 import { HarvestList } from "@/components/harvest/harvest-list";
@@ -25,6 +26,7 @@ import {
 } from "@/lib/harvest";
 import { formatDate } from "@/lib/hst";
 import { formatRupiah } from "@/lib/money";
+import { priceTrend } from "@/lib/price-trend";
 import { readSeasonParam } from "@/lib/season-param";
 import { buyerOptions, listBuyers } from "@/server/queries/buyers";
 import {
@@ -60,6 +62,7 @@ export default async function HarvestPage(props: PageProps<"/harvest">) {
     ]);
 
   const unpaid = sales.filter((sale) => !sale.isPaid);
+  const trend = priceTrend(sales);
 
   return (
     <>
@@ -239,14 +242,43 @@ export default async function HarvestPage(props: PageProps<"/harvest">) {
           </div>
         }
         sales={
-          <SaleList
-            projectedBep={pricing.projectedBep}
-            sales={sales}
-            seasonId={season.id}
-            members={members}
-            buyers={buyers}
-            empty="Belum ada penjualan tercatat di musim ini."
-          />
+          <div className="grid gap-6">
+            {trend.length > 0 ? (
+              <Card>
+                <CardContent className="py-5">
+                  <h2 className="mb-1 text-sm font-medium">
+                    Harga jual {gradeLabels.GOOD} per kg
+                  </h2>
+                  {trend.length > 1 ? (
+                    <>
+                      <p className="text-muted-foreground mb-3 text-xs">
+                        Satu titik per hari penjualan, dirata-rata menurut
+                        kilonya.{" "}
+                        {pricing.projectedBep
+                          ? `Garis putus-putus: titik impas musim ini, ${formatRupiah(pricing.projectedBep)}/kg.`
+                          : "Garis titik impas muncul setelah proyeksi panen musim ini diisi di Edit Musim."}
+                      </p>
+                      <PriceChart points={trend} floor={pricing.projectedBep} />
+                    </>
+                  ) : (
+                    <p className="text-muted-foreground text-xs">
+                      Grafiknya muncul setelah ada penjualan di dua hari
+                      berbeda.
+                    </p>
+                  )}
+                </CardContent>
+              </Card>
+            ) : null}
+
+            <SaleList
+              projectedBep={pricing.projectedBep}
+              sales={sales}
+              seasonId={season.id}
+              members={members}
+              buyers={buyers}
+              empty="Belum ada penjualan tercatat di musim ini."
+            />
+          </div>
         }
         unpaid={
           <SaleList

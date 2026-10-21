@@ -95,12 +95,95 @@ test.describe.serial("tutup musim", () => {
     await expect(card.getByRole("button", { name: "Tutup Musim" })).toBeVisible();
   });
 
-  test("musim baru tidak bisa langsung dibuat Selesai", async ({ page }) => {
+  test("musim baru tidak bisa langsung dibuat Selesai atau Arsip", async ({ page }) => {
     await page.goto("/seasons");
     await page.getByRole("button", { name: "Tambah Musim" }).click();
 
     const status = page.getByRole("dialog").getByLabel("Status", { exact: true });
     await expect(status.locator("option", { hasText: "Perencanaan" })).toHaveCount(1);
     await expect(status.locator("option", { hasText: "Selesai" })).toHaveCount(0);
+    await expect(status.locator("option", { hasText: "Arsip" })).toHaveCount(0);
+  });
+});
+
+/**
+ * The other half: a season with nothing left unsettled closes, and its
+ * report stops calling its numbers provisional.
+ *
+ * Its own season — everything picked is sold and paid — plus one test
+ * capital contribution, since the margin is split by capital and the
+ * checklist wants some. Both are removed by the teardown ("E2E" prefix).
+ */
+test.describe.serial("tutup musim yang sudah beres", () => {
+  const SETTLED = `E2E Musim Beres ${Date.now()}`;
+  let settledId = "";
+
+  test("menyiapkan musim yang semua panennya laku dan lunas", async ({ page }) => {
+    await page.goto("/seasons");
+    await page.getByRole("button", { name: "Tambah Musim" }).click();
+    await page.getByLabel("Nama Musim", { exact: true }).fill(SETTLED);
+    await page.getByLabel("Varietas Benih", { exact: true }).fill("E2E Rawit");
+    await page.getByLabel("Jumlah Populasi", { exact: true }).fill("100");
+    await page.getByLabel("Tanggal Tanam", { exact: true }).fill("2026-01-01");
+    await page.getByRole("button", { name: "Simpan Musim" }).click();
+    await expect(page).toHaveURL(/season=/);
+    settledId = new URL(page.url()).searchParams.get("season") ?? "";
+
+    await page.goto(`/harvest?season=${settledId}`);
+    await page.getByRole("button", { name: "Catat Panen" }).click();
+    await page.getByLabel("Tanggal Panen", { exact: true }).fill("2026-06-01");
+    await page.getByLabel("Bagus (kg)", { exact: true }).fill("10");
+    await page.getByRole("button", { name: "Simpan Panen" }).click();
+    await expect(page.getByRole("dialog")).toHaveCount(0);
+
+    await page.getByRole("button", { name: "Catat Penjualan" }).click();
+    const sale = page.getByRole("dialog");
+    await sale.getByLabel("Tanggal Jual", { exact: true }).fill("2026-06-02");
+    await chooseNewBuyer(sale, `E2E Pembeli Beres ${settledId.slice(0, 8)}`);
+    await sale.getByLabel("Bobot Bagus").fill("10");
+    await sale.getByLabel("Harga Bagus per kg").fill("30000");
+    await sale.getByRole("checkbox", { name: "Sudah dibayar" }).check();
+    await sale.getByRole("button", { name: "Simpan Penjualan" }).click();
+    await expect(sale).toHaveCount(0);
+
+    await page.goto(`/finance?season=${settledId}`);
+    await page.getByRole("tab", { name: "Modal" }).click();
+    await page.getByRole("button", { name: "Catat Setoran" }).click();
+    const setor = page.getByRole("dialog");
+    await setor.getByLabel("Jumlah (Rp)").fill("1000000");
+    await setor.getByLabel("Catatan (opsional)").fill(`E2E setoran musim beres ${settledId}`);
+    await setor.getByRole("button", { name: "Simpan Setoran" }).click();
+    await expect(setor).toBeHidden();
+  });
+
+  test("semua beres, musim ditutup, laporannya tidak lagi sementara", async ({ page }) => {
+    await page.goto("/seasons");
+    const card = page.locator('[data-slot="card"]').filter({ hasText: SETTLED });
+    await card.getByRole("button", { name: "Berjalan" }).click();
+    await expect(card.getByText("Berjalan").first()).toBeVisible();
+    await card.getByRole("button", { name: "Panen" }).click();
+    await card.getByRole("button", { name: "Tutup Musim" }).click();
+
+    const dialog = page.getByRole("dialog");
+    const list = dialog.getByRole("list", { name: "Daftar periksa tutup musim" });
+    await expect(list).toBeVisible();
+
+    // The one check this test cannot control: unpriced purchases anywhere in
+    // the shed. A database holding real ones says nothing about closing.
+    test.skip(
+      (await list.getByText("Semua belanja di gudang ada harganya").count()) === 0,
+      "Gudang di basis data ini punya belanja tanpa harga dari data lain."
+    );
+
+    await expect(list.getByLabel("Belum beres")).toHaveCount(0);
+    await dialog.getByRole("button", { name: "Tutup Musim", exact: true }).click();
+    await expect(dialog.getByText(`${SETTLED} ditutup`)).toBeVisible();
+
+    await dialog.getByRole("link", { name: "Buka Laporan Musim" }).click();
+    await expect(page).toHaveURL(new RegExp(`/laporan/${settledId}`));
+    await expect(page.getByRole("heading", { name: SETTLED })).toBeVisible();
+    await expect(page.getByText(/belum ditutup/)).toHaveCount(0);
+    // Split by capital as it stood on the day it closed.
+    await expect(page.getByText(/saat musim ditutup/)).toBeVisible();
   });
 });

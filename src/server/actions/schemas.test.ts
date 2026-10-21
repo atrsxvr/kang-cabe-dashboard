@@ -25,6 +25,18 @@ const validSeason = {
 };
 
 describe("createSeasonSchema", () => {
+  /** Selesai only through Tutup Musim's checklist; Arsip only through Arsipkan. */
+  it("refuses a new season that starts out closed or archived", () => {
+    for (const status of ["COMPLETED", "ARCHIVED"]) {
+      expect(createSeasonSchema.safeParse({ ...validSeason, status }).success, status).toBe(
+        false
+      );
+    }
+    expect(createSeasonSchema.safeParse({ ...validSeason, status: "ACTIVE" }).success).toBe(
+      true
+    );
+  });
+
   it("coerces the string values a FormData submit produces", () => {
     const parsed = createSeasonSchema.parse(validSeason);
     expect(parsed.plantCount).toBe(5000);

@@ -3,6 +3,7 @@ import { connection } from "next/server";
 
 import { CanWrite } from "@/components/auth/can-write";
 import { PageHeader } from "@/components/common/page-header";
+import { PushSettings } from "@/components/settings/push-settings";
 import { GardenProfileForm } from "@/components/settings/garden-profile-form";
 import { MemberActiveAction } from "@/components/settings/member-active-action";
 import { MemberDialog } from "@/components/settings/member-dialog";
@@ -50,6 +51,11 @@ export default async function SettingsPage() {
           <MemberDialog />
         </CanWrite>
       </div>
+
+      {/* First, and outside CanWrite: everything else here is Admin's to
+          change, but each member switches notifications on for their own
+          phone. */}
+      <PushSettings />
 
       <section className="mb-8 grid gap-3">
         <div className="flex flex-wrap items-baseline justify-between gap-2">

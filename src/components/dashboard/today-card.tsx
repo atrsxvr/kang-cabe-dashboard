@@ -21,10 +21,13 @@ export function TodayCard({
   dueToday,
   overdue,
   seasonId,
+  canRecordUsage,
 }: {
   dueToday: DueTask[];
   overdue: DueTask[];
   seasonId: string;
+  /** Boleh "Catat pemakaian" — yang diajak setelah menandai Selesai. */
+  canRecordUsage: boolean;
 }) {
   const rows = [...overdue, ...dueToday];
 
@@ -84,6 +87,7 @@ export function TodayCard({
                   seasonId={seasonId}
                   status={task.status}
                   variant="card"
+                  usagePending={canRecordUsage && task.usagePending}
                 />
               </li>
             ))}

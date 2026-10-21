@@ -7,7 +7,9 @@
  * function, and a "use server" module may only export async functions.
  */
 export type ActionResult =
-  | { ok: true; seasonId?: string; message?: string }
+  // `taskId`: the task createTask just made, so the form can offer
+  // "Catat pemakaian" for it without waiting to find it on the board.
+  | { ok: true; seasonId?: string; taskId?: string; message?: string }
   | { ok: false; message: string; fieldErrors?: Record<string, string> };
 
 export function fieldErrorsOf(error: {

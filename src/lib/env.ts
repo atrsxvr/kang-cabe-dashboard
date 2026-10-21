@@ -58,6 +58,19 @@ const schema = z.object({
    * Yang belum dikonfigurasi tetap tidak bisa masuk; ia cuma diberi tahu
    * sebabnya alih-alih dilempar 500.
    */
+  // Push notifications. All optional: without them the app runs and simply
+  // sends nothing — the notification card says so instead of failing.
+  // Generated once with `web-push generate-vapid-keys`; the public half is
+  // read by the browser, so it carries the NEXT_PUBLIC_ prefix.
+  NEXT_PUBLIC_VAPID_PUBLIC_KEY: z.string().min(40).optional(),
+  VAPID_PRIVATE_KEY: z.string().min(20).optional(),
+  // Who the push services can contact about these messages: a mailto: or an
+  // https: URL. Defaults to the app's own address.
+  VAPID_SUBJECT: z.string().regex(/^(mailto:|https:\/\/)/, "mailto: atau https://").optional(),
+  // Shared with Vercel Cron, which sends it as a bearer token, so that only
+  // the scheduler can trigger the daily "tugas besok" notification.
+  CRON_SECRET: z.string().min(16).optional(),
+
   GOOGLE_CLIENT_ID: z.string().min(10).optional(),
   GOOGLE_CLIENT_SECRET: z.string().min(10).optional(),
   /** Kunci penanda tangan cookie sesi. Bikin dengan `openssl rand -base64 32`. */
@@ -134,7 +147,13 @@ export function isAuthConfigured(env: Env): boolean {
 }
 
 export function parseEnv(source: Record<string, string | undefined>): Env {
-  const result = schema.safeParse(source);
+  // `KEY=""` is how .env.example leaves what is optional, and dotenv keeps it
+  // as an empty string — which then fails `min(…)` on a variable nobody was
+  // asked to fill in. Empty means unset.
+  const given = Object.fromEntries(
+    Object.entries(source).filter(([, value]) => value !== "")
+  );
+  const result = schema.safeParse(given);
 
   if (!result.success) {
     const details = result.error.issues

@@ -10,6 +10,7 @@ import { NativeSelect } from "@/components/common/native-select";
 import { SubmitButton } from "@/components/common/submit-button";
 import { RecipePicker } from "@/components/health/recipe-picker";
 import { MaterialPicker } from "@/components/tasks/material-picker";
+import { useOfferUsage } from "@/components/tasks/usage-offer";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
@@ -56,6 +57,7 @@ export function TaskDialog({
   const [open, setOpen] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const router = useRouter();
+  const offerUsage = useOfferUsage();
 
   // Controlled so the recipe picker can write into them.
   const [title, setTitle] = useState(task?.title ?? "");
@@ -121,6 +123,13 @@ export function TaskDialog({
       toast.error(result.message);
       return;
     }
+
+    // Finished by this save, with materials the shed has not been told
+    // about: ask, once the board shows it done. `locked` means the usage is
+    // already recorded.
+    const finished = formData.get("status") === "DONE" && task?.status !== "DONE";
+    const taskId = task?.id ?? result.taskId;
+    if (finished && used.length > 0 && !locked && taskId) offerUsage?.(taskId);
 
     setOpen(false);
     reset();

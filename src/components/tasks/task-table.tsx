@@ -150,6 +150,11 @@ export function TaskTable({
                           taskId={task.id}
                           seasonId={seasonId}
                           status={task.status}
+                          usagePending={
+                            canRecordUsage &&
+                            task.materials.length > 0 &&
+                            !task.usageRecordedAt
+                          }
                         />
                         <TaskDialog
                           seasonId={seasonId}

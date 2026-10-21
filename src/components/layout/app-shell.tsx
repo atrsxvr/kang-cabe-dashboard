@@ -6,6 +6,7 @@ import { Menu, Sprout, X } from "lucide-react";
 import { SidebarNav } from "@/components/layout/sidebar-nav";
 import { AccountMenu } from "@/components/auth/account-menu";
 import { OfflineBanner } from "@/components/layout/offline-banner";
+import { PwaRegister } from "@/components/layout/pwa-register";
 import { ThemeToggle } from "@/components/layout/theme-toggle";
 import { Button } from "@/components/ui/button";
 import type { Role } from "@/lib/permissions";
@@ -192,6 +193,7 @@ export function AppShell({
         </header>
 
         <OfflineBanner />
+        <PwaRegister />
         <main className="min-w-0 flex-1 p-4 sm:p-6">{children}</main>
       </div>
     </div>
