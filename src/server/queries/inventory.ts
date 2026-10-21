@@ -38,7 +38,7 @@ export type StockRow = {
    * The movement written when the material was registered with stock, if it
    * was. Its value is what the edit dialog lets someone correct.
    */
-  opening: { totalCost: number | null } | null;
+  opening: { totalCost: number | null; delta: number } | null;
   /** Which recipes call for it — what makes the shopping list actionable. */
   usedBy: { id: string; name: string; amountPerLiter: number }[];
   _count: { recipeItems: number; movements: number; taskUsages: number };
@@ -62,7 +62,9 @@ export async function listStock(
         where: { reason: "CORRECTION", note: OPENING_NOTE },
         orderBy: { createdAt: "asc" },
         take: 1,
-        select: { totalCost: true },
+        // The quantity too: a price per kg is only a total once it knows
+        // how much of the material it was for.
+        select: { totalCost: true, delta: true },
       },
       recipeItems: {
         select: {

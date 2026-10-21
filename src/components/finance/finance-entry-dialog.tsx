@@ -210,7 +210,8 @@ export function FinanceEntryDialog({
                 id="entry-proof"
                 type="file"
                 accept="image/*"
-                capture="environment"
+                // No `capture`: proof of a transfer is usually a screenshot
+                // already in the gallery, which `capture` would hide.
                 onChange={(event) => setProof(event.target.files?.[0] ?? null)}
               />
               {entry?.proofUrl && keepProof && !proof ? (

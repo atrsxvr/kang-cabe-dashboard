@@ -1,15 +1,18 @@
 import { describe, expect, it } from "vitest";
 
 import {
-  describePurchase,
+  canDeleteMaterial,
   describeShortfall,
   expiryStatus,
-  canDeleteMaterial,
   formatStock,
   isDosable,
   needsRestock,
+  priceBases,
+  restockSuggestion,
   stockStatus,
+  totalFromUnitPrice,
   unitLocked,
+  unitPriceFromTotal,
 } from "@/lib/stock";
 
 describe("stockStatus", () => {
@@ -106,24 +109,52 @@ describe("describeShortfall", () => {
   });
 });
 
-describe("describePurchase", () => {
-  it("leads with the pack when the material knows how it is bought", () => {
-    expect(describePurchase(10000, "gram", "sak", 5000)).toBe(
-      "2 sak (10 kg)"
+describe("restockSuggestion", () => {
+  it("names whole packs, enough to clear the threshold", () => {
+    // 100 g left, line at 200 g, sold in 1 kg bags.
+    expect(restockSuggestion(100, 200, "gram", "bungkus", 1000)).toEqual({
+      text: "beli 1 bungkus (1 kg)",
+      amount: 1000,
+    });
+  });
+
+  it("clears the line rather than landing on it", () => {
+    // Short by exactly one sack: one sack would leave it Menipis again.
+    expect(restockSuggestion(0, 5000, "gram", "sak", 5000).amount).toBe(10000);
+    // Sitting exactly on the line is already Menipis, so one pack is due.
+    expect(restockSuggestion(200, 200, "gram", "bungkus", 1000).amount).toBe(
+      1000
     );
   });
 
-  /** Half a sack is not sold, and coming home short costs another trip. */
-  it("rounds up to a whole pack", () => {
-    expect(describePurchase(5001, "gram", "sak", 5000)).toContain("2 sak");
+  it("buys enough packs that stock ends above the threshold", () => {
+    for (const [stock, min, size] of [
+      [100, 200, 1000],
+      [0, 5000, 5000],
+      [300, 2500, 500],
+      [2499, 2500, 500],
+    ]) {
+      const { amount } = restockSuggestion(stock, min, "gram", "pak", size);
+      expect(stock + amount!).toBeGreaterThan(min);
+    }
   });
 
-  it("falls back to the exact figure when no purchase unit is set", () => {
-    expect(describePurchase(5000, "gram", null, null)).toBe("5 kg");
+  it("says 'more than' without a pack, and pre-fills nothing", () => {
+    expect(restockSuggestion(500, 2000, "gram", null, null)).toEqual({
+      text: "beli lebih dari 1,5 kg",
+      amount: null,
+    });
+    // In the same scale as "sisa 0,01 kg (min 1 kg)" beside it.
+    expect(restockSuggestion(10, 1000, "gram", null, null).text).toBe(
+      "beli lebih dari 0,99 kg"
+    );
+    expect(restockSuggestion(200, 200, "gram", null, null).text).toContain(
+      "tepat di batas"
+    );
   });
 
   it("ignores a nonsense pack size rather than dividing by zero", () => {
-    expect(describePurchase(5000, "gram", "sak", 0)).toBe("5 kg");
+    expect(restockSuggestion(0, 5000, "gram", "sak", 0).amount).toBeNull();
   });
 });
 
@@ -181,5 +212,44 @@ describe("canDeleteMaterial", () => {
     expect(canDeleteMaterial({ ...none, movements: 1 }, false)).toBe(false);
     expect(canDeleteMaterial({ ...none, recipeItems: 1 }, false)).toBe(false);
     expect(canDeleteMaterial({ ...none, taskUsages: 1 }, false)).toBe(false);
+  });
+});
+
+describe("prices quoted the way the shop quotes them", () => {
+  it("offers per kg and per gram for grams, per liter and per ml for ml", () => {
+    expect(priceBases("gram")).toEqual([
+      { label: "kg", per: 1000 },
+      { label: "gram", per: 1 },
+    ]);
+    expect(priceBases("ml")).toEqual([
+      { label: "liter", per: 1000 },
+      { label: "ml", per: 1 },
+    ]);
+  });
+
+  it("prices anything else per itself", () => {
+    expect(priceBases("pcs")).toEqual([{ label: "pcs", per: 1 }]);
+  });
+
+  it("turns Rp 25.000 per kg for 200 gram into Rp 5.000", () => {
+    expect(totalFromUnitPrice(25_000, 200, 1000)).toBe(5_000);
+  });
+
+  it("takes a maker's price per ml as it is", () => {
+    // Rp 150/ml, 250 ml bottle.
+    expect(totalFromUnitPrice(150, 250, 1)).toBe(37_500);
+  });
+
+  it("rounds to whole rupiah", () => {
+    expect(totalFromUnitPrice(25_000, 333, 1000)).toBe(8_325);
+    expect(totalFromUnitPrice(99_999, 0.5, 1000)).toBe(50);
+  });
+
+  it("reads a total back as a price per quoted unit", () => {
+    expect(unitPriceFromTotal(5_000, 200, 1000)).toBe(25_000);
+    expect(unitPriceFromTotal(37_500, 250, 1)).toBe(150);
+    // The mistake this exists to show: the per-kg price typed as the total.
+    expect(unitPriceFromTotal(25_000, 200, 1000)).toBe(125_000);
+    expect(unitPriceFromTotal(5_000, 0, 1000)).toBeNull();
   });
 });
