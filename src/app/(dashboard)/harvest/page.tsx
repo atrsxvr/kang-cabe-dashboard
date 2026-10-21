@@ -10,6 +10,7 @@ import { SpreadCard } from "@/components/harvest/spread-card";
 import { HarvestDialog } from "@/components/harvest/harvest-dialog";
 import { HarvestList } from "@/components/harvest/harvest-list";
 import { HarvestViews } from "@/components/harvest/harvest-views";
+import { BuyerList } from "@/components/harvest/buyer-list";
 import { SaleDialog } from "@/components/harvest/sale-dialog";
 import { SaleList } from "@/components/harvest/sale-list";
 import { Button } from "@/components/ui/button";
@@ -25,8 +26,8 @@ import {
 import { formatDate } from "@/lib/hst";
 import { formatRupiah } from "@/lib/money";
 import { readSeasonParam } from "@/lib/season-param";
+import { buyerOptions, listBuyers } from "@/server/queries/buyers";
 import {
-  buyerSuggestions,
   harvestCurve,
   harvestSummary,
   listHarvests,
@@ -46,13 +47,14 @@ export default async function HarvestPage(props: PageProps<"/harvest">) {
 
   if (!season) return <NoSeason />;
 
-  const [harvests, sales, summary, members, buyers, curve, pricing] =
+  const [harvests, sales, summary, members, buyers, buyerRows, curve, pricing] =
     await Promise.all([
       listHarvests(season.id),
       listSales(season.id),
       harvestSummary(season.id),
       listActiveMembers(),
-      buyerSuggestions(),
+      buyerOptions(),
+      listBuyers(),
       harvestCurve(season.id, season.startDate),
       pricingGuide(season.id),
     ]);
@@ -256,6 +258,8 @@ export default async function HarvestPage(props: PageProps<"/harvest">) {
             empty="Nggak ada tagihan yang menggantung. Semua sudah dibayar."
           />
         }
+        buyers={<BuyerList buyers={buyerRows} />}
+        incompleteBuyers={buyerRows.filter((buyer) => buyer.incomplete).length}
       />
     </>
   );

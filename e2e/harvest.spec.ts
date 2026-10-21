@@ -1,5 +1,7 @@
 import { expect, test, type Page } from "@playwright/test";
 
+import { chooseNewBuyer } from "./buyer";
+
 /**
  * The other half of the money: chillies are picked, some sit waiting, some go
  * out, and the buyer pays later. Every step crosses the browser, a Server
@@ -98,7 +100,7 @@ test.describe.serial("panen, jual, tagih", () => {
     await page.getByRole("button", { name: "Catat Penjualan" }).click();
 
     await page.getByLabel("Tanggal Jual", { exact: true }).fill("2026-06-02");
-    await page.getByLabel("Pembeli", { exact: true }).fill(BUYER);
+    await chooseNewBuyer(page, BUYER);
 
     await page.getByLabel("Bobot Bagus").fill("15");
     await page.getByLabel("Harga Bagus per kg").fill("45000");
@@ -149,7 +151,7 @@ test.describe.serial("panen, jual, tagih", () => {
     await page.getByRole("button", { name: "Catat Penjualan" }).click();
 
     await page.getByLabel("Tanggal Jual", { exact: true }).fill("2026-06-03");
-    await page.getByLabel("Pembeli", { exact: true }).fill(`${BUYER} kecil`);
+    await chooseNewBuyer(page, `${BUYER} kecil`);
     await page.getByLabel("Bobot Bagus").fill("0,25");
     await page.getByLabel("Harga Bagus per kg").fill("45000");
 

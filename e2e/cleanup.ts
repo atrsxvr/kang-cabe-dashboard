@@ -49,7 +49,13 @@ async function cleanup() {
     await prisma.recipe.deleteMany({ where: { name: { startsWith: "E2E " } } });
 
     await prisma.saleTransaction.deleteMany({
-      where: { buyerName: { startsWith: "E2E " } },
+      where: { buyer: { name: { startsWith: "E2E " } } },
+    });
+    // Buyers last, and only those left without sales: a test buyer whose
+    // sales went with an E2E season is gone with them, and a real buyer is
+    // never named "E2E …".
+    const buyers = await prisma.buyer.deleteMany({
+      where: { name: { startsWith: "E2E " }, sales: { none: {} } },
     });
 
     // Uang keluar lebih dulu: ia menunjuk musim, dan catatan ini tidak ikut
@@ -77,7 +83,7 @@ async function cleanup() {
     });
 
     console.log(
-      `Teardown: ${materialIds.length} bahan, ${taskIds.length} tugas, ${seasons.count} musim, ${contributions.count} setoran, ${payouts.count} uang keluar, ${openings.count} saldo awal, ${sessions.count} sesi E2E dibersihkan.`
+      `Teardown: ${materialIds.length} bahan, ${taskIds.length} tugas, ${seasons.count} musim, ${contributions.count} setoran, ${payouts.count} uang keluar, ${openings.count} saldo awal, ${buyers.count} pembeli, ${sessions.count} sesi E2E dibersihkan.`
     );
   } finally {
     await prisma.$disconnect();

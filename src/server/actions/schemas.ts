@@ -1,5 +1,7 @@
 import { z } from "zod";
 
+import { BUYER_KINDS, waNumber } from "@/lib/buyers";
+
 /**
  * Pure schemas, importable from tests and from client components that want to
  * mirror the rules. No `server-only` here on purpose.
@@ -494,10 +496,42 @@ const saleItem = z.object({
   pricePerKg: rupiah.refine((value) => value > 0, "Isi harganya"),
 });
 
+/**
+ * A buyer. Location and kind are required of every buyer recorded through
+ * the app; only buyers brought over from the old free-typed names lack them.
+ */
+/** The buyer picker's value for "someone not in the list yet". */
+export const NEW_BUYER = "new";
+
+export const buyerSchema = z.object({
+  name: z.string().trim().min(2, "Nama pembeli minimal 2 karakter").max(120),
+  location: z.string().trim().min(2, "Lokasi wajib diisi").max(120),
+  kind: z.enum(BUYER_KINDS, "Pilih jenis pembeli"),
+  whatsapp: z
+    .string()
+    .trim()
+    .max(30)
+    .optional()
+    .or(z.literal(""))
+    .refine((value) => !value || waNumber(value) !== null, "Nomor WhatsApp tidak valid"),
+});
+
+export const updateBuyerSchema = buyerSchema.extend({
+  buyerId: z.string().min(1),
+});
+
+export const mergeBuyerSchema = z.object({
+  /** The duplicate, which disappears. */
+  fromId: z.string().min(1),
+  /** The one that stays and takes over every sale. */
+  intoId: z.string().min(1, "Pilih pembeli tujuan"),
+});
+
 const saleBase = {
   seasonId: z.string().min(1),
   soldAt: z.coerce.date("Tanggal penjualan tidak valid"),
-  buyerName: z.string().trim().min(2, "Nama pembeli minimal 2 karakter").max(120),
+  /** An existing buyer's id, or NEW_BUYER with the buyer's fields alongside. */
+  buyerId: z.string().min(1, "Pilih pembeli"),
   isPaid: z.coerce.boolean().optional(),
   notes: z.string().trim().max(500).optional().or(z.literal("")),
   recordedById: z.string().optional().or(z.literal("")),

@@ -2,6 +2,7 @@ import "server-only";
 
 import { cache } from "react";
 
+import type { BuyerKindValue } from "@/lib/buyers";
 import { prisma } from "@/lib/prisma";
 import { calculateHst, formatDate } from "@/lib/hst";
 import { roundUpToCash } from "@/lib/money";
@@ -64,7 +65,12 @@ export type SaleItemRow = {
 export type SaleRow = {
   id: string;
   soldAt: Date;
-  buyerName: string;
+  buyer: {
+    id: string;
+    name: string;
+    kind: BuyerKindValue | null;
+    location: string | null;
+  };
   isPaid: boolean;
   paidAt: Date | null;
   notes: string | null;
@@ -86,7 +92,7 @@ export async function listSales(seasonId: string): Promise<SaleRow[]> {
     select: {
       id: true,
       soldAt: true,
-      buyerName: true,
+      buyer: { select: { id: true, name: true, kind: true, location: true } },
       isPaid: true,
       paidAt: true,
       notes: true,
@@ -276,23 +282,6 @@ async function harvestSummaryUncached(
     averagePricePerKg: averagePrice(sellableIncome, sold.GOOD),
     lastHarvestAt: harvests._max.harvestDate,
   };
-}
-
-/**
- * Names already used, newest first.
- *
- * Offered as suggestions rather than a buyer table: the same few pengepul come
- * back, but a one-off restaurant should not require registering anyone first.
- */
-export async function buyerSuggestions(limit = 20): Promise<string[]> {
-  const rows = await prisma.saleTransaction.findMany({
-    distinct: ["buyerName"],
-    orderBy: { soldAt: "desc" },
-    take: limit,
-    select: { buyerName: true },
-  });
-
-  return rows.map((row) => row.buyerName);
 }
 
 export type HarvestPointRow = {

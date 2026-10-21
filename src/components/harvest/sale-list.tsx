@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { Coins } from "lucide-react";
 
 import { CanWrite } from "@/components/auth/can-write";
@@ -6,11 +7,13 @@ import { SaleDialog } from "@/components/harvest/sale-dialog";
 import { SalePaidAction } from "@/components/harvest/sale-paid-action";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
+import { buyerKindLabels } from "@/lib/buyers";
 import { formatDate } from "@/lib/hst";
 import { formatKg, gradeLabels, gradeTones } from "@/lib/harvest";
 import { formatRupiah } from "@/lib/money";
 import { cn } from "@/lib/utils";
 import { deleteSale } from "@/server/actions/harvest";
+import type { BuyerOption } from "@/server/queries/buyers";
 import type { SaleRow } from "@/server/queries/harvest";
 import type { MemberOption } from "@/server/queries/users";
 
@@ -25,7 +28,7 @@ export function SaleList({
   sales: SaleRow[];
   seasonId: string;
   members: MemberOption[];
-  buyers: string[];
+  buyers: BuyerOption[];
   empty: string;
   /** Diteruskan ke dialog sunting, supaya harga yang direvisi ikut ditakar. */
   projectedBep: number | null;
@@ -50,7 +53,19 @@ export function SaleList({
           <CardContent className="grid gap-2 px-4">
             <div className="flex flex-wrap items-start justify-between gap-2">
               <div className="min-w-0">
-                <p className="font-medium">{sale.buyerName}</p>
+                {/* To the buyer's page: what they have paid before is the
+                    question this sale raises. */}
+                <Link
+                  href={`/harvest/pembeli/${sale.buyer.id}`}
+                  className="font-medium underline-offset-2 hover:underline"
+                >
+                  {sale.buyer.name}
+                </Link>
+                {sale.buyer.kind ? (
+                  <span className="text-muted-foreground ml-2 text-xs">
+                    {buyerKindLabels[sale.buyer.kind]}
+                  </span>
+                ) : null}
                 <p className="text-muted-foreground text-xs">
                   {formatDate(sale.soldAt)}
                   {sale.recordedBy ? ` · ${sale.recordedBy.name}` : null}
@@ -118,7 +133,7 @@ export function SaleList({
                 />
                 <ConfirmDelete
                   title="Hapus penjualan ini?"
-                  itemName={`${sale.buyerName} · ${formatDate(sale.soldAt)}`}
+                  itemName={`${sale.buyer.name} · ${formatDate(sale.soldAt)}`}
                   consequence="Pemasukan musim dan sisa panen ikut berubah."
                   action={deleteSale}
                   fields={{ saleId: sale.id, seasonId }}

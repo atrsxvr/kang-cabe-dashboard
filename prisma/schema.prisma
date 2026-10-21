@@ -847,13 +847,51 @@ model HarvestLog {
 /// mengangkut, jadi yang dijual berasal dari tumpukan — bisa gabungan panen
 /// beberapa hari, bisa juga sebagian saja dari satu hari. Sisa yang belum
 /// terjual dihitung per musim: total panen dikurangi total terjual.
+/// Jenis pembeli. Dibaca bersama harganya: pengepul membeli di bawah harga
+/// pasar karena menanggung angkut dan susut, konsumen langsung membeli eceran.
+enum BuyerKind {
+  PENGEPUL
+  PASAR
+  KONSUMEN
+}
+
+/// Yang membeli cabai, sekali lewat atau langganan.
+///
+/// Satu baris per pembeli, ditunjuk oleh setiap penjualannya — dulu namanya
+/// diketik bebas di tiap penjualan, dan "Pak Ujang" dengan "pak ujang" terhitung
+/// dua orang sehingga riwayatnya tidak bisa dijumlah.
+///
+/// Tidak dibatasi musim, seperti bahan dan racikan: pembeli langganan melewati
+/// banyak musim, dan riwayat harganya lintas musim itulah gunanya. Yang
+/// tercatat per musim tetap penjualannya.
+model Buyer {
+  id       String     @id @default(uuid())
+  name     String
+  /// Wajib untuk pembeli yang dicatat lewat aplikasi. Kosong hanya pada pembeli
+  /// pindahan dari nama yang dulu diketik bebas — ditandai "lengkapi data".
+  location String?
+  kind     BuyerKind?
+  /// Opsional. Disimpan seperti diketik; dinormalkan ke 62… saat dipakai.
+  whatsapp String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  sales SaleTransaction[]
+
+  @@index([name])
+}
+
 model SaleTransaction {
-  id        String   @id @default(uuid())
-  seasonId  String
+  id       String   @id @default(uuid())
+  seasonId String
   /// Kapan transaksinya terjadi, terpisah dari kapan ia diketik — sama
   /// alasannya dengan completedAt pada Task.
-  soldAt    DateTime
-  buyerName String
+  soldAt   DateTime
+  /// Ditunjuk, bukan disalin: nama yang dibetulkan harus ikut benar di semua
+  /// penjualannya. Restrict — pembeli yang punya penjualan tidak bisa dihapus,
+  /// hanya digabung ke pembeli lain.
+  buyerId  String
 
   /// Piutang. Tidak semua pengepul bayar di tempat.
   isPaid Boolean   @default(false)
@@ -865,13 +903,14 @@ model SaleTransaction {
   updatedAt    DateTime @updatedAt
 
   season     Season     @relation(fields: [seasonId], references: [id], onDelete: Cascade)
+  buyer      Buyer      @relation(fields: [buyerId], references: [id], onDelete: Restrict)
   recordedBy User?      @relation("RecordedSales", fields: [recordedById], references: [id], onDelete: Restrict)
   items      SaleItem[]
 
   @@index([seasonId])
   @@index([seasonId, soldAt])
   @@index([isPaid]) // Tagihan yang belum lunas
-  @@index([buyerName]) // Saran nama pembeli, dan rekap per pembeli
+  @@index([buyerId]) // Riwayat per pembeli
   @@index([recordedById])
 }
 

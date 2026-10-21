@@ -4,6 +4,7 @@ import {
   materialCategoryLabels,
   stockReasonLabels,
 } from "@/components/inventory/inventory-labels";
+import { buyerKindLabels } from "@/lib/buyers";
 import { slugify, toCsv } from "@/lib/csv";
 import { gradeLabels } from "@/lib/harvest";
 import { listFinanceEntries } from "@/server/queries/finance";
@@ -72,7 +73,9 @@ async function salesCsv(seasonId: string): Promise<string> {
       const first = index === 0;
       return [
         sale.soldAt,
-        sale.buyerName,
+        sale.buyer.name,
+        sale.buyer.kind ? buyerKindLabels[sale.buyer.kind] : null,
+        sale.buyer.location,
         gradeLabels[item.grade],
         item.weightKg,
         item.pricePerKg,
@@ -91,6 +94,8 @@ async function salesCsv(seasonId: string): Promise<string> {
     [
       "Tanggal",
       "Pembeli",
+      "Jenis pembeli",
+      "Lokasi pembeli",
       "Mutu",
       "Bobot (kg)",
       "Harga per kg",

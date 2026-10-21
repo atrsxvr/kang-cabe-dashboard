@@ -33,6 +33,7 @@ export function ConfirmDelete({
   fields,
   label = "Hapus",
   iconOnly = false,
+  redirectTo,
 }: {
   title: string;
   itemName: string;
@@ -42,6 +43,9 @@ export function ConfirmDelete({
   fields: Record<string, string>;
   label?: string;
   iconOnly?: boolean;
+  /** Where to go afterwards, when the page itself was about the deleted item
+   *  and refreshing it would only show "tidak ditemukan". */
+  redirectTo?: string;
 }) {
   const [open, setOpen] = useState(false);
   const [pending, startTransition] = useTransition();
@@ -65,7 +69,8 @@ export function ConfirmDelete({
 
       setOpen(false);
       toast.success(`${itemName} dihapus.`);
-      router.refresh();
+      if (redirectTo) router.replace(redirectTo);
+      else router.refresh();
     });
   };
 

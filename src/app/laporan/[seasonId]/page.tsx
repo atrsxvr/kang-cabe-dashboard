@@ -328,7 +328,7 @@ async function Report({ seasonId }: { seasonId: string }) {
                     <td className="py-1.5 whitespace-nowrap">
                       {formatDate(sale.soldAt)}
                     </td>
-                    <td className="py-1.5">{sale.buyerName}</td>
+                    <td className="py-1.5">{sale.buyer.name}</td>
                     <Kg value={sale.totalKg} />
                     <td className="py-1.5 text-right tabular-nums">
                       {formatRupiah(sale.totalAmount)}
