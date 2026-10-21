@@ -69,10 +69,12 @@ export const createSeasonSchema = z.object({
   ),
   startDate: z.coerce.date("Tanggal tanam tidak valid"),
   // Never Selesai on creation: that state is reached only through closing,
-  // and closing checks the season's books first.
+  // and closing checks the season's books first. Not archived either: that
+  // is what Arsipkan on a season's row is for.
   status: z
     .enum(seasonStatuses)
-    .refine((status) => status !== "COMPLETED", "Musim baru tidak bisa langsung Selesai"),
+    .refine((status) => status !== "COMPLETED", "Musim baru tidak bisa langsung Selesai")
+    .refine((status) => status !== "ARCHIVED", "Musim baru tidak bisa langsung diarsipkan"),
   notes: z.string().trim().max(2000).optional().or(z.literal("")),
 });
 

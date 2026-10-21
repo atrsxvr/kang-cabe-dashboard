@@ -11,7 +11,11 @@ concurrency:
 
 jobs:
   verify:
-    runs-on: ubuntu-latest
+    # Pinned rather than ubuntu-latest, which GitHub is moving to Ubuntu 26
+    # in stages: `playwright install --with-deps` would break the day the
+    # image changed under it, with no change in this repo to explain why.
+    # Move up on purpose, once Playwright supports the new image.
+    runs-on: ubuntu-24.04
     env:
       # `next build` imports src/lib/prisma.ts, which validates the environment
       # on load. No query runs during the build, so a syntactically valid
@@ -28,11 +32,11 @@ jobs:
       DIRECT_URL: postgresql://ci:ci@localhost:5432/ci
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
-      - uses: pnpm/action-setup@v4
+      - uses: pnpm/action-setup@v6
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         with:
           node-version: 22
           cache: pnpm
@@ -54,7 +58,7 @@ jobs:
   # reach — a form posting to a Server Action, a season filter surviving a page
   # change, stock leaving the shed and turning up as a cost.
   e2e:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
 
     services:
       postgres:
@@ -94,11 +98,11 @@ jobs:
       BETTER_AUTH_URL: http://localhost:3000
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
-      - uses: pnpm/action-setup@v4
+      - uses: pnpm/action-setup@v6
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         with:
           node-version: 22
           cache: pnpm
@@ -125,7 +129,7 @@ jobs:
 
       - run: pnpm test:e2e
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         if: ${{ !cancelled() }}
         with:
           name: playwright-report

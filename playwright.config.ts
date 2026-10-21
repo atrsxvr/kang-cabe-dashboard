@@ -1,4 +1,7 @@
 import { defineConfig, devices } from "@playwright/test";
+import webpush from "web-push";
+
+import { E2E_CRON_SECRET } from "./e2e/push";
 
 /**
  * Port sendiri, bukan 3000.
@@ -14,6 +17,16 @@ import { defineConfig, devices } from "@playwright/test";
  */
 const PORT = Number(process.env.E2E_PORT ?? 3100);
 const BASE_URL = `http://localhost:${PORT}`;
+
+/**
+ * Kunci notifikasi baru setiap kali suite jalan, bukan yang di `.env`.
+ *
+ * Supaya kartu notifikasi di Pengaturan ada di keadaan yang sama di CI (yang
+ * tidak punya kunci) dan di laptop (yang punya) — dan supaya temuan atau tugas
+ * buatan tes tidak pernah membunyikan HP sungguhan yang berlangganan di basis
+ * data pengembangan: layanan push menolak pesan yang ditandatangani kunci lain.
+ */
+const vapid = webpush.generateVAPIDKeys();
 
 /**
  * These cover what the unit tests structurally cannot: a form submitting to a
@@ -97,7 +110,12 @@ export default defineConfig({
     reuseExistingServer: false,
     // better-auth menyusun URL-nya dari sini. Dibiarkan menunjuk 3000, ia
     // menolak permintaan yang datang dari port ini sebagai lintas-asal.
-    env: { BETTER_AUTH_URL: BASE_URL },
+    env: {
+      BETTER_AUTH_URL: BASE_URL,
+      NEXT_PUBLIC_VAPID_PUBLIC_KEY: vapid.publicKey,
+      VAPID_PRIVATE_KEY: vapid.privateKey,
+      CRON_SECRET: E2E_CRON_SECRET,
+    },
     timeout: 180_000,
   },
 });

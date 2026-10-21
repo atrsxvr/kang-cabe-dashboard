@@ -171,6 +171,7 @@ model User {
   lossesLogged      HarvestLoss[]         @relation("RecordedLosses")
   sessions          Session[]
   accounts          Account[]
+  pushSubscriptions PushSubscription[]
 
   @@index([deletedAt])
 }
@@ -963,4 +964,27 @@ model FinanceTransaction {
   @@index([seasonId, type]) // Rekap pemasukan vs pengeluaran per musim
   @@index([date])
   @@index([taskId])
+}
+
+/// Satu HP (atau browser) yang mau menerima notifikasi seorang anggota.
+///
+/// Satu anggota bisa punya beberapa — HP dan laptop — dan satu HP yang dipakai
+/// bergantian berpindah ke anggota yang terakhir mengaktifkannya, karena
+/// `endpoint` unik per browser. Dihapus sendiri begitu layanan notifikasi
+/// melaporkannya mati (404/410), misalnya setelah aplikasinya dicopot.
+model PushSubscription {
+  id        String   @id @default(uuid())
+  userId    String
+  /// Alamat yang diberikan layanan notifikasi (Apple, Google, Mozilla).
+  endpoint  String   @unique
+  p256dh    String
+  auth      String
+  /// Buat menamai perangkatnya, mis. "iPhone · Safari".
+  userAgent String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
 }

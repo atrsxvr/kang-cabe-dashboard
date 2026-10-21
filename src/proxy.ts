@@ -19,7 +19,18 @@ import { NextResponse, type NextRequest } from "next/server";
  */
 // `/api/health` is what the error pages call to find out where a failure
 // is — including when the database is down and no session can be checked.
-const PUBLIC = ["/masuk", "/api/auth", "/api/health"];
+// The manifest and the service worker are fetched by the browser itself,
+// often without cookies, and redirecting them to /masuk breaks installing
+// and notifications. `/api/cron` is called by Vercel Cron, which has no
+// session; it checks CRON_SECRET itself.
+const PUBLIC = [
+  "/masuk",
+  "/api/auth",
+  "/api/health",
+  "/api/cron",
+  "/manifest.webmanifest",
+  "/sw.js",
+];
 
 export function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;

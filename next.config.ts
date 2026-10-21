@@ -1,6 +1,23 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
+  /**
+   * The service worker, as the Next PWA guide sets it: never cached, so an
+   * update reaches phones on their next visit rather than whenever a CDN
+   * decides; served as JavaScript; and allowed to load nothing but itself.
+   */
+  async headers() {
+    return [
+      {
+        source: "/sw.js",
+        headers: [
+          { key: "Content-Type", value: "application/javascript; charset=utf-8" },
+          { key: "Cache-Control", value: "no-cache, no-store, must-revalidate" },
+          { key: "Content-Security-Policy", value: "default-src 'self'; script-src 'self'" },
+        ],
+      },
+    ];
+  },
   experimental: {
     /**
      * Wajib untuk `unauthorized()` dan `forbidden()`, yang dipanggil penjaga di

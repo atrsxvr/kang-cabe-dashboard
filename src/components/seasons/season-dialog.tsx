@@ -29,7 +29,8 @@ const statusOptions = [
   { value: "PLANNING", label: "Perencanaan" },
   { value: "ACTIVE", label: "Berjalan" },
   { value: "HARVESTING", label: "Panen" },
-  { value: "ARCHIVED", label: "Arsip" },
+  // Not Selesai and not Arsip: a new season reaches the first only through
+  // Tutup Musim's checklist and the second through Arsipkan on its row.
 ];
 
 /**

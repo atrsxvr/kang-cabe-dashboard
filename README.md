@@ -38,6 +38,10 @@ Buka [http://localhost:3000](http://localhost:3000).
 | `BETTER_AUTH_URL` | asal aplikasi, callback OAuth | wajib `https` di luar localhost |
 | `SUPABASE_SERVICE_ROLE_KEY` | upload foto temuan | opsional; tanpanya form turun jadi teks-saja |
 | `PROD_DB_REF` | penjaga basis data | ref proyek produksi — lihat di bawah |
+| `NEXT_PUBLIC_VAPID_PUBLIC_KEY` | notifikasi HP | opsional; kunci publik VAPID, harus ada **sebelum build** |
+| `VAPID_PRIVATE_KEY` | notifikasi HP | opsional; pasangan rahasianya |
+| `VAPID_SUBJECT` | notifikasi HP | opsional; `mailto:…` atau `https://…` |
+| `CRON_SECRET` | jadwal "tugas besok" | opsional; Vercel Cron mengirimnya sebagai bearer token |
 
 Dua connection string dibutuhkan karena transaction pooler tidak mendukung DDL,
 sehingga migrasi gagal jika dijalankan lewat port 6543.

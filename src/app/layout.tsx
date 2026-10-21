@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Geist_Mono, Inter } from "next/font/google";
 
 import { ThemeProvider } from "@/components/layout/theme-provider";
@@ -25,6 +25,15 @@ export const metadata: Metadata = {
   },
   description:
     "Dashboard pengelolaan proyek budidaya cabai rawit merah berbasis komunitas.",
+  // On an iPhone, "Tambahkan ke Layar Utama" reads these rather than the
+  // manifest: the icon, the name under it, and that it opens full screen —
+  // which is also what iOS needs before it will deliver notifications.
+  icons: { apple: "/icons/apple-touch-icon.png" },
+  appleWebApp: { capable: true, title: "Kang Cabe", statusBarStyle: "default" },
+};
+
+export const viewport: Viewport = {
+  themeColor: "#14532d",
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
