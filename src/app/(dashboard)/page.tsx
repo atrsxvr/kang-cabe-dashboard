@@ -16,6 +16,8 @@ import { HarvestBlockCard } from "@/components/dashboard/harvest-block-card";
 import { StockCapacityCard } from "@/components/dashboard/stock-capacity-card";
 import { TodayCard } from "@/components/dashboard/today-card";
 import { WeatherCard } from "@/components/dashboard/weather-card";
+import { canWrite } from "@/lib/permissions";
+import { currentActor } from "@/server/auth/guard";
 import { countWeekendTasks, overview } from "@/server/queries/dashboard";
 import { seasonMaterialCost } from "@/server/queries/finance";
 import { harvestCurve, harvestSummary } from "@/server/queries/harvest";
@@ -34,13 +36,14 @@ export default async function DashboardPage(props: PageProps<"/">) {
 
   if (!season) return <NoSeason />;
 
-  const [weekend, cost, harvest, curve, profile, board] = await Promise.all([
+  const [weekend, cost, harvest, curve, profile, board, actor] = await Promise.all([
     countWeekendTasks(season.id),
     seasonMaterialCost(season.id),
     harvestSummary(season.id),
     harvestCurve(season.id, season.startDate),
     getGardenProfile(),
     overview(season.id),
+    currentActor(),
   ]);
 
   // Fetched after the profile because it needs the garden's BMKG region code,
@@ -124,6 +127,7 @@ export default async function DashboardPage(props: PageProps<"/">) {
           dueToday={board.dueToday}
           overdue={board.overdue}
           seasonId={season.id}
+          canRecordUsage={actor ? canWrite(actor.role, "usage") : false}
         />
 
         <AttentionCard

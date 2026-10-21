@@ -134,6 +134,11 @@ export function TaskCard({
               seasonId={seasonId}
               status={task.status}
               variant="card"
+              usagePending={
+                canRecordUsage &&
+                task.materials.length > 0 &&
+                !task.usageRecordedAt
+              }
             />
           </div>
         </div>

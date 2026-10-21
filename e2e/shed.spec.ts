@@ -133,6 +133,13 @@ test.describe.serial("bahan masuk gudang lalu jadi biaya musim", () => {
     await page.getByLabel("Status", { exact: true }).selectOption("DONE");
     await page.getByRole("button", { name: "Simpan Tugas" }).click();
 
+    // Created already Selesai with materials, so the shed's question comes at
+    // once. Left for later here: the next test answers it from the card.
+    const question = page.getByRole("alertdialog");
+    await expect(question).toContainText("Catat pemakaian bahannya sekarang?");
+    await question.getByRole("button", { name: "Nanti saja" }).click();
+    await expect(question).toHaveCount(0);
+
     await expect(
       page.getByText("E2E Pasang ajir").first()
     ).toBeVisible();

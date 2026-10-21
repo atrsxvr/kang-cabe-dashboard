@@ -14,6 +14,7 @@ import { ProgramDialog } from "@/components/tasks/program-dialog";
 import { TaskLogbook } from "@/components/tasks/task-logbook";
 import { TaskTable } from "@/components/tasks/task-table";
 import { TaskViews } from "@/components/tasks/task-views";
+import { UsageOfferProvider } from "@/components/tasks/usage-offer";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { calculateHst, formatDate } from "@/lib/hst";
@@ -66,8 +67,17 @@ export default async function TasksPage(props: PageProps<"/tasks">) {
       !task.usageRecordedAt,
   ).length;
 
+  // The dashboard's "Catat pemakaian" toast lands here with the task named.
+  const catat = typeof searchParams.catat === "string" ? searchParams.catat : undefined;
+
   return (
-    <>
+    <UsageOfferProvider
+      tasks={tasks}
+      seasonId={season.id}
+      members={members}
+      canRecordUsage={canRecordUsage}
+      initialTaskId={catat}
+    >
       <div className="mb-6 flex flex-wrap items-start justify-between gap-3">
         <PageHeader
           title="Jadwal & Tugas"
@@ -150,7 +160,7 @@ export default async function TasksPage(props: PageProps<"/tasks">) {
           <TaskLogbook tasks={completed} seasonStart={season.startDate} />
         }
       />
-    </>
+    </UsageOfferProvider>
   );
 }
 

@@ -5,7 +5,9 @@ import { useRouter } from "next/navigation";
 import { Check, ChevronLeft, ChevronRight } from "lucide-react";
 import { toast } from "sonner";
 
+import { useOfferUsage } from "@/components/tasks/usage-offer";
 import { Button } from "@/components/ui/button";
+import { SEASON_PARAM } from "@/lib/season-param";
 import { cn } from "@/lib/utils";
 import { updateTaskStatus } from "@/server/actions/tasks";
 import { taskStatuses } from "@/server/actions/schemas";
@@ -28,10 +30,17 @@ export function TaskStatusButtons({
   seasonId,
   status,
   variant = "table",
+  usagePending = false,
 }: {
   taskId: string;
   seasonId: string;
   status: Status;
+  /**
+   * The task carries materials the shed has not been told about, and whoever
+   * is looking may record them — so marking it Selesai asks for "Catat
+   * pemakaian" rather than leaving it for someone to notice.
+   */
+  usagePending?: boolean;
   /**
    * `table` reserves a slot per button so a column cannot re-measure when the
    * status changes. `card` drops the reserved slots — a Kanban column is a
@@ -41,6 +50,7 @@ export function TaskStatusButtons({
 }) {
   const [pending, startTransition] = useTransition();
   const router = useRouter();
+  const offerUsage = useOfferUsage();
 
   const index = taskStatuses.indexOf(status);
   const previous = index > 0 ? taskStatuses[index - 1] : null;
@@ -60,7 +70,23 @@ export function TaskStatusButtons({
         return;
       }
 
-      toast.success(`Dipindah ke "${labels[target]}".`);
+      if (target === "DONE" && usagePending && !offerUsage) {
+        // The dashboard: nowhere here to open the question, so the toast
+        // carries it to the tasks page, which opens it on arrival.
+        toast.success(`Dipindah ke "${labels[target]}". Bahannya belum dicatat keluar dari gudang.`, {
+          duration: 10_000,
+          action: {
+            label: "Catat pemakaian",
+            onClick: () =>
+              router.push(
+                `/tasks?${new URLSearchParams({ [SEASON_PARAM]: seasonId, catat: taskId })}`
+              ),
+          },
+        });
+      } else {
+        toast.success(`Dipindah ke "${labels[target]}".`);
+        if (target === "DONE" && usagePending) offerUsage?.(taskId);
+      }
       router.refresh();
     });
   };

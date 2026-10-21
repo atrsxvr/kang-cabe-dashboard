@@ -45,11 +45,6 @@ export function TaskUsageAction({
   members: MemberOption[];
 }) {
   const [open, setOpen] = useState(false);
-  const [pending, startTransition] = useTransition();
-  // Whoever did the work, not whoever keeps the shed — the movement log should
-  // answer "who used this", and logistics only ever sees the task second-hand.
-  const [actorId, setActorId] = useState(task.assignees[0]?.userId ?? "");
-  const router = useRouter();
 
   if (task.materials.length === 0) return null;
 
@@ -61,6 +56,61 @@ export function TaskUsageAction({
       </span>
     );
   }
+
+  const done = task.status === "DONE";
+
+  return (
+    <TaskUsageDialog
+      task={task}
+      seasonId={seasonId}
+      members={members}
+      open={open}
+      onOpenChange={setOpen}
+    >
+      <AlertDialogTrigger asChild>
+        <Button
+          size="sm"
+          variant={done ? "default" : "ghost"}
+          className={cn(!done && "text-muted-foreground")}
+        >
+          <PackageMinus className="size-4" aria-hidden />
+          Catat pemakaian
+        </Button>
+      </AlertDialogTrigger>
+    </TaskUsageDialog>
+  );
+}
+
+/**
+ * The confirmation itself: what leaves the shed, and who used it.
+ *
+ * Opened by the button above, or by the app right after a task is marked
+ * Selesai (`usage-offer.tsx`) — `offered` — where it asks rather than
+ * assumes, and "Nanti saja" leaves the button on the card for later.
+ */
+export function TaskUsageDialog({
+  task,
+  seasonId,
+  members,
+  open,
+  onOpenChange,
+  offered = false,
+  children,
+}: {
+  task: TaskRow;
+  seasonId: string;
+  members: MemberOption[];
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  offered?: boolean;
+  /** The trigger, when there is one. */
+  children?: React.ReactNode;
+}) {
+  const [pending, startTransition] = useTransition();
+  // Whoever did the work, not whoever keeps the shed — the movement log should
+  // answer "who used this", and logistics only ever sees the task second-hand.
+  const [actorId, setActorId] = useState(task.assignees[0]?.userId ?? "");
+  const router = useRouter();
 
   const done = task.status === "DONE";
 
@@ -78,32 +128,27 @@ export function TaskUsageAction({
         return;
       }
 
-      setOpen(false);
+      onOpenChange(false);
       toast.success("Pemakaian tercatat, stok gudang sudah dikurangi.");
       router.refresh();
     });
   };
 
   return (
-    <AlertDialog open={open} onOpenChange={setOpen}>
-      <AlertDialogTrigger asChild>
-        <Button
-          size="sm"
-          variant={done ? "default" : "ghost"}
-          className={cn(!done && "text-muted-foreground")}
-        >
-          <PackageMinus className="size-4" aria-hidden />
-          Catat pemakaian
-        </Button>
-      </AlertDialogTrigger>
+    <AlertDialog open={open} onOpenChange={onOpenChange}>
+      {children}
 
       <AlertDialogContent>
         <AlertDialogHeader>
-          <AlertDialogTitle>Kurangi stok gudang?</AlertDialogTitle>
+          <AlertDialogTitle>
+            {offered ? "Catat pemakaian bahannya sekarang?" : "Kurangi stok gudang?"}
+          </AlertDialogTitle>
           <AlertDialogDescription>
-            {done
-              ? "Bahan berikut akan keluar dari stok dan tercatat di riwayat gudang."
-              : "Tugas ini belum ditandai selesai. Kalau bahannya memang sudah dipakai, catat saja sekarang."}
+            {offered
+              ? `"${task.title}" sudah Selesai. Kalau racikannya memang sudah dipakai, kurangi stoknya sekarang supaya gudang tidak telat berkurang. Kalau belum, tombolnya tetap ada di kartu tugas.`
+              : done
+                ? "Bahan berikut akan keluar dari stok dan tercatat di riwayat gudang."
+                : "Tugas ini belum ditandai selesai. Kalau bahannya memang sudah dipakai, catat saja sekarang."}
           </AlertDialogDescription>
         </AlertDialogHeader>
 
@@ -140,7 +185,9 @@ export function TaskUsageAction({
         </p>
 
         <AlertDialogFooter>
-          <AlertDialogCancel disabled={pending}>Batal</AlertDialogCancel>
+          <AlertDialogCancel disabled={pending}>
+            {offered ? "Nanti saja" : "Batal"}
+          </AlertDialogCancel>
           <Button
             disabled={pending}
             onClick={(event) => {
