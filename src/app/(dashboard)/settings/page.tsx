@@ -38,14 +38,13 @@ export default async function SettingsPage() {
 
   const active = members.filter((member) => !member.deletedAt);
   const inactive = members.filter((member) => member.deletedAt);
-  const totalShare = active.reduce((sum, m) => sum + m.profitShare, 0);
 
   return (
     <>
       <div className="mb-6 flex flex-wrap items-start justify-between gap-3">
         <PageHeader
           title="Settings & Users"
-          description="Anggota tim, porsi bagi hasil, dan profil kebun."
+          description="Anggota tim, modal, dan profil kebun."
         />
         <CanWrite area="settings">
           <MemberDialog />
@@ -58,16 +57,8 @@ export default async function SettingsPage() {
           <p className="text-muted-foreground text-xs tabular-nums">
             Modal terkumpul {formatRupiah(capital.total)}
           </p>
-          <p
-            className={cn(
-              "text-xs tabular-nums",
-              totalShare === 100
-                ? "text-muted-foreground"
-                : "text-amber-700 dark:text-amber-400"
-            )}
-          >
-            Total porsi bagi hasil {totalShare}%
-            {totalShare === 100 ? "" : " — belum genap 100%"}
+          <p className="text-muted-foreground w-full text-xs">
+            Bagi hasil tiap anggota mengikuti porsi modal bersihnya.
           </p>
         </div>
 
@@ -89,6 +80,7 @@ export default async function SettingsPage() {
                   <span className="text-muted-foreground">
                     {" "}
                     · {paidIn.get(member.id)?.capitalShare ?? 0}% dari total
+                    = porsi bagi hasil
                   </span>
                 </p>
               </div>
@@ -100,9 +92,6 @@ export default async function SettingsPage() {
                 >
                   {roleLabels[member.role]}
                 </Badge>
-                <span className="text-muted-foreground text-xs tabular-nums">
-                  {member.profitShare}% bagi hasil
-                </span>
               </div>
 
               {/* Satu penjaga untuk seluruh baris aksi, bukan per tombol: kalau

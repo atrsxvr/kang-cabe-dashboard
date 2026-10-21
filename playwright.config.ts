@@ -35,6 +35,17 @@ export default defineConfig({
   fullyParallel: false,
   forbidOnly: Boolean(process.env.CI),
   retries: process.env.CI ? 1 : 0,
+  /**
+   * Ten seconds, not Playwright's five.
+   *
+   * Run locally, every query crosses to the Supabase project in Tokyo, and a
+   * dialog on Keuangan now stays open — "Menyimpan…" — until the refreshed
+   * page shows what it saved. That takes four to five seconds from here,
+   * which put the default limit right at the edge: the failures it produced
+   * were the wait, not the app. CI talks to a local Postgres and is nowhere
+   * near either limit.
+   */
+  expect: { timeout: 10_000 },
   reporter: process.env.CI ? "github" : "list",
 
   /**

@@ -29,7 +29,6 @@ const statusOptions = [
   { value: "PLANNING", label: "Perencanaan" },
   { value: "ACTIVE", label: "Berjalan" },
   { value: "HARVESTING", label: "Panen" },
-  { value: "COMPLETED", label: "Selesai" },
   { value: "ARCHIVED", label: "Arsip" },
 ];
 
@@ -188,20 +187,25 @@ export function SeasonDialog({ season }: { season?: SeasonRow }) {
             />
           </Field>
 
-          <Field id="status" label="Status" error={errors.status}>
-            <NativeSelect
-              required
-              id="status"
-              name="status"
-              defaultValue={season?.status ?? "PLANNING"}
-            >
-              {statusOptions.map((option) => (
-                <option key={option.value} value={option.value}>
-                  {option.label}
-                </option>
-              ))}
-            </NativeSelect>
-          </Field>
+          {/* Only when creating. An existing season's status moves through
+              the buttons on its row, and Selesai only through Tutup Musim's
+              checklist — a select here would be a way around it. */}
+          {editing ? null : (
+            <Field id="status" label="Status" error={errors.status}>
+              <NativeSelect
+                required
+                id="status"
+                name="status"
+                defaultValue="PLANNING"
+              >
+                {statusOptions.map((option) => (
+                  <option key={option.value} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
+              </NativeSelect>
+            </Field>
+          )}
 
           <Field id="notes" label="Catatan (opsional)" error={errors.notes}>
             <Textarea

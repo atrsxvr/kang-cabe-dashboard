@@ -1,8 +1,12 @@
 import "server-only";
 
+import { cache } from "react";
+
 import { prisma } from "@/lib/prisma";
 import { perPlantGrams } from "@/lib/harvest";
 import { projectedBep } from "@/lib/pricing";
+import { splitByCapital, type ShareRow } from "@/lib/profit-share";
+import { netCapitalAsOf } from "@/server/queries/capital";
 import { harvestSummary } from "@/server/queries/harvest";
 import type { MaterialCategory } from "@/generated/prisma/client";
 
@@ -35,7 +39,7 @@ export type SeasonMaterialCost = {
   unpricedUsages: number;
 };
 
-export async function seasonMaterialCost(
+async function seasonMaterialCostUncached(
   seasonId: string
 ): Promise<SeasonMaterialCost> {
   // Two ways stock is charged to a season, and no overlap between them:
@@ -256,7 +260,7 @@ export type SeasonResult = {
  * cangkul serves several plantings, and charging it to whichever one happened
  * to buy it would misreport them all.
  */
-export async function seasonResult(seasonId: string): Promise<SeasonResult> {
+async function seasonResultUncached(seasonId: string): Promise<SeasonResult> {
   const [cost, summary, entries] = await Promise.all([
     seasonMaterialCost(seasonId),
     harvestSummary(seasonId),
@@ -379,57 +383,50 @@ export async function pricingGuide(seasonId: string): Promise<PricingGuide> {
   };
 }
 
-export type ProfitShareRow = {
-  id: string;
-  name: string;
-  share: number;
-  amount: number;
-};
+export type ProfitShareRow = ShareRow;
 
 export type ProfitSharing = {
   margin: number;
-  totalShare: number;
+  /** Net capital of everyone with a share, at `asOf`. Zero: nobody to pay. */
+  capitalTotal: number;
   rows: ProfitShareRow[];
-  /** Yang belum teralokasi karena porsinya belum genap 100%. */
-  unallocated: number;
+  /** Capital is counted up to this moment — the season's close, or now. */
+  asOf: Date;
+  /** True once the season is closed, and so `asOf` is final. */
+  closed: boolean;
 };
 
 /**
- * Splits the margin by each member's agreed percentage.
+ * Splits the margin by each member's net capital.
  *
- * The percentages are not normalised to add up to 100. If four people have
- * agreed on shares that leave a gap, that gap is a conversation they need to
- * have — quietly inflating everyone's slice to hide it would settle it on
- * their behalf, and wrongly.
+ * Capital is counted as it stood when the season closed; for a season still
+ * running, as it stands today. See `splitByCapital` for how the rupiah are
+ * rounded so the shares add up exactly.
  */
 export async function profitSharing(
   seasonId: string
 ): Promise<ProfitSharing> {
-  const [result, members] = await Promise.all([
+  const season = await prisma.season.findUnique({
+    where: { id: seasonId },
+    select: { status: true, endDate: true },
+  });
+
+  const closed =
+    (season?.status === "COMPLETED" || season?.status === "ARCHIVED") &&
+    Boolean(season?.endDate);
+  const asOf = closed && season?.endDate ? season.endDate : new Date();
+
+  const [result, holders] = await Promise.all([
     seasonResult(seasonId),
-    prisma.user.findMany({
-      where: { deletedAt: null },
-      orderBy: { name: "asc" },
-      select: { id: true, name: true, profitShare: true },
-    }),
+    netCapitalAsOf(asOf),
   ]);
 
-  const totalShare = members.reduce((sum, m) => sum + m.profitShare, 0);
-  const base = Math.max(0, result.margin);
+  const { rows, capitalTotal } = splitByCapital(
+    Math.max(0, result.margin),
+    holders
+  );
 
-  const rows = members.map((member) => ({
-    id: member.id,
-    name: member.name,
-    share: member.profitShare,
-    amount: Math.round((base * member.profitShare) / 100),
-  }));
-
-  return {
-    margin: result.margin,
-    totalShare,
-    rows,
-    unallocated: base - rows.reduce((sum, row) => sum + row.amount, 0),
-  };
+  return { margin: result.margin, capitalTotal, rows, asOf, closed };
 }
 
 export type SeasonComparison = {
@@ -517,3 +514,15 @@ export async function seasonComparison(): Promise<SeasonComparison[]> {
     })
   );
 }
+
+/**
+ * Memoised per request with React's `cache`.
+ *
+ * The Keuangan page alone asks for one season's result four times over —
+ * directly, through the profit share, through the pricing guide and through
+ * the season comparison — and each answer is several queries to a database a
+ * sea away. Same arguments within one render now share one answer; nothing
+ * carries over to the next request, so nothing can go stale.
+ */
+export const seasonMaterialCost = cache(seasonMaterialCostUncached);
+export const seasonResult = cache(seasonResultUncached);

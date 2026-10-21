@@ -65,7 +65,11 @@ export const createSeasonSchema = z.object({
       .nullable()
   ),
   startDate: z.coerce.date("Tanggal tanam tidak valid"),
-  status: z.enum(seasonStatuses),
+  // Never Selesai on creation: that state is reached only through closing,
+  // and closing checks the season's books first.
+  status: z
+    .enum(seasonStatuses)
+    .refine((status) => status !== "COMPLETED", "Musim baru tidak bisa langsung Selesai"),
   notes: z.string().trim().max(2000).optional().or(z.literal("")),
 });
 
@@ -371,9 +375,14 @@ export const createRecipeSchema = z
  * Update schemas reuse the create shapes with an id bolted on. Keeping them
  * derived means a rule added to creation cannot be quietly skipped on edit.
  */
-export const updateSeasonSchema = createSeasonSchema.extend({
-  seasonId: z.string().min(1),
-});
+/**
+ * Editing leaves the status alone. It moves only through the status buttons —
+ * and Selesai only through the closing checklist, which a select box here
+ * would walk straight past.
+ */
+export const updateSeasonSchema = createSeasonSchema
+  .omit({ status: true })
+  .extend({ seasonId: z.string().min(1) });
 
 export const updateTaskSchema = createTaskSchema.extend({
   taskId: z.string().min(1),
@@ -518,11 +527,7 @@ const memberBase = {
   name: z.string().trim().min(2, "Nama minimal 2 karakter").max(120),
   email: z.email("Email tidak valid"),
   role: z.enum(roles),
-  profitShare: z.coerce
-    .number("Isi angka persen")
-    .min(0, "Tidak boleh minus")
-    .max(100, "Tidak boleh lebih dari 100")
-    .optional(),
+  // No profit share: it follows each member's net capital (`splitByCapital`).
 };
 
 export const createMemberSchema = z.object(memberBase);

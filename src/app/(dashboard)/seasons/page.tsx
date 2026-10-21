@@ -176,7 +176,11 @@ function SeasonActions({
 }) {
   return (
     <div className="flex items-center justify-end gap-1">
-      <SeasonStatusAction seasonId={season.id} status={season.status} />
+      <SeasonStatusAction
+        seasonId={season.id}
+        seasonName={season.name}
+        status={season.status}
+      />
       <SeasonDialog season={season} />
       {season.status !== "ARCHIVED" ? (
         <SeasonArchiveAction

@@ -1,7 +1,6 @@
 "use client";
 
 import { useRef, useState } from "react";
-import { useRouter } from "next/navigation";
 import { HandCoins, Pencil } from "lucide-react";
 import { toast } from "sonner";
 
@@ -9,6 +8,7 @@ import { dateInputValue, Field } from "@/components/common/form-field";
 import { NativeSelect } from "@/components/common/native-select";
 import { RupiahInput } from "@/components/common/rupiah-input";
 import { SubmitButton } from "@/components/common/submit-button";
+import { useSaveAndRefresh } from "@/components/common/use-save-and-refresh";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -56,7 +56,7 @@ export function ContributionDialog({
   const [proof, setProof] = useState<File | null>(null);
   const [keepProof, setKeepProof] = useState(Boolean(contribution?.proofUrl));
   const inputRef = useRef<HTMLInputElement>(null);
-  const router = useRouter();
+  const { refreshing, finish } = useSaveAndRefresh();
 
   const reset = () => {
     setErrors({});
@@ -82,10 +82,10 @@ export function ContributionDialog({
       return;
     }
 
-    setOpen(false);
-    reset();
-    toast.success(editing ? "Setoran diperbarui." : "Setoran tercatat.");
-    router.refresh();
+    finish(editing ? "Setoran diperbarui." : "Setoran tercatat.", () => {
+      setOpen(false);
+      reset();
+    });
   }
 
   const parsed = Number(amount.replace(/[^0-9]/g, ""));
@@ -267,7 +267,7 @@ export function ContributionDialog({
             >
               Batal
             </Button>
-            <SubmitButton>
+            <SubmitButton busy={refreshing}>
               {editing ? "Simpan Perubahan" : "Simpan Setoran"}
             </SubmitButton>
           </DialogFooter>

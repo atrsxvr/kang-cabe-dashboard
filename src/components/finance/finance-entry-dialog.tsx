@@ -1,7 +1,6 @@
 "use client";
 
 import { useRef, useState } from "react";
-import { useRouter } from "next/navigation";
 import { Pencil, Plus } from "lucide-react";
 import { toast } from "sonner";
 
@@ -9,6 +8,7 @@ import { dateInputValue, Field } from "@/components/common/form-field";
 import { NativeSelect } from "@/components/common/native-select";
 import { RupiahInput } from "@/components/common/rupiah-input";
 import { SubmitButton } from "@/components/common/submit-button";
+import { useSaveAndRefresh } from "@/components/common/use-save-and-refresh";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -52,7 +52,7 @@ export function FinanceEntryDialog({
   const [proof, setProof] = useState<File | null>(null);
   const [keepProof, setKeepProof] = useState(Boolean(entry?.proofUrl));
   const inputRef = useRef<HTMLInputElement>(null);
-  const router = useRouter();
+  const { refreshing, finish } = useSaveAndRefresh();
 
   const reset = () => {
     setErrors({});
@@ -78,10 +78,10 @@ export function FinanceEntryDialog({
       return;
     }
 
-    setOpen(false);
-    reset();
-    toast.success(editing ? "Catatan diperbarui." : "Catatan ditambahkan.");
-    router.refresh();
+    finish(editing ? "Catatan diperbarui." : "Catatan ditambahkan.", () => {
+      setOpen(false);
+      reset();
+    });
   }
 
   const parsed = Number(amount.replace(/[^0-9]/g, ""));
@@ -248,7 +248,7 @@ export function FinanceEntryDialog({
             >
               Batal
             </Button>
-            <SubmitButton>
+            <SubmitButton busy={refreshing}>
               {editing ? "Simpan Perubahan" : "Simpan Catatan"}
             </SubmitButton>
           </DialogFooter>

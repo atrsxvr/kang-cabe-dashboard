@@ -28,6 +28,7 @@ import {
   formatPercent,
   formatPerPlant,
 } from "@/lib/harvest";
+import { formatDate } from "@/lib/hst";
 import { formatRupiah } from "@/lib/money";
 import { readSeasonParam } from "@/lib/season-param";
 import { canCompareSeasons, comparableSeasons } from "@/lib/season-compare";
@@ -329,18 +330,22 @@ export default async function FinancePage(props: PageProps<"/finance">) {
                 </ul>
               )}
 
-              {/* Not normalised on purpose: a gap in the agreed shares is a
-                  conversation the four of them need to have, and inflating
-                  everyone's slice to hide it would settle it for them. */}
-              {sharing.totalShare !== 100 ? (
-                <p className="text-amber-700 text-xs dark:text-amber-400">
-                  Porsinya baru {sharing.totalShare}%, belum genap 100
-                  {sharing.unallocated > 0
-                    ? ` — ${formatRupiah(sharing.unallocated)} belum ada yang punya`
-                    : ""}
-                  . Atur di Settings & Users.
+              {/* Said every time, because the date is half the rule: a closed
+                  season is split by the capital on the day it closed. */}
+              {sharing.capitalTotal > 0 ? (
+                <p className="text-muted-foreground text-xs">
+                  Porsi = modal bersih tiap anggota{" "}
+                  {sharing.closed
+                    ? `saat musim ditutup (${formatDate(sharing.asOf)})`
+                    : "hari ini — terkunci saat musim ditutup"}
+                  , dari total {formatRupiah(sharing.capitalTotal)}.
                 </p>
-              ) : null}
+              ) : (
+                <p className="text-amber-700 text-xs dark:text-amber-400">
+                  Belum ada modal yang disetor, jadi belum ada yang berhak
+                  atas bagi hasil. Catat setoran di tab Modal.
+                </p>
+              )}
             </CardContent>
           </Card>
         }
