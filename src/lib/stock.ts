@@ -95,28 +95,45 @@ export function isDosable(category: string): boolean {
 }
 
 /**
- * How much to buy, said the way it is bought.
+ * What to buy so the material is off the list, said the way it is bought.
  *
- * Stock is kept in the unit a recipe doses in, which is right for the shed and
- * wrong at the counter: "beli min. 5.000 gram" is not a thing anyone asks for.
- * When a material knows its purchase unit, the shopping list leads with that
- * and keeps the exact figure in brackets behind it.
+ * "Off the list" means strictly above the threshold: stock that sits exactly
+ * on it is still Menipis — reaching the line is the signal to buy, the way a
+ * gardener reads "two doses left". So topping up only to the threshold, as
+ * this once did, left the material Menipis straight after buying it.
+ *
+ * With a known pack the answer is a whole number of packs, enough to clear
+ * the line; half a sack is not sold, and coming home short costs another
+ * trip. Without one there is no sensible amount to name beyond "more than
+ * the shortfall", so `amount` is null and nothing is pre-filled.
  */
-export function describePurchase(
-  needed: number,
+export function restockSuggestion(
+  stock: number,
+  minStock: number,
   unit: string,
-  purchaseUnit: string | null,
-  purchaseSize: number | null
-): string {
-  const exact = formatStock(needed, unit);
+  packName: string | null,
+  packSize: number | null
+): { text: string; amount: number | null } {
+  const shortfall = Math.max(0, minStock - stock);
 
-  if (!purchaseUnit || !purchaseSize || purchaseSize <= 0) return exact;
+  if (packName && packSize && packSize > 0) {
+    const packs = Math.floor(shortfall / packSize) + 1;
+    const amount = packs * packSize;
+    return {
+      text: `beli ${packs.toLocaleString("id-ID")} ${packName} (${formatStock(amount, unit)})`,
+      amount,
+    };
+  }
 
-  // Rounded up: half a sack is not sold, and coming home short means the job
-  // waits for another trip to town.
-  const packs = Math.ceil(needed / purchaseSize);
-
-  return `${packs.toLocaleString("id-ID")} ${purchaseUnit} (${exact})`;
+  return {
+    text:
+      shortfall > 0
+        ? // Scaled with the figures beside it: "sisa 0,01 kg (min 1 kg) ·
+          // beli lebih dari 0,99 kg", not "… lebih dari 990 gram".
+          `beli lebih dari ${formatStock(shortfall, unit, Math.max(stock, minStock))}`
+        : "tepat di batas — beli sedikit saja sudah lewat",
+    amount: null,
+  };
 }
 
 export type ExpiryStatus = "NONE" | "OK" | "SOON" | "EXPIRED";
@@ -176,4 +193,47 @@ export function canDeleteMaterial(
     count.taskUsages === 0 &&
     count.movements <= (hasOpening ? 1 : 0)
   );
+}
+
+/**
+ * The units a price can be quoted in, largest first.
+ *
+ * Grams are bought per kg at the shop, but a pesticide may be priced per ml
+ * by its maker and per liter by the shop that sells it — so a scaled unit
+ * offers both, and anything else is priced per itself (per pcs, per sak).
+ * `per` is how many stock units one quoted unit holds.
+ */
+export function priceBases(unit: string): { label: string; per: number }[] {
+  const scale = SCALES[unit];
+  return scale
+    ? [
+        { label: scale.to, per: scale.per },
+        { label: unit, per: 1 },
+      ]
+    : [{ label: unit, per: 1 }];
+}
+
+/**
+ * "Rp 25.000 per kg, 200 gram of it" → Rp 5.000, in whole rupiah.
+ *
+ * The arithmetic people get wrong when asked for a total: typing the per-kg
+ * price where the total belongs makes the material five times dearer than it
+ * is, silently, and every season it is used in pays for it.
+ */
+export function totalFromUnitPrice(
+  price: number,
+  quantity: number,
+  per: number
+): number {
+  return Math.round((price * quantity) / per);
+}
+
+/** The reverse, for showing a typed total back as a price per quoted unit. */
+export function unitPriceFromTotal(
+  total: number,
+  quantity: number,
+  per: number
+): number | null {
+  if (quantity <= 0) return null;
+  return Math.round((total * per) / quantity);
 }

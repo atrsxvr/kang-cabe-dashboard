@@ -1,7 +1,14 @@
 "use client";
 
 import { useState } from "react";
-import { Check, Copy, Share2, ShoppingBasket, Wrench } from "lucide-react";
+import {
+  Check,
+  Copy,
+  MessageCircle,
+  Share2,
+  ShoppingBasket,
+  Wrench,
+} from "lucide-react";
 import { toast } from "sonner";
 
 import { AdjustStockDialog } from "@/components/inventory/adjust-stock-dialog";
@@ -15,7 +22,7 @@ import { ShoppingNotes } from "@/components/inventory/shopping-notes";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { describePurchase, describeShortfall, stockStatus } from "@/lib/stock";
+import { describeShortfall, restockSuggestion, stockStatus } from "@/lib/stock";
 import { cn } from "@/lib/utils";
 import type {
   ShoppingNoteRow,
@@ -24,8 +31,14 @@ import type {
 } from "@/server/queries/inventory";
 import type { MemberOption } from "@/server/queries/users";
 
-/** How much to buy to clear the threshold. */
-const shortfallOf = (row: StockRow) => Math.max(0, row.minStock - row.stock);
+const suggestionFor = (row: StockRow) =>
+  restockSuggestion(
+    row.stock,
+    row.minStock,
+    row.unit,
+    row.purchaseUnit,
+    row.purchaseSize,
+  );
 
 /**
  * Plain text rather than a document. It is read in a farm supply shop from a
@@ -50,13 +63,8 @@ function asText(
   if (rows.length > 0) {
     parts.push("", "BAHAN");
     for (const row of rows) {
-      const needed = shortfallOf(row);
-      const suggestion =
-        needed > 0
-          ? ` → beli min. ${describePurchase(needed, row.unit, row.purchaseUnit, row.purchaseSize)}`
-          : "";
       parts.push(
-        `• ${row.name} — ${describeShortfall(row.stock, row.minStock, row.unit)}${suggestion}`,
+        `• ${row.name} — ${describeShortfall(row.stock, row.minStock, row.unit)} → ${suggestionFor(row).text}`,
       );
     }
   }
@@ -117,10 +125,17 @@ export function ShoppingList({
   const onShare = async () => {
     // Only present on a phone; the button is hidden otherwise rather than
     // failing when tapped.
-    await navigator
-      .share({ title: "Daftar Belanja Kebun", text })
-      .catch(() => {});
+    //
+    // Text alone, no `title`. Handed both, WhatsApp on some phones kept only
+    // the heading and dropped every item below it — a shopping list that
+    // arrives as a date.
+    await navigator.share({ text }).catch(() => {});
   };
+
+  // Straight into WhatsApp, past the phone's share sheet and whatever each
+  // phone makes of it. wa.me carries the whole text, line breaks included,
+  // and opens the app to pick a chat.
+  const whatsappHref = `https://wa.me/?text=${encodeURIComponent(text)}`;
 
   const canShare =
     typeof navigator !== "undefined" && typeof navigator.share === "function";
@@ -134,11 +149,11 @@ export function ShoppingList({
           ) : (
             <>
               <strong className="text-foreground">{total} hal</strong> perlu
-              diurus saat ke kota.
+              dibeli atau diurus.
             </>
           )}
         </p>
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2">
           <Button size="sm" variant="secondary" onClick={onCopy}>
             {copied ? (
               <Check className="size-4" aria-hidden />
@@ -147,8 +162,14 @@ export function ShoppingList({
             )}
             {copied ? "Tersalin" : "Salin"}
           </Button>
+          <Button asChild size="sm">
+            <a href={whatsappHref} target="_blank" rel="noopener noreferrer">
+              <MessageCircle className="size-4" aria-hidden />
+              WhatsApp
+            </a>
+          </Button>
           {canShare ? (
-            <Button size="sm" onClick={onShare}>
+            <Button size="sm" variant="secondary" onClick={onShare}>
               <Share2 className="size-4" aria-hidden />
               Bagikan
             </Button>
@@ -161,7 +182,7 @@ export function ShoppingList({
           <h3 className="text-sm font-medium">Bahan</h3>
           {rows.map((row) => {
             const status = stockStatus(row.stock, row.minStock);
-            const needed = shortfallOf(row);
+            const suggestion = suggestionFor(row);
 
             return (
               <Card key={row.id} className="py-3">
@@ -188,20 +209,10 @@ export function ShoppingList({
 
                   <p className="text-muted-foreground text-sm">
                     {describeShortfall(row.stock, row.minStock, row.unit)}
-                    {needed > 0 ? (
-                      <>
-                        {" · "}
-                        <strong className="text-foreground">
-                          beli min.{" "}
-                          {describePurchase(
-                            needed,
-                            row.unit,
-                            row.purchaseUnit,
-                            row.purchaseSize,
-                          )}
-                        </strong>
-                      </>
-                    ) : null}
+                    {" · "}
+                    <strong className="text-foreground">
+                      {suggestion.text}
+                    </strong>
                   </p>
 
                   {/* The payoff of one shared row for recipes and stock: the
@@ -221,7 +232,7 @@ export function ShoppingList({
                       material={row}
                       members={members}
                       direction="in"
-                      defaultAmount={needed > 0 ? needed : undefined}
+                      defaultAmount={suggestion.amount ?? undefined}
                       trigger={
                         <Button size="sm" variant="secondary">
                           <Check className="size-4" aria-hidden />

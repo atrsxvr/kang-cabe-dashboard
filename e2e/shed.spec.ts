@@ -75,6 +75,8 @@ test.describe.serial("bahan masuk gudang lalu jadi biaya musim", () => {
     await page.getByLabel("Kategori", { exact: true }).selectOption("SUPPLIES");
     await page.getByLabel("Stok Awal", { exact: true }).fill("1000");
     await page.getByLabel("Batas Minimum", { exact: true }).fill("100");
+    // Totalnya yang diketik di sini; harga per satuan diuji tersendiri.
+    await page.getByRole("button", { name: "Total", exact: true }).click();
     await page.getByLabel("Nilai stok awal (Rp)", { exact: true }).fill("500000");
 
     await page.getByRole("button", { name: "Simpan Bahan" }).click();
@@ -275,11 +277,17 @@ test.describe.serial("harga bahan bisa dikoreksi", () => {
     await page.getByLabel("Kategori", { exact: true }).selectOption("SUPPLIES");
     await page.getByLabel("Stok Awal", { exact: true }).fill("10");
     await page.getByLabel("Batas Minimum", { exact: true }).fill("0");
+    await page.getByRole("button", { name: "Total", exact: true }).click();
     await page.getByLabel("Nilai stok awal (Rp)", { exact: true }).fill("100000");
     await page.getByRole("button", { name: "Simpan Bahan" }).click();
     await expect(page.getByText(PRICED, { exact: true }).first()).toBeVisible();
 
     await page.getByRole("button", { name: `Edit ${PRICED}` }).first().click();
+    // Dibuka sebagai harga per satuan: Rp 100.000 untuk 10 pcs.
+    await expect(
+      page.getByLabel("Harga per pcs (Rp)", { exact: true })
+    ).toHaveValue("10.000");
+    await page.getByRole("button", { name: "Total", exact: true }).click();
     const opening = page.getByLabel("Nilai stok awal (Rp)", { exact: true });
     await expect(opening).toHaveValue("100.000");
     // Stok awalnya sudah tertulis dalam pcs; mengganti satuan akan
@@ -293,9 +301,74 @@ test.describe.serial("harga bahan bisa dikoreksi", () => {
     // Dibuka ulang dari server, bukan sisa isian tadi.
     await page.reload();
     await page.getByRole("button", { name: `Edit ${PRICED}` }).first().click();
+    await page.getByRole("button", { name: "Total", exact: true }).click();
     await expect(
       page.getByLabel("Nilai stok awal (Rp)", { exact: true })
     ).toHaveValue("150.000");
+  });
+
+  test("harga per kg dihitungkan totalnya, tanpa menghitung sendiri", async ({
+    page,
+  }) => {
+    const NPK = `E2E NPK ${Date.now()}`;
+    await openInventory(page);
+
+    await page.getByRole("button", { name: "Tambah Bahan" }).click();
+    await page.getByLabel("Nama Bahan", { exact: true }).fill(NPK);
+    await page.getByLabel("Satuan", { exact: true }).selectOption("gram");
+    await page.getByLabel("Stok Awal", { exact: true }).fill("200");
+    await page.getByLabel("Batas Minimum", { exact: true }).fill("0");
+
+    // Bawaannya per kg: harga yang disebut di toko.
+    await page.getByLabel("Harga per kg (Rp)", { exact: true }).fill("25000");
+    const dialog = page.getByRole("dialog");
+    await expect(dialog).toContainText("Total Rp 5.000 untuk 200 gram");
+    await page.getByRole("button", { name: "Simpan Bahan" }).click();
+    await expect(page.getByText(NPK, { exact: true }).first()).toBeVisible();
+
+    // Yang tersimpan totalnya, dan bisa dibaca balik per satuan mana pun.
+    await page.getByRole("button", { name: `Edit ${NPK}` }).first().click();
+    await expect(
+      page.getByLabel("Harga per kg (Rp)", { exact: true })
+    ).toHaveValue("25.000");
+    await page.getByRole("button", { name: "Per gram", exact: true }).click();
+    await expect(
+      page.getByLabel("Harga per gram (Rp)", { exact: true })
+    ).toHaveValue("25");
+    await page.getByRole("button", { name: "Total", exact: true }).click();
+    await expect(
+      page.getByLabel("Nilai stok awal (Rp)", { exact: true })
+    ).toHaveValue("5.000");
+  });
+
+  test("belanja bisa diisi harga per ml dari pabriknya", async ({ page }) => {
+    const LIQUID = `E2E Cair ${Date.now()}`;
+    await openInventory(page);
+
+    await page.getByRole("button", { name: "Tambah Bahan" }).click();
+    await page.getByLabel("Nama Bahan", { exact: true }).fill(LIQUID);
+    await page.getByLabel("Satuan", { exact: true }).selectOption("ml");
+    await page.getByLabel("Batas Minimum", { exact: true }).fill("0");
+    await page.getByRole("button", { name: "Simpan Bahan" }).click();
+    await expect(page.getByText(LIQUID, { exact: true }).first()).toBeVisible();
+
+    await page
+      .getByRole("button", { name: `Tambah stok ${LIQUID}` })
+      .first()
+      .click();
+    const dialog = page.getByRole("dialog");
+    await dialog.getByLabel("Jumlah (ml)", { exact: true }).fill("250");
+    await dialog.getByRole("button", { name: "Per ml", exact: true }).click();
+    await dialog.getByLabel("Harga per ml (Rp)", { exact: true }).fill("150");
+    await expect(dialog).toContainText("Total Rp 37.500 untuk 250 ml");
+    await dialog.getByRole("button", { name: "Tambah", exact: true }).click();
+    await expect(dialog).toHaveCount(0);
+
+    await page
+      .getByRole("button", { name: `Riwayat stok ${LIQUID}` })
+      .first()
+      .click();
+    await expect(page.getByRole("dialog")).toContainText("Bayar Rp 37.500");
   });
 
   test("kategori baru bisa dipilih di form dan muncul di saringan", async ({
@@ -350,6 +423,104 @@ test.describe.serial("harga bahan bisa dikoreksi", () => {
     await dialog.getByRole("button", { name: "Simpan" }).click();
 
     await expect(dialog).toContainText("Bayar Rp 60.000");
+  });
+
+  test("harga per kemasan pabrik dihitungkan untuk sisa stok", async ({
+    page,
+  }) => {
+    const BAG = `E2E Kemasan ${Date.now()}`;
+    await openInventory(page);
+
+    await page.getByRole("button", { name: "Tambah Bahan" }).click();
+    await page.getByLabel("Nama Bahan", { exact: true }).fill(BAG);
+    await page.getByLabel("Satuan", { exact: true }).selectOption("gram");
+    await page.getByLabel("Stok Awal", { exact: true }).fill("200");
+    await page.getByLabel("Batas Minimum", { exact: true }).fill("300");
+    await page
+      .getByLabel("Bentuk kemasan pabrik (opsional)", { exact: true })
+      .fill("bungkus");
+    await page
+      .getByLabel("Isi per kemasan (opsional)", { exact: true })
+      .fill("500");
+
+    // Kemasan 500 g seharga Rp 30.000, sisa 200 g: 200/500 × 30.000.
+    const dialog = page.getByRole("dialog");
+    await dialog.getByRole("button", { name: "Per bungkus", exact: true }).click();
+    await expect(dialog.getByLabel("Isi bungkus ini")).toHaveValue("500");
+    await dialog.getByLabel("Harga per bungkus (Rp)", { exact: true }).fill("30000");
+    await expect(dialog).toContainText(
+      "Total Rp 12.000 untuk 200 gram · Rp 60.000/kg"
+    );
+    await page.getByRole("button", { name: "Simpan Bahan" }).click();
+    await expect(page.getByText(BAG, { exact: true }).first()).toBeVisible();
+
+    // 200 g, batas 300 g: satu bungkus 500 g membawanya lewat batas.
+    await page.getByRole("tab", { name: /Belanja/ }).click();
+    const card = page
+      .locator('[data-slot="card"]')
+      .filter({ hasText: BAG });
+    await expect(card).toContainText("beli 1 bungkus (500 gram)");
+
+    // Belanja kali ini kemasan besar: 2 kg seharga Rp 100.000.
+    await card.getByRole("button", { name: "Sudah dibeli" }).click();
+    const buy = page.getByRole("dialog");
+    await expect(buy.getByLabel("Jumlah (gram)", { exact: true })).toHaveValue(
+      "500"
+    );
+    await buy.getByLabel("Jumlah (gram)", { exact: true }).fill("2000");
+    await buy.getByRole("button", { name: "Per bungkus", exact: true }).click();
+    await buy.getByLabel("Isi bungkus ini").fill("2000");
+    await buy.getByLabel("Harga per bungkus (Rp)", { exact: true }).fill("100000");
+    await expect(buy).toContainText("Total Rp 100.000 untuk 2 kg");
+    await buy.getByRole("button", { name: "Tambah", exact: true }).click();
+    await expect(buy).toHaveCount(0);
+
+    // Kemasan besar tadi cuma untuk catatan itu; kemasan biasanya tetap.
+    await page.getByRole("tab", { name: /Stok Bahan/ }).click();
+    await page.getByRole("button", { name: `Edit ${BAG}` }).first().click();
+    await expect(
+      page.getByLabel("Isi per kemasan (opsional)", { exact: true })
+    ).toHaveValue("500");
+  });
+
+  test("daftar belanja sampai utuh ke WhatsApp, bukan cuma judulnya", async ({
+    page,
+  }) => {
+    // The phone's share sheet is not something a test can open, so what is
+    // checked is what the app hands over to it.
+    await page.addInitScript(() => {
+      (window as unknown as { shared: unknown }).shared = null;
+      navigator.share = async (data) => {
+        (window as unknown as { shared: unknown }).shared = data;
+      };
+    });
+    const SHORT = `E2E Habis ${Date.now()}`;
+    await openInventory(page);
+    await page.getByRole("button", { name: "Tambah Bahan" }).click();
+    await page.getByLabel("Nama Bahan", { exact: true }).fill(SHORT);
+    await page.getByLabel("Batas Minimum", { exact: true }).fill("100");
+    await page.getByRole("button", { name: "Simpan Bahan" }).click();
+    await expect(page.getByText(SHORT, { exact: true }).first()).toBeVisible();
+
+    await page.getByRole("tab", { name: /Belanja/ }).click();
+    await expect(page.getByText(SHORT, { exact: true }).first()).toBeVisible();
+
+    await page.getByRole("button", { name: "Bagikan" }).click();
+    const shared = await page.evaluate(
+      () => (window as unknown as { shared: { title?: string; text: string } }).shared
+    );
+    // A title alongside the text is what made WhatsApp on iPhone keep only
+    // the first line.
+    expect(shared.title).toBeUndefined();
+    expect(shared.text).toMatch(/^Daftar Belanja — /);
+    expect(shared.text).toContain("\nBAHAN\n");
+    expect(shared.text).toContain(`• ${SHORT} — `);
+
+    const href = await page
+      .getByRole("link", { name: "WhatsApp" })
+      .getAttribute("href");
+    expect(href).toMatch(/^https:\/\/wa\.me\/\?text=/);
+    expect(decodeURIComponent(href!.split("text=")[1])).toBe(shared.text);
   });
 
   test("bahan yang sudah ada belanjanya cuma bisa diarsipkan", async ({

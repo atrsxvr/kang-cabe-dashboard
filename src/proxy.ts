@@ -17,7 +17,9 @@ import { NextResponse, type NextRequest } from "next/server";
  * dan di tiap Server Action yang memanggilnya. Kalau berkas ini dihapus,
  * aplikasinya tetap aman — cuma jadi tidak enak dipakai.
  */
-const PUBLIC = ["/masuk", "/api/auth"];
+// `/api/health` is what the error pages call to find out where a failure
+// is — including when the database is down and no session can be checked.
+const PUBLIC = ["/masuk", "/api/auth", "/api/health"];
 
 export function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;

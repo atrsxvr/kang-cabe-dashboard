@@ -7,9 +7,9 @@ import { toast } from "sonner";
 
 import { Field } from "@/components/common/form-field";
 import { NativeSelect } from "@/components/common/native-select";
-import { RupiahInput } from "@/components/common/rupiah-input";
 import { SubmitButton } from "@/components/common/submit-button";
 import { stockReasonLabels } from "@/components/inventory/inventory-labels";
+import { PriceField } from "@/components/inventory/price-field";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -22,7 +22,6 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { parseAmount } from "@/lib/dose";
-import { formatRupiah, formatUnitPrice } from "@/lib/money";
 import { formatStock } from "@/lib/stock";
 import { adjustStock } from "@/server/actions/inventory";
 import type { StockRow } from "@/server/queries/inventory";
@@ -59,7 +58,6 @@ export function AdjustStockDialog({
   const [amount, setAmount] = useState(
     defaultAmount ? String(defaultAmount) : "",
   );
-  const [cost, setCost] = useState("");
   const [reason, setReason] = useState(
     direction === "in" ? "PURCHASE" : "USAGE",
   );
@@ -69,13 +67,10 @@ export function AdjustStockDialog({
   const buying = adding && reason === "PURCHASE";
 
   const qty = parseAmount(amount);
-  const paid = Number(cost.replace(/[^0-9]/g, ""));
-  const unitPrice = qty > 0 && paid > 0 ? paid / qty : null;
 
   const reset = () => {
     setErrors({});
     setAmount(defaultAmount ? String(defaultAmount) : "");
-    setCost("");
     setReason(direction === "in" ? "PURCHASE" : "USAGE");
   };
 
@@ -189,25 +184,19 @@ export function AdjustStockDialog({
           </Field>
 
           {buying ? (
-            <Field
+            <PriceField
               id={`cost-${material.id}`}
-              label="Total bayar (Rp)"
+              name="totalCost"
+              totalLabel="Total bayar (Rp)"
+              quantity={qty > 0 ? qty : 0}
+              unit={material.unit}
+              packName={material.purchaseUnit}
+              packSize={material.purchaseSize}
+              // A receipt carries the total, so that is where buying starts.
+              defaultMode="total"
               error={errors.totalCost}
-            >
-              <RupiahInput
-                id={`cost-${material.id}`}
-                name="totalCost"
-                value={cost}
-                onValueChange={setCost}
-                placeholder="320.000"
-                aria-invalid={Boolean(errors.totalCost)}
-              />
-              <p className="text-muted-foreground text-xs">
-                {unitPrice
-                  ? `${formatRupiah(paid)} · kira-kira ${formatUnitPrice(unitPrice, material.unit)}`
-                  : "Kosongin aja dulu kalau notanya belum ada. Uangnya masuk ke nilai gudang, baru jadi biaya musim pas bahannya kepakai."}
-              </p>
-            </Field>
+              emptyHint="Kosongin aja dulu kalau notanya belum ada. Uangnya masuk ke nilai gudang, baru jadi biaya musim pas bahannya kepakai."
+            />
           ) : null}
 
           {/* Stock leaving for a job that never became a task — twenty stakes

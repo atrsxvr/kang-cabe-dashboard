@@ -163,9 +163,10 @@ export function FindingDialog({
                   name="photo"
                   type="file"
                   accept="image/*"
-                  // Opens the camera directly on a phone rather than the
-                  // gallery — this form is filled standing in the field.
-                  capture="environment"
+                  // No `capture`: it sends the phone straight to the camera
+                  // and hides the gallery, and a photo taken earlier on the
+                  // walk round — or sent by someone else — could not be
+                  // attached at all. Without it the phone offers both.
                   className="sr-only"
                   onChange={(event) =>
                     choosePhoto(event.target.files?.[0] ?? null)

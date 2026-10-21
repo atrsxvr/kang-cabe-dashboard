@@ -7,12 +7,12 @@ import { toast } from "sonner";
 
 import { dateInputValue, Field } from "@/components/common/form-field";
 import { NativeSelect } from "@/components/common/native-select";
-import { RupiahInput } from "@/components/common/rupiah-input";
 import { SubmitButton } from "@/components/common/submit-button";
 import {
   materialCategoryLabels,
   UNIT_OPTIONS,
 } from "@/components/inventory/inventory-labels";
+import { PriceField } from "@/components/inventory/price-field";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -47,6 +47,15 @@ export function MaterialDialog({
   const unitFixed = material ? unitLocked(material._count) : false;
   const [open, setOpen] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
+  // Watched so the price can be typed per kg and the total worked out here.
+  const [unit, setUnit] = useState(material?.unit ?? "gram");
+  const [stockInput, setStockInput] = useState("0");
+  // Watched too: the price can be typed per pack, and the pack is defined
+  // right here on the same form.
+  const [packName, setPackName] = useState(material?.purchaseUnit ?? "");
+  const [packSize, setPackSize] = useState(
+    material?.purchaseSize ? String(material.purchaseSize) : "",
+  );
   const router = useRouter();
 
   async function onSubmit(formData: FormData) {
@@ -71,7 +80,15 @@ export function MaterialDialog({
       open={open}
       onOpenChange={(next) => {
         setOpen(next);
-        if (!next) setErrors({});
+        if (!next) {
+          setErrors({});
+          setUnit(material?.unit ?? "gram");
+          setStockInput("0");
+          setPackName(material?.purchaseUnit ?? "");
+          setPackSize(
+            material?.purchaseSize ? String(material.purchaseSize) : "",
+          );
+        }
       }}
     >
       <DialogTrigger asChild>
@@ -139,7 +156,8 @@ export function MaterialDialog({
                 id="material-unit"
                 name={unitFixed ? undefined : "unit"}
                 disabled={unitFixed}
-                defaultValue={material?.unit ?? "gram"}
+                value={unit}
+                onChange={(event) => setUnit(event.target.value)}
               >
                 {UNIT_OPTIONS.map((unit) => (
                   <option key={unit} value={unit}>
@@ -201,7 +219,8 @@ export function MaterialDialog({
                   min={0}
                   step="any"
                   required
-                  defaultValue={0}
+                  value={stockInput}
+                  onChange={(event) => setStockInput(event.target.value)}
                   aria-invalid={Boolean(errors.stock)}
                 />
               </Field>
@@ -226,58 +245,32 @@ export function MaterialDialog({
             </Field>
           </div>
 
-          {/* Without this the opening pile counts as free, and the first
-              priced purchase drags the average down to something nobody can
-              account for. When editing it corrects that same opening value;
-              a material registered empty has none, and its prices live on
-              its purchases in Riwayat. */}
-          {!editing || material!.opening ? (
-            <Field
-              id="material-openingCost"
-              label="Nilai stok awal (Rp)"
-              error={errors.openingCost}
-              hint={
-                editing
-                  ? "Harga rata-rata dihitung ulang. Pemakaian yang sudah dicatat tidak ikut berubah."
-                  : "Kira-kira segitu senilai berapa. Boleh dikosongkan."
-              }
-            >
-              <RupiahInput
-                id="material-openingCost"
-                name="openingCost"
-                placeholder="160.000"
-                defaultValue={material?.opening?.totalCost ?? ""}
-                aria-invalid={Boolean(errors.openingCost)}
-              />
-            </Field>
-          ) : (
-            <p className="text-muted-foreground text-xs">
-              Bahan ini didaftarkan tanpa stok awal, jadi harganya ada di tiap
-              catatan belanja. Ubah lewat tombol Riwayat.
-            </p>
-          )}
-
+          {/* The pack the maker sells, as it is usually bought. Above the
+              price because the price can be typed per pack; the shopping
+              list also counts in it. A different size bought once is typed
+              on that purchase and leaves this alone. */}
           <div className="grid gap-4 sm:grid-cols-2">
             <Field
               id="material-purchaseUnit"
-              label="Satuan Beli (opsional)"
+              label="Bentuk kemasan pabrik (opsional)"
               error={errors.purchaseUnit}
-              hint="Kalau belinya per sak, tulis: sak"
+              hint="Misalnya bungkus, botol, sak"
             >
               <Input
                 id="material-purchaseUnit"
                 name="purchaseUnit"
-                defaultValue={material?.purchaseUnit ?? ""}
-                placeholder="sak"
+                value={packName}
+                onChange={(event) => setPackName(event.target.value)}
+                placeholder="bungkus"
                 aria-invalid={Boolean(errors.purchaseUnit)}
               />
             </Field>
 
             <Field
               id="material-purchaseSize"
-              label="Isi Per Satuan Beli"
+              label="Isi per kemasan (opsional)"
               error={errors.purchaseSize}
-              hint={`Berapa ${material?.unit ?? "gram"} dalam satu satuan beli`}
+              hint={`Berapa ${unit} dalam satu kemasan. Dipakai untuk saran belanja dan harga per kemasan.`}
             >
               <Input
                 id="material-purchaseSize"
@@ -285,12 +278,49 @@ export function MaterialDialog({
                 type="number"
                 min={0}
                 step="any"
-                defaultValue={material?.purchaseSize ?? ""}
-                placeholder="5000"
+                value={packSize}
+                onChange={(event) => setPackSize(event.target.value)}
+                placeholder="1000"
                 aria-invalid={Boolean(errors.purchaseSize)}
               />
             </Field>
           </div>
+
+          {/* Without this the opening pile counts as free, and the first
+              priced purchase drags the average down to something nobody can
+              account for. When editing it corrects that same opening value;
+              a material registered empty has none, and its prices live on
+              its purchases in Riwayat. */}
+          {!editing || material!.opening ? (
+            <PriceField
+              id="material-openingCost"
+              name="openingCost"
+              totalLabel="Nilai stok awal (Rp)"
+              // Editing prices the opening count, not what is left now: the
+              // value belongs to the movement that brought that count in.
+              quantity={
+                editing
+                  ? material!.opening!.delta
+                  : Number(stockInput.replace(",", ".")) || 0
+              }
+              unit={unit}
+              packName={packName}
+              packSize={Number(packSize) || null}
+              initialTotal={material?.opening?.totalCost ?? null}
+              defaultMode="unit"
+              error={errors.openingCost}
+              emptyHint={
+                editing
+                  ? "Harga rata-rata dihitung ulang. Pemakaian yang sudah dicatat tidak ikut berubah."
+                  : "Harga yang biasa kamu bayar. Boleh dikosongkan."
+              }
+            />
+          ) : (
+            <p className="text-muted-foreground text-xs">
+              Bahan ini didaftarkan tanpa stok awal, jadi harganya ada di tiap
+              catatan belanja. Ubah lewat tombol Riwayat.
+            </p>
+          )}
 
           <Field
             id="material-expiresAt"
