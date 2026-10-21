@@ -1,13 +1,13 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
 import { Trash2 } from "lucide-react";
 import { toast } from "sonner";
 
 import { dateInputValue, Field } from "@/components/common/form-field";
 import { NativeSelect } from "@/components/common/native-select";
 import { SubmitButton } from "@/components/common/submit-button";
+import { useSaveAndRefresh } from "@/components/common/use-save-and-refresh";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -38,7 +38,7 @@ export function LossDialog({
 }) {
   const [open, setOpen] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
-  const router = useRouter();
+  const { refreshing, finish } = useSaveAndRefresh();
 
   async function onSubmit(formData: FormData) {
     const result = await createHarvestLoss(formData);
@@ -50,9 +50,7 @@ export function LossDialog({
     }
 
     setErrors({});
-    setOpen(false);
-    toast.success("Susut tercatat.");
-    router.refresh();
+    finish("Susut tercatat.", () => setOpen(false));
   }
 
   return (
@@ -153,7 +151,7 @@ export function LossDialog({
             >
               Batal
             </Button>
-            <SubmitButton>Simpan</SubmitButton>
+            <SubmitButton busy={refreshing}>Simpan</SubmitButton>
           </DialogFooter>
         </form>
       </DialogContent>

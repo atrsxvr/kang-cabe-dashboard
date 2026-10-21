@@ -1,13 +1,13 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
 import { Pencil, Plus } from "lucide-react";
 import { toast } from "sonner";
 
 import { dateInputValue, Field } from "@/components/common/form-field";
 import { NativeSelect } from "@/components/common/native-select";
 import { SubmitButton } from "@/components/common/submit-button";
+import { useSaveAndRefresh } from "@/components/common/use-save-and-refresh";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -45,7 +45,7 @@ export function HarvestDialog({
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [good, setGood] = useState(harvest ? String(harvest.goodKg) : "");
   const [reject, setReject] = useState(harvest ? String(harvest.rejectKg) : "");
-  const router = useRouter();
+  const { refreshing, finish } = useSaveAndRefresh();
 
   const total = kgOf(good) + kgOf(reject);
 
@@ -66,10 +66,10 @@ export function HarvestDialog({
       return;
     }
 
-    setOpen(false);
-    reset();
-    toast.success(editing ? "Panen diperbarui." : "Panen tercatat.");
-    router.refresh();
+    finish(editing ? "Panen diperbarui." : "Panen tercatat.", () => {
+      setOpen(false);
+      reset();
+    });
   }
 
   return (
@@ -213,7 +213,7 @@ export function HarvestDialog({
             >
               Batal
             </Button>
-            <SubmitButton>
+            <SubmitButton busy={refreshing}>
               {editing ? "Simpan Perubahan" : "Simpan Panen"}
             </SubmitButton>
           </DialogFooter>

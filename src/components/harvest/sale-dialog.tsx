@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
 import { Pencil, Plus } from "lucide-react";
 import { toast } from "sonner";
 
@@ -9,6 +8,7 @@ import { dateInputValue, Field } from "@/components/common/form-field";
 import { NativeSelect } from "@/components/common/native-select";
 import { RupiahInput } from "@/components/common/rupiah-input";
 import { SubmitButton } from "@/components/common/submit-button";
+import { useSaveAndRefresh } from "@/components/common/use-save-and-refresh";
 import { BuyerFields } from "@/components/harvest/buyer-fields";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -93,7 +93,7 @@ export function SaleDialog({
   const [open, setOpen] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [lines, setLines] = useState(fromSale(sale));
-  const router = useRouter();
+  const { refreshing, finish } = useSaveAndRefresh();
 
   const filled = CHILI_GRADES.map((grade) => ({
     grade,
@@ -133,10 +133,10 @@ export function SaleDialog({
       return;
     }
 
-    setOpen(false);
-    reset();
-    toast.success(editing ? "Penjualan diperbarui." : "Penjualan tercatat.");
-    router.refresh();
+    finish(editing ? "Penjualan diperbarui." : "Penjualan tercatat.", () => {
+      setOpen(false);
+      reset();
+    });
   }
 
   const set = (grade: ChiliGradeValue, field: keyof Line, value: string) =>
@@ -356,7 +356,7 @@ export function SaleDialog({
             >
               Batal
             </Button>
-            <SubmitButton>
+            <SubmitButton busy={refreshing}>
               {editing ? "Simpan Perubahan" : "Simpan Penjualan"}
             </SubmitButton>
           </DialogFooter>

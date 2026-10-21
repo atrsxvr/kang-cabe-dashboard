@@ -1,6 +1,12 @@
 -- Pembeli jadi tabel sendiri. Dulu namanya diketik bebas di tiap penjualan,
 -- jadi "Pak Ujang" dan "pak ujang" terhitung dua orang dan riwayatnya tidak
 -- bisa dijumlah.
+--
+-- BEGIN/COMMIT ditulis sendiri: Prisma menjalankan pernyataan satu per satu
+-- tanpa membungkusnya. Tanpa ini, kegagalan di tengah meninggalkan tabel
+-- pembeli terisi sementara penjualan belum tersambung.
+
+BEGIN;
 
 -- CreateEnum
 CREATE TYPE "BuyerKind" AS ENUM ('PENGEPUL', 'PASAR', 'KONSUMEN');
@@ -54,3 +60,5 @@ ALTER TABLE "SaleTransaction" DROP COLUMN "buyerName";
 CREATE INDEX "SaleTransaction_buyerId_idx" ON "SaleTransaction"("buyerId");
 
 ALTER TABLE "SaleTransaction" ADD CONSTRAINT "SaleTransaction_buyerId_fkey" FOREIGN KEY ("buyerId") REFERENCES "Buyer"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+COMMIT;
