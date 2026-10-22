@@ -3,6 +3,8 @@ import "server-only";
 import { severityLabels } from "@/components/health/finding-labels";
 import {
   newFindingMessage,
+  scheduledSoon,
+  scheduledTaskMessage,
   tomorrowTasksMessage,
   tomorrowWindow,
 } from "@/lib/notifications";
@@ -87,4 +89,36 @@ export async function notifyTomorrowTasks(now: Date): Promise<TomorrowResult> {
   if (!message) return { tasks: 0 };
 
   return { tasks: tasks.length, ...(await sendPush(await activeMemberIds(), message)) };
+}
+
+/**
+ * A task scheduled for today, or for tomorrow after the evening summary has
+ * gone — the cases the summary cannot cover (`scheduledSoon`). To every
+ * active member, whoever saved it: it is a reminder to do the work, not news
+ * about who typed it.
+ */
+export async function notifyScheduledTask(
+  taskId: string,
+  now: Date
+): Promise<PushResult | null> {
+  const task = await prisma.task.findUnique({
+    where: { id: taskId },
+    select: {
+      id: true,
+      title: true,
+      status: true,
+      dueDate: true,
+      season: { select: { name: true, status: true } },
+    },
+  });
+  if (!task || task.status === "DONE") return null;
+  if (!["PLANNING", "ACTIVE", "HARVESTING"].includes(task.season.status)) return null;
+
+  const when = scheduledSoon(task.dueDate, now);
+  if (!when) return null;
+
+  return sendPush(
+    await activeMemberIds(),
+    scheduledTaskMessage({ id: task.id, title: task.title, season: task.season.name, when })
+  );
 }

@@ -18,7 +18,7 @@ import { TodayCard } from "@/components/dashboard/today-card";
 import { WeatherCard } from "@/components/dashboard/weather-card";
 import { canWrite } from "@/lib/permissions";
 import { currentActor } from "@/server/auth/guard";
-import { countWeekendTasks, overview } from "@/server/queries/dashboard";
+import { countWeekTasks, overview } from "@/server/queries/dashboard";
 import { seasonMaterialCost } from "@/server/queries/finance";
 import { harvestCurve, harvestSummary } from "@/server/queries/harvest";
 import { getGardenProfile } from "@/server/queries/users";
@@ -36,8 +36,8 @@ export default async function DashboardPage(props: PageProps<"/">) {
 
   if (!season) return <NoSeason />;
 
-  const [weekend, cost, harvest, curve, profile, board, actor] = await Promise.all([
-    countWeekendTasks(season.id),
+  const [week, cost, harvest, curve, profile, board, actor] = await Promise.all([
+    countWeekTasks(season.id),
     seasonMaterialCost(season.id),
     harvestSummary(season.id),
     harvestCurve(season.id, season.startDate),
@@ -82,13 +82,13 @@ export default async function DashboardPage(props: PageProps<"/">) {
         />
 
         <SummaryCard
-          title="Tugas Weekend Ini"
-          value={String(weekend.outstanding)}
-          unit="tugas"
+          title="Tugas Minggu Ini"
+          value={String(week.outstanding)}
+          unit="belum selesai"
           hint={
-            weekend.total === 0
-              ? `Tidak ada jadwal ${formatDateRange(weekend.from, weekend.to)}`
-              : `Sab–Min ${formatDateRange(weekend.from, weekend.to)} · ${weekend.total - weekend.outstanding} selesai`
+            week.total === 0
+              ? `Tidak ada jadwal ${formatDateRange(week.from, week.to)}`
+              : `Sen–Min ${formatDateRange(week.from, week.to)} · ${week.total - week.outstanding} dari ${week.total} selesai`
           }
           icon={CalendarCheck}
         />
@@ -127,7 +127,7 @@ export default async function DashboardPage(props: PageProps<"/">) {
           dueToday={board.dueToday}
           overdue={board.overdue}
           seasonId={season.id}
-          canRecordUsage={actor ? canWrite(actor.role, "usage") : false}
+          canRecordUsage={actor ? canWrite(actor.role, "usage", actor.access) : false}
         />
 
         <AttentionCard

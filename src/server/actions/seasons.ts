@@ -75,6 +75,11 @@ export async function advanceSeasonStatus(
   // happens only once everything is settled. Checked here, not just by a
   // disabled button: a Server Action can be called without its page.
   if (next === "COMPLETED") {
+    // The owner's call alone, whatever the Akses Peran menu grants: giving
+    // someone the seasons area lets them plan and advance, not close.
+    if (allowed.actor.role !== "ADMIN") {
+      return { ok: false, message: "Tutup Musim hanya bisa dilakukan Admin." };
+    }
     const checks = closingChecklist(await closingFacts(seasonId), seasonId, {
       rupiah: formatRupiah,
       kg: formatKg,

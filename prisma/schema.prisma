@@ -422,12 +422,12 @@ model Task {
   /// ditagih lewat tombol, dan yang sudah tidak bisa dipotong dua kali.
   usageRecordedAt DateTime?
 
-  season    Season         @relation(fields: [seasonId], references: [id], onDelete: Cascade)
-  assignees TaskAssignee[]
+  season        Season               @relation(fields: [seasonId], references: [id], onDelete: Cascade)
+  assignees     TaskAssignee[]
   // SetNull: menghapus racikan tidak boleh merusak tugas yang terlanjur
   // memakainya — salinan takarannya tetap utuh.
-  recipe    Recipe?        @relation("RecipeTasks", fields: [recipeId], references: [id], onDelete: SetNull)
-  materials TaskMaterial[]
+  recipe        Recipe?              @relation("RecipeTasks", fields: [recipeId], references: [id], onDelete: SetNull)
+  materials     TaskMaterial[]
   /// Upah borongan yang dibayar untuk tugas ini.
   laborPayments FinanceTransaction[]
 
@@ -987,4 +987,21 @@ model PushSubscription {
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
+}
+
+/// Akses tulis yang diubah Admin dari menu Akses Peran.
+///
+/// Hanya selisihnya dari bawaan di `src/lib/permissions.ts` yang disimpan:
+/// tabel kosong berarti aturan bawaan yang berlaku. Admin dan wilayah
+/// terkunci tidak pernah dibaca dari sini.
+model RoleAccess {
+  role        Role
+  /// Nama wilayah dari AREAS. Teks, bukan enum: wilayah baru lahir di kode,
+  /// dan baris untuk wilayah yang sudah dibuang cukup diabaikan.
+  area        String
+  allowed     Boolean
+  updatedById String?
+  updatedAt   DateTime @updatedAt
+
+  @@id([role, area])
 }

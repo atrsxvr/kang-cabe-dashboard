@@ -64,7 +64,7 @@ export default async function HealthPage(props: PageProps<"/health">) {
               currentHst={currentHst}
               photoEnabled={isPhotoUploadEnabled()}
               canChooseReporter={
-                actor ? canWrite(actor.role, "diagnosis") : false
+                actor ? canWrite(actor.role, "diagnosis", actor.access) : false
               }
             />
           </CanWrite>

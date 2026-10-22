@@ -7,6 +7,9 @@ import {
   canWrite,
   denialMessage,
   writableAreas,
+  resolveAccess,
+  DEFAULT_WRITERS,
+  areaLabels,
   type Area,
 } from "@/lib/permissions";
 
@@ -200,5 +203,54 @@ describe("canManageFinding", () => {
   it("leaves reports with no recorded reporter to the curators", () => {
     expect(canManageFinding(sales, null)).toBe(false);
     expect(canManageFinding(agro, null)).toBe(true);
+  });
+});
+
+describe("resolveAccess", () => {
+  it("is the default when Admin has changed nothing", () => {
+    expect(resolveAccess([])).toEqual(DEFAULT_WRITERS);
+  });
+
+  it("grants and revokes what Admin ticked", () => {
+    const access = resolveAccess([
+      { role: "LOGISTICS", area: "harvest", allowed: true },
+      { role: "AGRONOMIST", area: "recipes", allowed: false },
+    ]);
+
+    expect(canWrite("LOGISTICS", "harvest", access)).toBe(true);
+    expect(canWrite("AGRONOMIST", "recipes", access)).toBe(false);
+    // Untouched cells keep their default.
+    expect(canWrite("SALES", "harvest", access)).toBe(true);
+  });
+
+  it("never takes anything from Admin", () => {
+    const access = resolveAccess([{ role: "ADMIN", area: "finance", allowed: false }]);
+    for (const area of AREAS) expect(canWrite("ADMIN", area, access), area).toBe(true);
+  });
+
+  /** Whoever holds Pengaturan could tick everything else for themselves. */
+  it("keeps the locked areas as they are", () => {
+    const access = resolveAccess([
+      { role: "SALES", area: "settings", allowed: true },
+      { role: "SALES", area: "notifications", allowed: false },
+    ]);
+
+    expect(canWrite("SALES", "settings", access)).toBe(false);
+    expect(canWrite("SALES", "notifications", access)).toBe(true);
+  });
+
+  it("ignores a row for an area that no longer exists", () => {
+    expect(resolveAccess([{ role: "SALES", area: "gudang-lama", allowed: true }])).toEqual(
+      DEFAULT_WRITERS
+    );
+  });
+
+  it("names the granted role in the refusal", () => {
+    const access = resolveAccess([{ role: "LOGISTICS", area: "finance", allowed: true }]);
+    expect(denialMessage("finance", access)).toContain("Logistik");
+  });
+
+  it("has a label for every area", () => {
+    for (const area of AREAS) expect(areaLabels[area].length, area).toBeGreaterThan(3);
   });
 });

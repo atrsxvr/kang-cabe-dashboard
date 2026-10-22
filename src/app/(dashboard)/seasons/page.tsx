@@ -3,6 +3,7 @@ import { connection } from "next/server";
 import { Sprout } from "lucide-react";
 
 import { CanWrite } from "@/components/auth/can-write";
+import { currentActor } from "@/server/auth/guard";
 import { PageHeader } from "@/components/common/page-header";
 import { StatusBadge } from "@/components/common/status-badge";
 import { SeasonArchiveAction } from "@/components/seasons/season-archive-action";
@@ -25,7 +26,9 @@ export const metadata: Metadata = { title: "Manajemen Musim" };
 export default async function SeasonsPage() {
   await connection();
 
-  const seasons = await listSeasonRows();
+  const [seasons, actor] = await Promise.all([listSeasonRows(), currentActor()]);
+  // Tutup Musim stays Admin's even when seasons is granted to another role.
+  const canClose = actor?.role === "ADMIN";
 
   return (
     <>
@@ -94,7 +97,7 @@ export default async function SeasonsPage() {
 
                   <CanWrite area="seasons">
                     <div className="border-t pt-2">
-                      <SeasonActions season={season} />
+                      <SeasonActions season={season} canClose={canClose} />
                     </div>
                   </CanWrite>
                 </CardContent>
@@ -154,7 +157,7 @@ export default async function SeasonsPage() {
                     </TableCell>
                     <CanWrite area="seasons">
                       <TableCell className="text-right">
-                        <SeasonActions season={season} />
+                        <SeasonActions season={season} canClose={canClose} />
                       </TableCell>
                     </CanWrite>
                   </TableRow>
@@ -171,8 +174,10 @@ export default async function SeasonsPage() {
 
 function SeasonActions({
   season,
+  canClose,
 }: {
   season: Awaited<ReturnType<typeof listSeasonRows>>[number];
+  canClose: boolean;
 }) {
   return (
     <div className="flex items-center justify-end gap-1">
@@ -180,6 +185,7 @@ function SeasonActions({
         seasonId={season.id}
         seasonName={season.name}
         status={season.status}
+        canClose={canClose}
       />
       <SeasonDialog season={season} />
       {season.status !== "ARCHIVED" ? (

@@ -1,7 +1,7 @@
 import { ImageIcon, MapPin, User as UserIcon } from "lucide-react";
 
 import { ConfirmDelete } from "@/components/common/confirm-delete";
-import { canManageFinding, canWrite, type Role } from "@/lib/permissions";
+import { canManageFinding, canWrite, type AccessMatrix, type Role } from "@/lib/permissions";
 import { DiagnoseDialog } from "@/components/health/diagnose-dialog";
 import { FindingDialog } from "@/components/health/finding-dialog";
 import { PhotoViewer } from "@/components/health/photo-viewer";
@@ -37,12 +37,12 @@ export function FindingCard({
   currentHst: number;
   photoEnabled: boolean;
   /** Yang sedang membuka halaman. Null berarti tidak ada tombol apa pun. */
-  actor: { id: string; role: Role } | null;
+  actor: { id: string; role: Role; access: AccessMatrix } | null;
 }) {
   // Tombol cuma kerapian; penegakannya di Server Action. Tapi tombol yang
   // menolak saat ditekan mengajari orang bahwa aplikasinya suka gagal, jadi
   // yang tidak berhak tidak diberi tombolnya sama sekali.
-  const curates = actor ? canWrite(actor.role, "diagnosis") : false;
+  const curates = actor ? canWrite(actor.role, "diagnosis", actor.access) : false;
   const manages = actor
     ? canManageFinding(actor, finding.reportedBy?.id ?? null)
     : false;

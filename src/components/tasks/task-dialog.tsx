@@ -380,7 +380,7 @@ export function TaskDialog({
               />
             </Field>
 
-            <Field id="dueDate" label="Jatuh Tempo" error={errors.dueDate}>
+            <Field id="dueDate" label="Tanggal Dikerjakan" error={errors.dueDate}>
               <Input
                 id="dueDate"
                 name="dueDate"

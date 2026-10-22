@@ -4,7 +4,7 @@ import {
   calculateHst,
   daysUntil,
   trailingWindows,
-  weekendRange,
+  weekRange,
 } from "@/lib/hst";
 
 /** Renders an instant as its Jakarta wall-clock date, for readable assertions. */
@@ -59,52 +59,45 @@ describe("calculateHst", () => {
   });
 });
 
-describe("weekendRange", () => {
-  // 2026-08-08 is a Saturday; the week runs Mon 3 Aug – Sun 9 Aug.
-  const expectWeekendOf3Aug = (now: Date) => {
-    const { saturday, sunday, start, end } = weekendRange(now);
-    expect(inJakarta(saturday)).toBe("2026-08-08, 00:00");
+describe("weekRange", () => {
+  // The week of Mon 3 Aug – Sun 9 Aug 2026.
+  const expectWeekOf3Aug = (now: Date) => {
+    const { monday, sunday, start, end } = weekRange(now);
+    expect(inJakarta(monday)).toBe("2026-08-03, 00:00");
     expect(inJakarta(sunday)).toBe("2026-08-09, 00:00");
-    expect(inJakarta(start)).toBe("2026-08-08, 00:00");
-    // Half-open: the range ends at Monday midnight, so all of Sunday counts.
+    expect(inJakarta(start)).toBe("2026-08-03, 00:00");
+    // Half-open: the range ends at the next Monday's midnight, so all of
+    // Sunday counts.
     expect(inJakarta(end)).toBe("2026-08-10, 00:00");
   };
 
-  it("finds the coming weekend from a Monday", () => {
-    expectWeekendOf3Aug(new Date("2026-08-03T05:00:00Z"));
+  it("starts on the Monday itself", () => {
+    expectWeekOf3Aug(new Date("2026-08-03T05:00:00Z"));
   });
 
-  it("finds the coming weekend from a Wednesday", () => {
-    expectWeekendOf3Aug(new Date("2026-08-05T05:00:00Z"));
+  it("covers a weekday mid-week", () => {
+    expectWeekOf3Aug(new Date("2026-08-05T05:00:00Z"));
   });
 
-  it("uses today when today is Saturday", () => {
-    expectWeekendOf3Aug(new Date("2026-08-08T05:00:00Z"));
+  it("still means this week on a Sunday", () => {
+    expectWeekOf3Aug(new Date("2026-08-09T05:00:00Z"));
   });
 
-  /**
-   * On a Sunday, "this weekend" is the one in progress — yesterday and today —
-   * not next week's. A naive "next Saturday" would skip the current one.
-   */
-  it("keeps the weekend in progress when today is Sunday", () => {
-    expectWeekendOf3Aug(new Date("2026-08-09T05:00:00Z"));
-  });
-
-  it("moves to the next weekend once Monday arrives", () => {
-    const { saturday } = weekendRange(new Date("2026-08-10T05:00:00Z"));
-    expect(inJakarta(saturday)).toBe("2026-08-15, 00:00");
+  it("moves to the next week once Monday arrives", () => {
+    const { monday } = weekRange(new Date("2026-08-10T05:00:00Z"));
+    expect(inJakarta(monday)).toBe("2026-08-10, 00:00");
   });
 
   /** Late-evening UTC is already the next day in Jakarta. */
   it("uses the Jakarta day, not the UTC day, to pick the week", () => {
-    // 2026-08-09T18:00Z is Monday 01:00 WIB, so the weekend has moved on.
-    const { saturday } = weekendRange(new Date("2026-08-09T18:00:00Z"));
-    expect(inJakarta(saturday)).toBe("2026-08-15, 00:00");
+    // 2026-08-09T18:00Z is Monday 01:00 WIB, so the week has moved on.
+    const { monday } = weekRange(new Date("2026-08-09T18:00:00Z"));
+    expect(inJakarta(monday)).toBe("2026-08-10, 00:00");
   });
 
-  it("spans exactly two days", () => {
-    const { start, end } = weekendRange(new Date("2026-08-05T05:00:00Z"));
-    expect(end.getTime() - start.getTime()).toBe(2 * 86_400_000);
+  it("spans exactly seven days", () => {
+    const { start, end } = weekRange(new Date("2026-08-05T05:00:00Z"));
+    expect(end.getTime() - start.getTime()).toBe(7 * 86_400_000);
   });
 });
 

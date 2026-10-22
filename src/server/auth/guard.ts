@@ -4,10 +4,17 @@ import { cache } from "react";
 import { headers } from "next/headers";
 import { forbidden, unauthorized } from "next/navigation";
 
-import { canWrite, denialMessage, type Area, type Role } from "@/lib/permissions";
+import {
+  canWrite,
+  denialMessage,
+  type AccessMatrix,
+  type Area,
+  type Role,
+} from "@/lib/permissions";
 import { prisma } from "@/lib/prisma";
 import { auth } from "@/server/auth/config";
 import type { ActionResult } from "@/server/actions/result";
+import { roleAccess } from "@/server/queries/access";
 
 /**
  * Lapisan akses: satu tempat yang menjawab "siapa ini, dan boleh apa".
@@ -28,6 +35,8 @@ export type Actor = {
   email: string;
   role: Role;
   image: string | null;
+  /** Akses yang berlaku saat ini, termasuk ubahan Admin. */
+  access: AccessMatrix;
 };
 
 /**
@@ -63,6 +72,7 @@ export const currentActor = cache(async (): Promise<Actor | null> => {
   if (!user || user.deletedAt) return null;
 
   return {
+    access: await roleAccess(),
     id: user.id,
     name: user.name,
     email: user.email,
@@ -81,7 +91,7 @@ export async function requireActor(): Promise<Actor> {
 /** Untuk halaman yang seluruhnya milik satu wilayah. */
 export async function requirePageWrite(area: Area): Promise<Actor> {
   const actor = await requireActor();
-  if (!canWrite(actor.role, area)) forbidden();
+  if (!canWrite(actor.role, area, actor.access)) forbidden();
   return actor;
 }
 
@@ -108,8 +118,8 @@ export async function guardWrite(
     return { ok: false, message: "Sesi kamu sudah habis. Masuk lagi dulu ya." };
   }
 
-  if (!canWrite(actor.role, area)) {
-    return { ok: false, message: denialMessage(area) };
+  if (!canWrite(actor.role, area, actor.access)) {
+    return { ok: false, message: denialMessage(area, actor.access) };
   }
 
   return { ok: true, actor };

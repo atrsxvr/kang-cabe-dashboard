@@ -428,3 +428,64 @@ test.describe("tombol di dalam tabel", () => {
     await context.close();
   });
 });
+
+/**
+ * Akses Peran: sebuah centang Admin berlaku di halaman orang lain pada
+ * permintaan berikutnya. Mengubah baris konfigurasi yang dipakai bersama, jadi
+ * centangnya selalu dikembalikan — juga kalau tesnya gagal di tengah jalan.
+ */
+test.describe("akses peran diatur Admin", () => {
+  test("Logistik diberi bagian Panen, tombolnya muncul, lalu dicabut lagi", async ({
+    page,
+    browser,
+  }) => {
+    const cell = page.getByRole("checkbox", { name: "Logistik — Panen & penjualan" });
+    await page.goto("/settings");
+    await expect(cell).toBeVisible();
+    test.skip(await cell.isChecked(), "Basis data ini sudah memberi Logistik bagian Panen.");
+
+    const harvestButton = async () => {
+      const logistics = await contextFor(browser, "LOGISTICS");
+      const other = await logistics.newPage();
+      await other.goto("/harvest");
+      await expect(other.getByRole("heading", { name: "Panen & Penjualan" })).toBeVisible();
+      const count = await other.getByRole("button", { name: "Catat Panen" }).count();
+      await logistics.close();
+      return count;
+    };
+
+    expect(await harvestButton()).toBe(0);
+
+    try {
+      await cell.click();
+      await expect(page.getByText("Logistik sekarang boleh mengubah panen & penjualan.")).toBeVisible();
+      await expect(cell).toBeChecked();
+      expect(await harvestButton()).toBe(1);
+    } finally {
+      await page.goto("/settings");
+      if (await cell.isChecked()) {
+        await cell.click();
+        await expect(cell).not.toBeChecked();
+      }
+    }
+
+    expect(await harvestButton()).toBe(0);
+  });
+
+  test("Pengaturan tidak bisa diberikan ke peran lain", async ({ page }) => {
+    await page.goto("/settings");
+    await expect(page.getByRole("checkbox", { name: /Pengaturan, anggota & akses/ })).toHaveCount(0);
+  });
+});
+
+test("menu Akses Peran tidak terlihat oleh yang bukan Admin", async ({ browser }) => {
+  const context = await contextFor(browser, "AGRONOMIST");
+  const page = await context.newPage();
+  await page.goto("/settings");
+
+  await expect(page.getByRole("heading", { name: "Profil Kebun" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Akses Peran" })).toHaveCount(0);
+  await expect(page.getByRole("checkbox", { name: /Logistik — / })).toHaveCount(0);
+
+  await context.close();
+});

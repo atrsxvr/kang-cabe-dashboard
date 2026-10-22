@@ -53,8 +53,8 @@ export default async function TasksPage(props: PageProps<"/tasks">) {
   // Dua izin berbeda di satu halaman: menyunting tugas milik Admin, sementara
   // "Catat pemakaian" memotong stok dan karena itu milik gudang.
   const actor = await currentActor();
-  const canWriteTasks = actor ? canWrite(actor.role, "tasks") : false;
-  const canRecordUsage = actor ? canWrite(actor.role, "usage") : false;
+  const canWriteTasks = actor ? canWrite(actor.role, "tasks", actor.access) : false;
+  const canRecordUsage = actor ? canWrite(actor.role, "usage", actor.access) : false;
 
   const currentHst = calculateHst(season.startDate);
 

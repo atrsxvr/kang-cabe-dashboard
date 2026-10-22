@@ -163,7 +163,7 @@ test.describe.serial("pengingat tugas besok", () => {
   async function addTask(page: Page, title: string, status: "TODO" | "DONE") {
     await page.getByRole("button", { name: "Tambah Tugas" }).click();
     await page.getByLabel("Judul Tugas", { exact: true }).fill(title);
-    await page.getByLabel("Jatuh Tempo", { exact: true }).fill(tomorrow);
+    await page.getByLabel("Tanggal Dikerjakan", { exact: true }).fill(tomorrow);
     await page.getByLabel("Status", { exact: true }).selectOption(status);
     await page.getByRole("button", { name: "Simpan Tugas" }).click();
     await expect(page.getByRole("dialog")).toHaveCount(0);

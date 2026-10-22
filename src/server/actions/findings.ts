@@ -49,7 +49,7 @@ export async function createFinding(formData: FormData): Promise<ActionResult> {
   // kolom ini — dan laporan atas nama orang lain menaruh klaim di mulut orang
   // yang tidak membuatnya. Pengurus tetap boleh memilih: Admin yang menutupi
   // temannya perlu bisa mencatat atas nama yang benar-benar melihat.
-  const reporter = canWrite(allowed.actor.role, "diagnosis")
+  const reporter = canWrite(allowed.actor.role, "diagnosis", allowed.actor.access)
     ? reportedById
       ? reportedById
       : null
@@ -222,7 +222,7 @@ export async function updateFinding(formData: FormData): Promise<ActionResult> {
 
   // Pelapor biasa tidak bisa memindahkan laporannya ke nama orang lain: itu
   // sama dengan menaruh klaim di mulut orang yang tidak pernah membuatnya.
-  const reporter = canWrite(allowed.actor.role, "diagnosis")
+  const reporter = canWrite(allowed.actor.role, "diagnosis", allowed.actor.access)
     ? reportedById
       ? reportedById
       : null

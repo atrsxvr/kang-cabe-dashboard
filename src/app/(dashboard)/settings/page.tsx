@@ -3,6 +3,7 @@ import { connection } from "next/server";
 
 import { CanWrite } from "@/components/auth/can-write";
 import { PageHeader } from "@/components/common/page-header";
+import { AccessSettings } from "@/components/settings/access-settings";
 import { PushSettings } from "@/components/settings/push-settings";
 import { GardenProfileForm } from "@/components/settings/garden-profile-form";
 import { MemberActiveAction } from "@/components/settings/member-active-action";
@@ -144,11 +145,20 @@ export default async function SettingsPage() {
         </section>
       ) : null}
 
+      {/* Admin's alone, to see as well as to change: who may do what is a
+          decision for the owner, not a page for everyone to browse. */}
+      {actor?.role === "ADMIN" ? (
+        <section className="mb-8 grid gap-3">
+          <h2 className="text-sm font-medium">Akses Peran</h2>
+          <AccessSettings access={actor.access} editable />
+        </section>
+      ) : null}
+
       <section className="grid gap-3">
         <h2 className="text-sm font-medium">Profil Kebun</h2>
         <GardenProfileForm
           profile={profile}
-          readOnly={!actor || !canWrite(actor.role, "settings")}
+          readOnly={!actor || !canWrite(actor.role, "settings", actor.access)}
         />
       </section>
     </>

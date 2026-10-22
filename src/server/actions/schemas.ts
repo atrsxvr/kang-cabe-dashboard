@@ -90,7 +90,7 @@ export const createTaskSchema = z.object({
     .min(0, "HST tidak boleh negatif")
     .max(1000)
     .optional(),
-  dueDate: z.coerce.date("Tanggal jatuh tempo tidak valid"),
+  dueDate: z.coerce.date("Tanggal dikerjakan tidak valid"),
   status: z.enum(taskStatuses),
   assigneeIds: z.array(z.string().min(1)).default([]),
   recipeId: z.string().optional().or(z.literal("")),

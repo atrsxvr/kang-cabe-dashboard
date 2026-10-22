@@ -24,10 +24,13 @@ export function SeasonStatusAction({
   seasonId,
   seasonName,
   status,
+  canClose,
 }: {
   seasonId: string;
   seasonName: string;
   status: (typeof seasonStatuses)[number];
+  /** Tutup Musim is Admin's alone; others see that instead of a button. */
+  canClose: boolean;
 }) {
   const router = useRouter();
   const next = nextSeasonStatus(status);
@@ -36,6 +39,9 @@ export function SeasonStatusAction({
   // closing checklist instead of happening on a single tap.
   //
   // Selesai itself goes through the same component: see `done`.
+  if (next === "COMPLETED" && !canClose) {
+    return <span className="text-muted-foreground text-xs">Ditutup oleh Admin</span>;
+  }
   if (next === "COMPLETED" || status === "COMPLETED") {
     return (
       <SeasonCloseDialog

@@ -52,7 +52,7 @@ export function TodayCard({
         {rows.length === 0 ? (
           <p className="text-muted-foreground flex items-center gap-2 py-2 text-sm">
             <CheckCircle2 className="size-4 shrink-0" aria-hidden />
-            Nggak ada yang jatuh tempo hari ini. Aman.
+            Nggak ada tugas untuk hari ini. Aman.
           </p>
         ) : (
           <ul className="grid gap-2">
@@ -73,7 +73,7 @@ export function TodayCard({
                   >
                     {task.daysLeft < 0
                       ? `Telat ${Math.abs(task.daysLeft)} hari · ${formatDate(task.dueDate)}`
-                      : "Jatuh tempo hari ini"}
+                      : "Dikerjakan hari ini"}
                     {task.assignees.length > 0
                       ? ` · ${task.assignees.join(", ")}`
                       : null}
