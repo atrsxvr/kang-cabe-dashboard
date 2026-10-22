@@ -167,6 +167,10 @@ test.describe("layar 360px", () => {
         document.querySelectorAll<HTMLElement>("button, a").forEach((el) => {
           const rect = el.getBoundingClientRect();
           if (rect.width === 0) return;
+          // Nothing to squeeze without words. A checkbox is a <button> too,
+          // and its enlarged tap area (an absolutely placed ::after) counts
+          // towards scrollWidth in some Chromium builds — CI's, not ours.
+          if (!(el.textContent ?? "").trim()) return;
           if (el.scrollWidth <= el.clientWidth + 1) return;
 
           out.push(
