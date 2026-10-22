@@ -155,6 +155,9 @@ test("setoran sebelum saldo awal masuk modal, bukan saldo", async ({ page }) => 
 
   await page.getByRole("tab", { name: "Kas" }).click();
   expect(await balance(page)).toBe(before);
+  // The oldest entry in the book, so past the first page: found the way
+  // anyone looking for an old entry would, by its month.
+  await page.getByLabel("Saring bulan").selectOption("1999-12");
   await expect(
     page.getByText("Sudah termasuk saldo awal — nggak mengubah saldo.").first()
   ).toBeVisible();

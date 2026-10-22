@@ -185,3 +185,44 @@ export function summariseCash(entries: CashEntry[]): CashTotals {
 export function netCapital(contributed: number, returned: number): number {
   return contributed - returned;
 }
+
+/**
+ * Berapa baris buku kas yang dikirim sekaligus.
+ *
+ * Saldo dan totalnya tetap dihitung dari semua catatan; yang dibatasi hanya
+ * yang dikirim ke HP. Tanpa batas, halaman Keuangan membawa setiap rupiah
+ * sejak musim pertama — sekitar 0,4 MB per musim — setiap kali dibuka.
+ */
+export const LEDGER_PAGE = 50;
+
+const monthKey = new Intl.DateTimeFormat("en-CA", {
+  timeZone: "Asia/Jakarta",
+  year: "numeric",
+  month: "2-digit",
+});
+
+/** Bulan kalender WIB sebuah catatan, `YYYY-MM`. */
+export function ledgerMonthOf(date: Date): string {
+  return monthKey.format(date).slice(0, 7);
+}
+
+/** Bulan yang punya catatan, terbaru dulu — isi saringan bulan. */
+export function ledgerMonths(ledger: LedgerRow[]): string[] {
+  return [...new Set(ledger.map((row) => ledgerMonthOf(row.date)))].sort().reverse();
+}
+
+/**
+ * Satu potong buku kas: semua bulan atau satu bulan, mulai dari `offset`.
+ * Baris membawa saldo berjalannya dari perhitungan penuh, jadi saldo di
+ * potongan mana pun sama dengan yang tampil kalau seluruh buku dibuka.
+ */
+export function ledgerPage(
+  ledger: LedgerRow[],
+  { offset = 0, month }: { offset?: number; month?: string | null } = {}
+): { rows: LedgerRow[]; total: number; hasMore: boolean } {
+  const matching = month
+    ? ledger.filter((row) => ledgerMonthOf(row.date) === month)
+    : ledger;
+  const rows = matching.slice(offset, offset + LEDGER_PAGE);
+  return { rows, total: matching.length, hasMore: offset + rows.length < matching.length };
+}

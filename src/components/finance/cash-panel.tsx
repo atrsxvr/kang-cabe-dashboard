@@ -1,7 +1,8 @@
-import { ArrowDownLeft, ArrowUpRight, BookOpen, HandCoins, Wallet } from "lucide-react";
+import { BookOpen, HandCoins, Wallet } from "lucide-react";
 
 import { CanWrite } from "@/components/auth/can-write";
 import { ConfirmDelete } from "@/components/common/confirm-delete";
+import { CashLedger } from "@/components/finance/cash-ledger";
 import { OpeningDialog } from "@/components/finance/opening-dialog";
 import { PayoutDialog } from "@/components/finance/payout-dialog";
 import { Badge } from "@/components/ui/badge";
@@ -10,6 +11,8 @@ import {
   CASH_SOURCES,
   cashSourceLabels,
   directionOf,
+  ledgerMonths,
+  ledgerPage,
   type CashDirection,
 } from "@/lib/cash";
 import { formatDate } from "@/lib/hst";
@@ -252,60 +255,18 @@ export function CashPanel({
             <h2 className="text-sm font-medium">Buku kas</h2>
           </div>
           <p className="text-muted-foreground text-xs">
-            Semua uang masuk dan keluar, yang terbaru di atas. Angka kecil di
+            Semua uang masuk dan keluar, yang terbaru di atas, 50 sekaligus. Angka kecil di
             kanan itu saldo sesudah baris tersebut — kalau saldo nggak cocok
             sama uang di tangan, telusuri dari sini.
           </p>
 
-          {report.ledger.length === 0 ? (
-            <p className="text-muted-foreground py-4 text-center text-sm">
-              Belum ada uang masuk atau keluar yang tercatat.
-            </p>
-          ) : (
-            <ul className="divide-y">
-              {report.ledger.map((row) => (
-                <li
-                  key={row.id}
-                  className={cn(
-                    "flex items-start gap-3 py-2 text-sm",
-                    row.beforeOpening && "opacity-60",
-                  )}
-                >
-                  <DirectionIcon direction={row.direction} />
-                  <div className="min-w-0 flex-1">
-                    <p className="truncate">{row.label}</p>
-                    <p className="text-muted-foreground truncate text-xs">
-                      {formatDate(row.date)} · {cashSourceLabels[row.source]}
-                      {row.detail ? ` · ${row.detail}` : ""}
-                    </p>
-                    {row.beforeOpening ? (
-                      <p className="text-muted-foreground text-xs italic">
-                        Sudah termasuk saldo awal — nggak mengubah saldo.
-                      </p>
-                    ) : null}
-                  </div>
-                  <div className="shrink-0 text-right">
-                    <p
-                      className={cn(
-                        "font-medium tabular-nums",
-                        row.beforeOpening
-                          ? "text-muted-foreground line-through"
-                          : row.direction === "IN"
-                            ? "text-emerald-700 dark:text-emerald-400"
-                            : "text-destructive",
-                      )}
-                    >
-                      {row.direction === "IN" ? "+" : "−"}
-                      {formatRupiah(row.amount)}
-                    </p>
-                    <p className="text-muted-foreground text-xs tabular-nums">
-                      {formatRupiah(row.balanceAfter)}
-                    </p>
-                  </div>
-                </li>
-              ))}
-            </ul>
-          )}
+          {/* Remounted whenever the books change, so a refresh after a new
+              entry is not hidden behind the slice already on screen. */}
+          <CashLedger
+            key={`${report.ledger.length}:${report.balance}`}
+            initial={ledgerPage(report.ledger)}
+            months={ledgerMonths(report.ledger)}
+          />
         </CardContent>
       </Card>
     </div>
@@ -358,22 +319,5 @@ function SourceList({
         ))}
       </ul>
     </div>
-  );
-}
-
-function DirectionIcon({ direction }: { direction: CashDirection }) {
-  const Icon = direction === "IN" ? ArrowDownLeft : ArrowUpRight;
-
-  return (
-    <span
-      className={cn(
-        "mt-0.5 rounded-md p-1",
-        direction === "IN"
-          ? "bg-emerald-500/10 text-emerald-700 dark:text-emerald-400"
-          : "bg-destructive/10 text-destructive",
-      )}
-    >
-      <Icon className="size-3.5" aria-hidden />
-    </span>
   );
 }
