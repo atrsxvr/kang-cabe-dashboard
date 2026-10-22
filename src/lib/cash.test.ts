@@ -1,6 +1,14 @@
 import { describe, expect, it } from "vitest";
 
-import { netCapital, summariseCash, type CashEntry } from "@/lib/cash";
+import {
+  LEDGER_PAGE,
+  ledgerMonthOf,
+  ledgerMonths,
+  ledgerPage,
+  netCapital,
+  summariseCash,
+  type CashEntry,
+} from "@/lib/cash";
 
 const entry = (
   id: string,
@@ -163,5 +171,50 @@ describe("summariseCash with an opening balance", () => {
     ]);
     expect(cash.balance).toBe(2_000_000);
     expect(cash.beforeOpeningCount).toBe(0);
+  });
+});
+
+describe("ledgerPage", () => {
+  // 120 capital entries, one a day from 1 Aug, so they span three months.
+  const ledger = summariseCash(
+    Array.from({ length: 120 }, (_, index): CashEntry => ({
+      id: `c${index}`,
+      date: new Date(Date.UTC(2026, 7, 1 + index)),
+      source: "CAPITAL",
+      amount: 1000,
+      label: "Setoran",
+      detail: null,
+    }))
+  ).ledger;
+
+  it("sends one page, newest first, and says more is waiting", () => {
+    const page = ledgerPage(ledger);
+    expect(page.rows).toHaveLength(LEDGER_PAGE);
+    expect(page.total).toBe(120);
+    expect(page.hasMore).toBe(true);
+    expect(page.rows[0].balanceAfter).toBe(120_000);
+  });
+
+  it("continues from where the last page stopped, with the same running balance", () => {
+    const next = ledgerPage(ledger, { offset: LEDGER_PAGE });
+    expect(next.rows[0].id).toBe(ledger[LEDGER_PAGE].id);
+    expect(next.rows[0].balanceAfter).toBe(ledger[LEDGER_PAGE].balanceAfter);
+    expect(ledgerPage(ledger, { offset: 100 }).hasMore).toBe(false);
+  });
+
+  it("narrows to one month in Jakarta, balances unchanged", () => {
+    const september = ledgerPage(ledger, { month: "2026-09" });
+    expect(september.total).toBe(30);
+    expect(september.rows.every((row) => ledgerMonthOf(row.date) === "2026-09")).toBe(true);
+    expect(september.rows.at(-1)!.balanceAfter).toBe(32_000);
+  });
+
+  it("lists the months that have entries, newest first", () => {
+    expect(ledgerMonths(ledger)).toEqual(["2026-11", "2026-10", "2026-09", "2026-08"]);
+  });
+
+  it("reads the month in Jakarta, not UTC", () => {
+    // 31 Aug 20.00 UTC is already 1 September in Jakarta.
+    expect(ledgerMonthOf(new Date("2026-08-31T20:00:00Z"))).toBe("2026-09");
   });
 });

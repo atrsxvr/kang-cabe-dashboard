@@ -2,6 +2,8 @@ import { describe, expect, it } from "vitest";
 
 import {
   newFindingMessage,
+  scheduledSoon,
+  scheduledTaskMessage,
   tomorrowTasksMessage,
   tomorrowWindow,
 } from "@/lib/notifications";
@@ -91,5 +93,50 @@ describe("newFindingMessage", () => {
     expect(newFindingMessage({ ...finding, symptoms: "Daun   keriting\n di petak 3" }).body).toBe(
       "Daun keriting di petak 3 · Sedang"
     );
+  });
+});
+
+describe("scheduledSoon", () => {
+  // Due dates are stored as that day's UTC midnight.
+  const due = (day: string) => new Date(`${day}T00:00:00Z`);
+
+  it("announces a task for today at any hour", () => {
+    // 08.00 WIB on 22 October.
+    expect(scheduledSoon(due("2026-10-22"), new Date("2026-10-22T01:00:00Z"))).toBe("today");
+  });
+
+  it("leaves a task for tomorrow to the evening summary before 18.00 WIB", () => {
+    // Thursday 15.00 WIB, task for Friday.
+    expect(scheduledSoon(due("2026-10-23"), new Date("2026-10-22T08:00:00Z"))).toBeNull();
+  });
+
+  it("announces a task for tomorrow once the evening run has come", () => {
+    // Thursday 20.00 WIB, task for Friday — the summary has already gone.
+    expect(scheduledSoon(due("2026-10-23"), new Date("2026-10-22T13:00:00Z"))).toBe(
+      "tomorrow"
+    );
+  });
+
+  it("reads the hour in Jakarta", () => {
+    // 17.30 UTC is 00.30 WIB the next day, so "tomorrow" has moved on too.
+    expect(scheduledSoon(due("2026-10-23"), new Date("2026-10-22T17:30:00Z"))).toBe("today");
+  });
+
+  it("ignores anything further out", () => {
+    expect(scheduledSoon(due("2026-10-25"), new Date("2026-10-22T13:00:00Z"))).toBeNull();
+    expect(scheduledSoon(due("2026-10-20"), new Date("2026-10-22T13:00:00Z"))).toBeNull();
+  });
+});
+
+describe("scheduledTaskMessage", () => {
+  it("says which day and names the task and season", () => {
+    expect(
+      scheduledTaskMessage({ id: "t1", title: "Semprot fungisida", season: "Musim 2", when: "tomorrow" })
+    ).toEqual({
+      title: "Tugas baru untuk besok",
+      body: "Semprot fungisida — Musim 2",
+      url: "/tasks",
+      tag: "tugas-t1",
+    });
   });
 });

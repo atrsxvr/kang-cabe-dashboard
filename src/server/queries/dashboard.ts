@@ -1,18 +1,18 @@
 import "server-only";
 
 import { prisma } from "@/lib/prisma";
-import { daysUntil, trailingWindows, weekendRange } from "@/lib/hst";
+import { daysUntil, trailingWindows, weekRange } from "@/lib/hst";
 
 /**
  * Outstanding tasks due on this week's Saturday or Sunday, for the given
  * season. DONE tasks are excluded — the card exists to say what still needs
  * doing, not how much was scheduled.
  */
-export async function countWeekendTasks(
+export async function countWeekTasks(
   seasonId: string,
   now: Date = new Date()
 ): Promise<{ outstanding: number; total: number; from: Date; to: Date }> {
-  const { start, end, saturday, sunday } = weekendRange(now);
+  const { start, end, monday, sunday } = weekRange(now);
 
   const where = { seasonId, dueDate: { gte: start, lt: end } };
 
@@ -21,7 +21,7 @@ export async function countWeekendTasks(
     prisma.task.count({ where }),
   ]);
 
-  return { outstanding, total, from: saturday, to: sunday };
+  return { outstanding, total, from: monday, to: sunday };
 }
 
 /**

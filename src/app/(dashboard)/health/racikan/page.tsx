@@ -51,7 +51,7 @@ export default async function RecipeLibraryPage() {
         <RecipeBrowser
           recipes={recipes}
           materials={materials}
-          canEdit={actor ? canWrite(actor.role, "recipes") : false}
+          canEdit={actor ? canWrite(actor.role, "recipes", actor.access) : false}
         />
       )}
 

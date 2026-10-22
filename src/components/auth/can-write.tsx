@@ -32,7 +32,7 @@ export async function CanWrite({
 }) {
   const actor = await currentActor();
 
-  if (!actor || !canWrite(actor.role, area)) return <>{fallback}</>;
+  if (!actor || !canWrite(actor.role, area, actor.access)) return <>{fallback}</>;
 
   return <>{children}</>;
 }

@@ -72,16 +72,17 @@ function jakartaMidnightAsInstant(dayMarkerUtc: number): Date {
 }
 
 /**
- * The Saturday and Sunday of the week `now` falls in, as a half-open instant
- * range [start, end) suitable for a database filter.
+ * The Monday-to-Sunday week `now` falls in, in Jakarta, as a half-open
+ * instant range [start, end) suitable for a database filter.
  *
- * Weeks run Monday–Sunday, so on a Sunday "this weekend" still means the
- * Saturday just gone plus today — not next week's.
+ * The whole week, not the weekend: spraying and kocor are not kept to
+ * Saturdays, and a card that counted only those hid the rest of the week's
+ * work. On a Sunday it is still the week just ending, not next week's.
  */
-export function weekendRange(now: Date = new Date()): {
+export function weekRange(now: Date = new Date()): {
   start: Date;
   end: Date;
-  saturday: Date;
+  monday: Date;
   sunday: Date;
 } {
   const todayMarker = startOfDayInJakarta(now);
@@ -90,13 +91,13 @@ export function weekendRange(now: Date = new Date()): {
   const jakartaWeekday = new Date(todayMarker).getUTCDay();
   const mondayBased = (jakartaWeekday + 6) % 7;
 
-  const saturdayMarker = todayMarker + (5 - mondayBased) * MS_PER_DAY;
-  const sundayMarker = saturdayMarker + MS_PER_DAY;
+  const mondayMarker = todayMarker - mondayBased * MS_PER_DAY;
+  const sundayMarker = mondayMarker + 6 * MS_PER_DAY;
 
   return {
-    start: jakartaMidnightAsInstant(saturdayMarker),
+    start: jakartaMidnightAsInstant(mondayMarker),
     end: jakartaMidnightAsInstant(sundayMarker + MS_PER_DAY),
-    saturday: jakartaMidnightAsInstant(saturdayMarker),
+    monday: jakartaMidnightAsInstant(mondayMarker),
     sunday: jakartaMidnightAsInstant(sundayMarker),
   };
 }
@@ -132,7 +133,7 @@ export function trailingWindows(
   };
 }
 
-/** "9–10 Agu" — the weekend dates, for labelling the dashboard card. */
+/** "3–9 Agu" — the week's dates, for labelling the dashboard card. */
 export function formatDateRange(from: Date, to: Date): string {
   const day = new Intl.DateTimeFormat("id-ID", {
     timeZone: TIMEZONE,

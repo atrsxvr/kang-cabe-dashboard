@@ -84,3 +84,51 @@ export function newFindingMessage(finding: {
     tag: `temuan-${finding.id}`,
   };
 }
+
+/** The evening run's hour in WIB — `vercel.json` schedules it at 11.00 UTC. */
+export const EVENING_HOUR = 18;
+
+/**
+ * Whether a task just scheduled needs its own notification, and for when.
+ *
+ * Due today: always — no summary will mention it again. Due tomorrow: only
+ * once the evening run has come round, i.e. from 18.00 WIB. Before then the
+ * evening's "Besok ada N tugas" will carry it, and a second message for the
+ * same task would teach people to ignore both. The run may land anywhere in
+ * 18.00–18.59, so a task saved in that hour can be announced twice; that is
+ * the side to err on, against one never announced at all.
+ */
+export function scheduledSoon(
+  dueDate: Date,
+  now: Date
+): "today" | "tomorrow" | null {
+  const today = startOfJakartaDay(now);
+  const due = startOfJakartaDay(dueDate);
+
+  if (due === today) return "today";
+  if (due === today + DAY_MS) {
+    const hour = Number(
+      new Intl.DateTimeFormat("en-GB", {
+        timeZone: "Asia/Jakarta",
+        hour: "2-digit",
+        hourCycle: "h23",
+      }).format(now)
+    );
+    return hour >= EVENING_HOUR ? "tomorrow" : null;
+  }
+  return null;
+}
+
+export function scheduledTaskMessage(task: {
+  id: string;
+  title: string;
+  season: string;
+  when: "today" | "tomorrow";
+}): PushMessage {
+  return {
+    title: task.when === "today" ? "Tugas baru untuk hari ini" : "Tugas baru untuk besok",
+    body: `${task.title.trim()} — ${task.season}`,
+    url: "/tasks",
+    tag: `tugas-${task.id}`,
+  };
+}

@@ -53,7 +53,7 @@ export default async function InventoryPage() {
   // Diputuskan sekali di sini lalu diturunkan: tabel dan kartunya komponen
   // klien, dan `CanWrite` menanyakan sesi di server.
   const actor = await currentActor();
-  const mayWrite = actor ? canWrite(actor.role, "inventory") : false;
+  const mayWrite = actor ? canWrite(actor.role, "inventory", actor.access) : false;
 
   const restock = selectRestock(rows);
   const { replace, service } = selectToolNeeds(tools);

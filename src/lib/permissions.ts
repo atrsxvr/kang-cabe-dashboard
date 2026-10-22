@@ -99,6 +99,25 @@ export const AREAS = [
 
 export type Area = (typeof AREAS)[number];
 
+/** Nama wilayah seperti yang dibaca anggota di menu Akses Peran. */
+export const areaLabels: Record<Area, string> = {
+  seasons: "Musim tanam (buat, ubah, majukan)",
+  tasks: "Jadwal & tugas",
+  findings: "Lapor temuan",
+  diagnosis: "Diagnosa & perlakuan",
+  recipes: "Racikan",
+  materials: "Daftarkan bahan baru",
+  population: "Populasi (mati & sulam)",
+  inventory: "Stok, harga, opname, alat",
+  usage: "Catat pemakaian bahan",
+  harvest: "Panen & penjualan",
+  losses: "Susut",
+  finance: "Keuangan",
+  capital: "Setoran modal",
+  settings: "Pengaturan, anggota & akses",
+  notifications: "Notifikasi di HP sendiri",
+};
+
 /**
  * Peran yang boleh menulis di tiap wilayah.
  *
@@ -111,7 +130,14 @@ export type Area = (typeof AREAS)[number];
  * temannya tidak bisa mengisi sendiri. Ada tes yang menjaga itu tetap benar
  * untuk wilayah yang ditambahkan nanti.
  */
-const WRITERS: Record<Area, readonly Role[]> = {
+/** Siapa boleh menulis di tiap wilayah — bawaan, atau hasil `resolveAccess`. */
+export type AccessMatrix = Record<Area, readonly Role[]>;
+
+/**
+ * Bawaan: yang berlaku selama Admin belum mengubah apa pun di menu Akses
+ * Peran, dan dasar yang ditimpa pilihannya.
+ */
+export const DEFAULT_WRITERS: AccessMatrix = {
   // Membuat dan menutup musim menentukan konteks seluruh aplikasi; salah pilih
   // di sini memindahkan tempat semua orang lain menulis.
   seasons: ["ADMIN"],
@@ -138,13 +164,58 @@ const WRITERS: Record<Area, readonly Role[]> = {
   notifications: ["ADMIN", "AGRONOMIST", "LOGISTICS", "SALES"],
 };
 
-export function canWrite(role: Role, area: Area): boolean {
-  return WRITERS[area].includes(role);
+/**
+ * Tidak bisa diubah dari menu Akses Peran.
+ *
+ * `settings` tetap milik Admin karena menu itu sendiri ada di sana: peran yang
+ * diberi Pengaturan bisa memberi dirinya semua wilayah lain. `notifications`
+ * tetap untuk semua — tidak ada alasan mencabut seseorang dari pengingat
+ * tugasnya sendiri.
+ */
+export const LOCKED_AREAS: readonly Area[] = ["settings", "notifications"];
+
+export type AccessOverride = { role: Role; area: string; allowed: boolean };
+
+/**
+ * Bawaan, ditimpa pilihan Admin yang tersimpan.
+ *
+ * Baris untuk wilayah yang tidak dikenal (wilayah yang sudah dibuang dari
+ * kode), wilayah terkunci, atau peran Admin diabaikan: Admin selalu boleh
+ * semuanya, sesuai permintaan pemiliknya — ia yang menutupi pekerjaan yang
+ * tertinggal.
+ */
+export function resolveAccess(overrides: AccessOverride[]): AccessMatrix {
+  const sets = {} as Record<Area, Set<Role>>;
+  for (const area of AREAS) sets[area] = new Set(DEFAULT_WRITERS[area]);
+
+  for (const { role, area, allowed } of overrides) {
+    if (!(AREAS as readonly string[]).includes(area)) continue;
+    if (role === "ADMIN" || LOCKED_AREAS.includes(area as Area)) continue;
+    if (allowed) sets[area as Area].add(role);
+    else sets[area as Area].delete(role);
+  }
+
+  const access = {} as Record<Area, Role[]>;
+  for (const area of AREAS) {
+    access[area] = ROLES.filter((role) => sets[area].has(role));
+  }
+  return access;
+}
+
+export function canWrite(
+  role: Role,
+  area: Area,
+  access: AccessMatrix = DEFAULT_WRITERS
+): boolean {
+  return access[area].includes(role);
 }
 
 /** Wilayah yang bisa ditulis sebuah peran — buat menyembunyikan tombol. */
-export function writableAreas(role: Role): Area[] {
-  return AREAS.filter((area) => canWrite(role, area));
+export function writableAreas(
+  role: Role,
+  access: AccessMatrix = DEFAULT_WRITERS
+): Area[] {
+  return AREAS.filter((area) => canWrite(role, area, access));
 }
 
 /**
@@ -154,8 +225,11 @@ export function writableAreas(role: Role): Area[] {
  * perannya mengubah jalan buntu jadi arahan: yang membaca tahu harus minta ke
  * siapa, tanpa perlu menebak siapa yang punya tombolnya.
  */
-export function denialMessage(area: Area): string {
-  const allowed = WRITERS[area]
+export function denialMessage(
+  area: Area,
+  access: AccessMatrix = DEFAULT_WRITERS
+): string {
+  const allowed = access[area]
     .filter((role) => role !== "ADMIN")
     .map((role) => roleLabels[role]);
 
@@ -180,11 +254,11 @@ export function denialMessage(area: Area): string {
  * celah yang sedang ditutup.
  */
 export function canManageFinding(
-  actor: { id: string; role: Role },
+  actor: { id: string; role: Role; access?: AccessMatrix },
   reportedById: string | null
 ): boolean {
-  if (canWrite(actor.role, "diagnosis")) return true;
-  if (!canWrite(actor.role, "findings")) return false;
+  if (canWrite(actor.role, "diagnosis", actor.access)) return true;
+  if (!canWrite(actor.role, "findings", actor.access)) return false;
   return reportedById !== null && reportedById === actor.id;
 }
 

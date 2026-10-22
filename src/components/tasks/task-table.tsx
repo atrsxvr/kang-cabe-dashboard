@@ -79,7 +79,7 @@ export function TaskTable({
               <TableRow>
                 <TableHead className="min-w-56">Tugas</TableHead>
                 <TableHead className="text-right">HST</TableHead>
-                <TableHead>Jatuh Tempo</TableHead>
+                <TableHead>Tanggal Dikerjakan</TableHead>
                 <TableHead>Penugas</TableHead>
                 {/* Pinned: their content changes with status, and an auto-sized
                     column would re-measure and shift the row on every update. */}

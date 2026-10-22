@@ -1,10 +1,12 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { after } from "next/server";
 
 import { prisma } from "@/lib/prisma";
 import { invalidForm, type ActionResult } from "@/server/actions/result";
 import { guardWrite } from "@/server/auth/guard";
+import { notifyScheduledTask } from "@/server/notifications";
 import { revalidateSeasonMoney } from "@/server/actions/revalidate";
 import {
   createTaskSchema,
@@ -85,6 +87,8 @@ export async function createTask(formData: FormData): Promise<ActionResult> {
     },
     select: { id: true },
   });
+
+  if (status !== "DONE") announceIfSoon(task.id);
 
   revalidatePath("/tasks");
   return { ok: true, taskId: task.id };
@@ -181,7 +185,12 @@ export async function updateTask(formData: FormData): Promise<ActionResult> {
 
   const existing = await prisma.task.findFirst({
     where: { id: taskId, seasonId },
-    select: { status: true, completedAt: true, usageRecordedAt: true },
+    select: {
+      status: true,
+      completedAt: true,
+      usageRecordedAt: true,
+      dueDate: true,
+    },
   });
 
   if (!existing) {
@@ -226,8 +235,26 @@ export async function updateTask(formData: FormData): Promise<ActionResult> {
         ]),
   ]);
 
+  // Moved onto today or tomorrow: the same reminder a new task would get.
+  if (status !== "DONE" && rest.dueDate.getTime() !== existing.dueDate.getTime()) {
+    announceIfSoon(taskId);
+  }
+
   revalidatePath("/tasks");
   return { ok: true };
+}
+
+/**
+ * After the response, like a new finding's notification: saving never waits
+ * on a push service, and a phone that cannot be reached is never an error.
+ */
+function announceIfSoon(taskId: string) {
+  const now = new Date();
+  after(() =>
+    notifyScheduledTask(taskId, now).catch((error) =>
+      console.error("[push] scheduled task", error)
+    )
+  );
 }
 
 /**
