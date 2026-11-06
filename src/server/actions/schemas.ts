@@ -36,6 +36,16 @@ export function nextSeasonStatus(
   return seasonProgression[index + 1];
 }
 
+/** A tank's volume in litres, typed with a comma in the field ("16,5"). */
+const tankLitres = (kind: string) =>
+  z.preprocess(
+    (value) => (typeof value === "string" ? value.trim().replace(",", ".") : value),
+    z.coerce
+      .number(`Isi volume tangki ${kind} dalam angka`)
+      .positive(`Volume tangki ${kind} harus lebih dari 0`)
+      .max(1000, `Volume tangki ${kind} terlalu besar`)
+  );
+
 export const createSeasonSchema = z.object({
   name: z.string().trim().min(3, "Nama musim minimal 3 karakter").max(120),
   variety: z.string().trim().min(2, "Varietas benih wajib diisi").max(120),
@@ -67,6 +77,9 @@ export const createSeasonSchema = z.object({
       .max(1_000_000)
       .nullable()
   ),
+  gardenId: z.string("Pilih lahannya").min(1, "Pilih lahannya"),
+  sprayTankLitres: tankLitres("spray"),
+  kocorTankLitres: tankLitres("kocor"),
   startDate: z.coerce.date("Tanggal tanam tidak valid"),
   // Never Selesai on creation: that state is reached only through closing,
   // and closing checks the season's books first. Not archived either: that
@@ -579,8 +592,8 @@ export const deactivateMemberSchema = z.object({
   restore: z.coerce.boolean().optional(),
 });
 
-export const gardenProfileSchema = z.object({
-  name: z.string().trim().min(2, "Nama kebun minimal 2 karakter").max(120),
+export const gardenSchema = z.object({
+  name: z.string().trim().min(2, "Nama lahan minimal 2 karakter").max(120),
   locationName: z.string().trim().max(120).optional().or(z.literal("")),
   latitude: z.coerce
     .number("Lintang tidak valid")
@@ -608,10 +621,6 @@ export const gardenProfileSchema = z.object({
     )
     .optional()
     .or(z.literal("")),
-  defaultTankLitres: z.coerce
-    .number("Isi volume tangki")
-    .positive("Harus lebih dari 0")
-    .max(10_000),
 });
 
 /**

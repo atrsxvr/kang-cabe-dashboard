@@ -14,18 +14,22 @@ import { canWrite } from "@/lib/permissions";
 import { currentActor } from "@/server/auth/guard";
 import { listStock } from "@/server/queries/inventory";
 import { listRecipes } from "@/server/queries/recipes";
+import { resolveSeason } from "@/server/queries/seasons";
+import { readSeasonParam } from "@/lib/season-param";
 
 export const metadata: Metadata = { title: "Pustaka Racikan" };
 
-export default async function RecipeLibraryPage() {
-  // Recipes are shared across seasons, so there is no season to resolve here —
-  // but the read is still live, hence connection().
+export default async function RecipeLibraryPage(props: PageProps<"/health/racikan">) {
+  // Recipes are shared across seasons. The season is read only for its tanks:
+  // a new recipe's volume acuan starts at the tank its plot uses.
   await connection();
+  const searchParams = await props.searchParams;
 
-  const [recipes, materials, actor] = await Promise.all([
+  const [recipes, materials, actor, season] = await Promise.all([
     listRecipes(),
     listStock(),
     currentActor(),
+    resolveSeason(readSeasonParam(searchParams)),
   ]);
 
   return (
@@ -40,7 +44,14 @@ export default async function RecipeLibraryPage() {
             <MaterialDialog />
           </CanWrite>
           <CanWrite area="recipes">
-            <RecipeDialog materials={materials} />
+            <RecipeDialog
+              materials={materials}
+              tanks={
+                season
+                  ? { SEMPROT: season.sprayTankLitres, KOCOR: season.kocorTankLitres }
+                  : undefined
+              }
+            />
           </CanWrite>
         </div>
       </div>

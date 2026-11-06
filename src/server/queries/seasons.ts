@@ -24,6 +24,10 @@ export type SeasonRow = {
   plantCount: number;
   /** Perkiraan panen Bagus semusim. Kosong berarti panduan harga jual diam. */
   projectedHarvestKg: number | null;
+  sprayTankLitres: number;
+  kocorTankLitres: number;
+  gardenId: string;
+  garden: { name: string };
   startDate: Date;
   endDate: Date | null;
   status: SeasonStatus;
@@ -35,12 +39,15 @@ export type SeasonRow = {
 export async function listSeasonRows(): Promise<SeasonRow[]> {
   return prisma.season.findMany({
     orderBy: { startDate: "desc" },
-    include: { _count: { select: { tasks: true, harvestLogs: true } } },
+    include: {
+      _count: { select: { tasks: true, harvestLogs: true } },
+      garden: { select: { name: true } },
+    },
   });
 }
 
 export async function getSeason(seasonId: string) {
-  return prisma.season.findUnique({ where: { id: seasonId } });
+  return prisma.season.findUnique({ where: { id: seasonId }, include: { garden: true } });
 }
 
 /**

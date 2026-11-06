@@ -1,5 +1,7 @@
 import { expect, test, type Page } from "@playwright/test";
 
+import { pickMaterial } from "./material";
+
 /**
  * The loop the whole shed exists for: a material is registered, it is worth
  * something, a task consumes it, and that consumption turns up as a cost
@@ -111,10 +113,20 @@ test.describe.serial("bahan masuk gudang lalu jadi biaya musim", () => {
     await expect(picker).toBeVisible();
 
     // A dose per litre of bamboo means nothing, so it must not be offerable.
-    await expect(picker.getByRole("option", { name: MATERIAL })).toHaveCount(0);
+    await picker.click();
+    await picker.fill(MATERIAL);
+    // Counted inside the material list: the dialog's other selects have
+    // options of their own.
+    await expect(page.getByRole("listbox").getByRole("option")).toHaveCount(0);
+    await expect(page.getByText(`Tidak ada bahan bernama “${MATERIAL}”.`)).toBeVisible();
     // Dan pupuknya harus ada — tanpa sisi ini, penyaring yang membuang
-    // segalanya juga akan lulus.
-    await expect(picker.getByRole("option", { name: DOSEABLE })).toHaveCount(1);
+    // segalanya juga akan lulus. Ditemukan dengan mengetik sebagian namanya,
+    // di bawah kategorinya.
+    await picker.fill(DOSEABLE.slice(0, -3));
+    await expect(
+      page.getByRole("listbox").getByRole("option", { name: new RegExp(`^${DOSEABLE}`) })
+    ).toHaveCount(1);
+    await expect(page.getByRole("listbox").getByText("Pupuk", { exact: true })).toBeVisible();
   });
 
   test("tugas bisa mengambil bahan langsung dari gudang", async ({ page }) => {
@@ -123,8 +135,7 @@ test.describe.serial("bahan masuk gudang lalu jadi biaya musim", () => {
 
     await page.getByLabel("Judul Tugas", { exact: true }).fill("E2E Pasang ajir");
 
-    const shed = page.getByLabel("Ambil bahan dari gudang (opsional)");
-    await shed.selectOption({ label: `${MATERIAL} · Perlengkapan` });
+    await pickMaterial(page, "Ambil bahan dari gudang (opsional)", MATERIAL);
     await page.getByLabel("Jumlah", { exact: true }).fill("800");
     await page.getByRole("button", { name: "Tambahkan" }).click();
 

@@ -76,6 +76,11 @@ async function cleanup() {
       where: { name: { startsWith: "E2E " } },
     });
 
+    // After the seasons, which hold them (Restrict); only those left unused.
+    const gardens = await prisma.garden.deleteMany({
+      where: { name: { startsWith: "E2E " }, seasons: { none: {} } },
+    });
+
     // Sesi yang dibuat auth.setup.ts. Token bukan sekadar baris data — ia kunci
     // yang masih bisa diputar sampai kedaluwarsa, jadi ia dibuang seperti yang
     // lain, bukan dibiarkan menunggu waktu.
@@ -91,7 +96,7 @@ async function cleanup() {
     });
 
     console.log(
-      `Teardown: ${materialIds.length} bahan, ${taskIds.length} tugas, ${seasons.count} musim, ${contributions.count} setoran, ${payouts.count} uang keluar, ${openings.count} saldo awal, ${buyers.count} pembeli, ${sessions.count} sesi, ${devices.count} langganan notifikasi E2E dibersihkan.`
+      `Teardown: ${materialIds.length} bahan, ${taskIds.length} tugas, ${seasons.count} musim, ${contributions.count} setoran, ${payouts.count} uang keluar, ${openings.count} saldo awal, ${buyers.count} pembeli, ${sessions.count} sesi, ${devices.count} langganan notifikasi, ${gardens.count} lahan E2E dibersihkan.`
     );
   } finally {
     await prisma.$disconnect();

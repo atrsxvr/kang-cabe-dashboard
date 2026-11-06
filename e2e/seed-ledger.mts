@@ -20,8 +20,10 @@ const prisma = new PrismaClient({
 });
 
 try {
+  const garden = await prisma.garden.findFirstOrThrow({ orderBy: { createdAt: "asc" } });
   const season = await prisma.season.create({
     data: {
+      gardenId: garden.id,
       name: `E2E Musim Buku Kas ${Date.now()}`,
       variety: "E2E Rawit",
       plantCount: 1,

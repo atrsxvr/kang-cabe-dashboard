@@ -20,7 +20,6 @@ import { Card, CardContent } from "@/components/ui/card";
 import { calculateHst, formatDate } from "@/lib/hst";
 import { readSeasonParam } from "@/lib/season-param";
 import { listStock } from "@/server/queries/inventory";
-import { getGardenProfile } from "@/server/queries/users";
 import { listRecipes } from "@/server/queries/recipes";
 import { resolveSeason } from "@/server/queries/seasons";
 import {
@@ -40,14 +39,13 @@ export default async function TasksPage(props: PageProps<"/tasks">) {
 
   if (!season) return <NoSeason />;
 
-  const [tasks, completed, members, recipes, materials, profile] =
+  const [tasks, completed, members, recipes, materials] =
     await Promise.all([
       listTasksBySeason(season.id),
       listCompletedTasksBySeason(season.id),
       listActiveMembers(),
       listRecipes(),
       listStock(),
-      getGardenProfile(),
     ]);
 
   // Dua izin berbeda di satu halaman: menyunting tugas milik Admin, sementara
@@ -90,7 +88,7 @@ export default async function TasksPage(props: PageProps<"/tasks">) {
               recipes={recipes}
               members={members}
               currentHst={currentHst}
-              defaultTankLitres={profile.defaultTankLitres}
+              tanks={{ SEMPROT: season.sprayTankLitres, KOCOR: season.kocorTankLitres }}
             />
           </CanWrite>
           <CanWrite area="tasks">

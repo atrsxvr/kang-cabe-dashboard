@@ -1,5 +1,7 @@
 import { expect, test, type Page } from "@playwright/test";
 
+import { pickMaterial } from "./material";
+
 /**
  * Marking a task Selesai asks for "Catat pemakaian" — from the board, from
  * the task form, and from the dashboard, which hands the question to the
@@ -26,9 +28,7 @@ async function addTask(page: Page, title: string, amount: string) {
   await page.getByRole("button", { name: "Tambah Tugas" }).click();
   const form = page.getByRole("dialog");
   await form.getByLabel("Judul Tugas", { exact: true }).fill(title);
-  await form
-    .getByLabel("Ambil bahan dari gudang (opsional)")
-    .selectOption({ label: `${MATERIAL} · Perlengkapan` });
+  await pickMaterial(form, "Ambil bahan dari gudang (opsional)", MATERIAL);
   await form.getByLabel("Jumlah", { exact: true }).fill(amount);
   await form.getByRole("button", { name: "Tambahkan" }).click();
   await form.getByRole("button", { name: "Simpan Tugas" }).click();

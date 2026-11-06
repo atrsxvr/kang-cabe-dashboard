@@ -132,7 +132,7 @@ export function DiagnoseDialog({
               rows={2}
               required
               defaultValue={finding.diagnosis ?? ""}
-              placeholder="Antraknosa, kemungkinan dipicu kelembapan tinggi"
+              placeholder="Tulis diagnosanya"
               aria-invalid={Boolean(errors.diagnosis)}
             />
             {errors.diagnosis ? (
@@ -162,7 +162,7 @@ export function DiagnoseDialog({
               required
               value={treatment}
               onChange={(event) => setTreatment(event.target.value)}
-              placeholder="Semprot fungisida berbahan aktif azoksistrobin, 2 ml/L, ulangi 7 hari"
+              placeholder="Tulis perlakuannya: bahan, dosis, kapan diulang"
               aria-invalid={Boolean(errors.treatment)}
             />
             {errors.treatment ? (

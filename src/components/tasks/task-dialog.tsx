@@ -186,7 +186,7 @@ export function TaskDialog({
               required
               value={title}
               onChange={(event) => setTitle(event.target.value)}
-              placeholder="Semprot fungisida"
+              placeholder="Tulis nama tugas"
               aria-invalid={Boolean(errors.title)}
             />
           </Field>
@@ -375,7 +375,6 @@ export function TaskDialog({
                 type="number"
                 min={0}
                 defaultValue={task?.hst ?? ""}
-                placeholder={String(currentHst)}
                 aria-invalid={Boolean(errors.hst)}
               />
             </Field>

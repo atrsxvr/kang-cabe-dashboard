@@ -341,7 +341,7 @@ export function SaleDialog({
               name="notes"
               rows={2}
               defaultValue={sale?.notes ?? ""}
-              placeholder="Diangkut sore, timbangan di tempat"
+              placeholder="Tulis catatan"
             />
           </Field>
 

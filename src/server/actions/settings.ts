@@ -8,7 +8,6 @@ import { guardWrite } from "@/server/auth/guard";
 import {
   createMemberSchema,
   deactivateMemberSchema,
-  gardenProfileSchema,
   updateMemberSchema,
 } from "@/server/actions/schemas";
 
@@ -177,48 +176,6 @@ export async function deactivateMember(
   if (result.count === 0) {
     return { ok: false, message: "Anggota tidak ditemukan." };
   }
-
-  revalidate();
-  return { ok: true };
-}
-
-export async function updateGardenProfile(
-  formData: FormData
-): Promise<ActionResult> {
-  const allowed = await guardWrite("settings");
-  if (!allowed.ok) return allowed;
-
-  const parsed = gardenProfileSchema.safeParse({
-    name: formData.get("name"),
-    locationName: formData.get("locationName") ?? "",
-    bmkgAdm4: formData.get("bmkgAdm4") ?? "",
-    latitude: formData.get("latitude") || undefined,
-    longitude: formData.get("longitude") || undefined,
-    defaultTankLitres: formData.get("defaultTankLitres"),
-  });
-
-  if (!parsed.success) return invalidForm(parsed.error);
-
-  const { locationName, bmkgAdm4, latitude, longitude, ...rest } = parsed.data;
-
-  await prisma.gardenProfile.upsert({
-    where: { id: "garden" },
-    update: {
-      ...rest,
-      locationName: locationName ? locationName : null,
-      bmkgAdm4: bmkgAdm4 ? bmkgAdm4 : null,
-      latitude: latitude ?? null,
-      longitude: longitude ?? null,
-    },
-    create: {
-      id: "garden",
-      ...rest,
-      locationName: locationName ? locationName : null,
-      bmkgAdm4: bmkgAdm4 ? bmkgAdm4 : null,
-      latitude: latitude ?? null,
-      longitude: longitude ?? null,
-    },
-  });
 
   revalidate();
   return { ok: true };

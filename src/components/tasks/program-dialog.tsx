@@ -36,13 +36,14 @@ export function ProgramDialog({
   recipes,
   members,
   currentHst,
-  defaultTankLitres,
+  tanks,
 }: {
   seasonId: string;
   recipes: RecipeRow[];
   members: MemberOption[];
   currentHst: number;
-  defaultTankLitres: number;
+  /** This season's tanks, by how a mix is applied. */
+  tanks: Record<"SEMPROT" | "KOCOR", number>;
 }) {
   // Only routine mixes repeat on a schedule; a treatment answers a problem
   // that has not happened yet.
@@ -52,7 +53,9 @@ export function ProgramDialog({
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [recipeId, setRecipeId] = useState(routine[0]?.id ?? "");
   const [interval, setInterval] = useState("");
-  const [volume, setVolume] = useState(String(defaultTankLitres));
+  const [volume, setVolume] = useState(
+    String(tanks[routine[0]?.method ?? "SEMPROT"] ?? tanks.SEMPROT)
+  );
   const [fromHst, setFromHst] = useState(String(currentHst));
   const [toHst, setToHst] = useState(String(currentHst + 30));
   const router = useRouter();
@@ -124,7 +127,9 @@ export function ProgramDialog({
                 setRecipeId(event.target.value);
                 setInterval("");
                 const next = routine.find((r) => r.id === event.target.value);
-                if (next) setVolume(String(next.basisVolumeL));
+                // The tank this plot uses for that method, not the volume the
+                // recipe happened to be written for.
+                if (next) setVolume(String(tanks[next.method]));
               }}
             >
               {routine.map((item) => (
@@ -163,14 +168,17 @@ export function ProgramDialog({
               />
             </Field>
 
-            <Field id="program-interval" label="Tiap (hari)">
+            <Field
+              id="program-interval"
+              label="Tiap (hari)"
+              hint={`Kosongkan untuk ikut racikan: tiap ${recipe?.intervalDays ?? 7} hari`}
+            >
               <Input
                 id="program-interval"
                 type="number"
                 min={1}
                 value={interval}
                 onChange={(event) => setInterval(event.target.value)}
-                placeholder={String(recipe?.intervalDays ?? 7)}
               />
             </Field>
           </div>

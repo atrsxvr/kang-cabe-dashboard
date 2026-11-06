@@ -119,6 +119,16 @@ export async function createRecipe(formData: FormData): Promise<ActionResult> {
   const materialIds = formData.getAll("materialId").map(String);
   const amounts = formData.getAll("amountPerLiter").map(String);
 
+  // A dose typed against no material used to vanish here without a word —
+  // the recipe saved one ingredient short.
+  if (materialIds.some((materialId, index) => !materialId && (amounts[index] ?? "") !== "")) {
+    return {
+      ok: false,
+      message: "Ada takaran yang bahannya belum dipilih.",
+      fieldErrors: { items: "Pilih bahannya untuk setiap takaran yang diisi." },
+    };
+  }
+
   const items = materialIds
     .map((materialId, index) => ({
       materialId,
@@ -199,6 +209,16 @@ export async function updateRecipe(formData: FormData): Promise<ActionResult> {
 
   const materialIds = formData.getAll("materialId").map(String);
   const amounts = formData.getAll("amountPerLiter").map(String);
+
+  // A dose typed against no material used to vanish here without a word —
+  // the recipe saved one ingredient short.
+  if (materialIds.some((materialId, index) => !materialId && (amounts[index] ?? "") !== "")) {
+    return {
+      ok: false,
+      message: "Ada takaran yang bahannya belum dipilih.",
+      fieldErrors: { items: "Pilih bahannya untuk setiap takaran yang diisi." },
+    };
+  }
 
   const items = materialIds
     .map((materialId, index) => ({

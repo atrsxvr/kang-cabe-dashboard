@@ -28,7 +28,6 @@ import {
 import { harvestSummary, listSales } from "@/server/queries/harvest";
 import { listPayouts } from "@/server/queries/cash";
 import { getSeason } from "@/server/queries/seasons";
-import { getGardenProfile } from "@/server/queries/users";
 
 export const metadata: Metadata = { title: "Laporan Musim" };
 
@@ -71,9 +70,9 @@ async function Report({ seasonId }: { seasonId: string }) {
   const season = await getSeason(seasonId);
   if (!season) notFound();
 
-  const [garden, result, cost, harvest, sales, entries, sharing, payouts] =
+  const garden = season.garden;
+  const [result, cost, harvest, sales, entries, sharing, payouts] =
     await Promise.all([
-      getGardenProfile(),
       seasonResult(season.id),
       seasonMaterialCost(season.id),
       harvestSummary(season.id),

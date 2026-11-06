@@ -158,7 +158,6 @@ export function ToolEventDialog({
               <RupiahInput
                 id={`event-cost-${tool.id}`}
                 name="totalCost"
-                placeholder="150.000"
                 aria-invalid={Boolean(errors.totalCost)}
               />
             </Field>
@@ -213,7 +212,7 @@ export function ToolEventDialog({
             <Input
               id={`event-note-${tool.id}`}
               name="note"
-              placeholder="Ketinggalan di kebun sebelah"
+              placeholder="Tulis catatan"
             />
           </Field>
 

@@ -5,7 +5,10 @@ import { CanWrite } from "@/components/auth/can-write";
 import { PageHeader } from "@/components/common/page-header";
 import { AccessSettings } from "@/components/settings/access-settings";
 import { PushSettings } from "@/components/settings/push-settings";
-import { GardenProfileForm } from "@/components/settings/garden-profile-form";
+import { GardenDialog } from "@/components/settings/garden-dialog";
+import { ConfirmDelete } from "@/components/common/confirm-delete";
+import { deleteGarden } from "@/server/actions/gardens";
+import { listGardens } from "@/server/queries/gardens";
 import { MemberActiveAction } from "@/components/settings/member-active-action";
 import { MemberDialog } from "@/components/settings/member-dialog";
 import {
@@ -15,12 +18,11 @@ import {
 } from "@/components/settings/settings-labels";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
-import { canWrite } from "@/lib/permissions";
 import { cn } from "@/lib/utils";
 import { currentActor } from "@/server/auth/guard";
 import { capitalSummary } from "@/server/queries/capital";
 import { formatRupiah } from "@/lib/money";
-import { getGardenProfile, listMembers } from "@/server/queries/users";
+import { listMembers } from "@/server/queries/users";
 
 export const metadata: Metadata = { title: "Settings & Users" };
 
@@ -29,9 +31,9 @@ export default async function SettingsPage() {
   // rarely but must never be served from a build-time snapshot.
   await connection();
 
-  const [members, profile, capital, actor] = await Promise.all([
+  const [members, gardens, capital, actor] = await Promise.all([
     listMembers(),
-    getGardenProfile(),
+    listGardens(),
     capitalSummary(),
     currentActor(),
   ]);
@@ -46,7 +48,7 @@ export default async function SettingsPage() {
       <div className="mb-6 flex flex-wrap items-start justify-between gap-3">
         <PageHeader
           title="Settings & Users"
-          description="Anggota tim, modal, dan profil kebun."
+          description="Anggota tim, modal, dan lahan kebun."
         />
         <CanWrite area="settings">
           <MemberDialog />
@@ -155,11 +157,47 @@ export default async function SettingsPage() {
       ) : null}
 
       <section className="grid gap-3">
-        <h2 className="text-sm font-medium">Profil Kebun</h2>
-        <GardenProfileForm
-          profile={profile}
-          readOnly={!actor || !canWrite(actor.role, "settings", actor.access)}
-        />
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <h2 className="text-sm font-medium">Lahan Kebun</h2>
+          <CanWrite area="settings">
+            <GardenDialog />
+          </CanWrite>
+        </div>
+        <p className="text-muted-foreground -mt-1 text-xs">
+          Setiap musim memilih lahannya. Dashboard memakai lokasi dan cuaca
+          lahan dari musim yang sedang dipilih.
+        </p>
+
+        {gardens.map((garden) => (
+          <Card key={garden.id} className="py-3">
+            <CardContent className="flex flex-wrap items-start gap-3 px-4">
+              <div className="min-w-0 flex-1">
+                <p className="font-medium">{garden.name}</p>
+                <p className="text-muted-foreground text-xs">
+                  {garden.locationName ?? "Lokasi belum diisi"}
+                  {garden.bmkgAdm4 ? ` · BMKG ${garden.bmkgAdm4}` : " · kartu cuaca belum aktif"}
+                </p>
+                <p className="text-muted-foreground mt-1 text-xs">
+                  {garden.seasonCount > 0 ? `${garden.seasonCount} musim` : "Belum dipakai musim apa pun"}
+                </p>
+              </div>
+              <CanWrite area="settings">
+                <div className="flex items-center gap-1">
+                  <GardenDialog garden={garden} />
+                  {garden.seasonCount === 0 ? (
+                    <ConfirmDelete
+                      title="Hapus lahan ini?"
+                      itemName={garden.name}
+                      action={deleteGarden}
+                      fields={{ gardenId: garden.id }}
+                      iconOnly
+                    />
+                  ) : null}
+                </div>
+              </CanWrite>
+            </CardContent>
+          </Card>
+        ))}
       </section>
     </>
   );

@@ -94,7 +94,7 @@ export function ToolDialog({ tool }: { tool?: ToolRow }) {
               name="name"
               required
               defaultValue={tool?.name}
-              placeholder="Tangki Semprot 16L"
+              placeholder="Tulis nama alat"
               aria-invalid={Boolean(errors.name)}
             />
           </Field>
@@ -148,7 +148,7 @@ export function ToolDialog({ tool }: { tool?: ToolRow }) {
             id="tool-serviceIntervalDays"
             label="Servis Tiap (hari, opsional)"
             error={errors.serviceIntervalDays}
-            hint="Tangki semprot biasanya perlu; cangkul nggak"
+            hint="Tangki spray biasanya perlu; cangkul nggak"
           >
             <Input
               id="tool-serviceIntervalDays"
@@ -156,7 +156,6 @@ export function ToolDialog({ tool }: { tool?: ToolRow }) {
               type="number"
               min={1}
               defaultValue={tool?.serviceIntervalDays ?? ""}
-              placeholder="90"
               aria-invalid={Boolean(errors.serviceIntervalDays)}
             />
           </Field>
@@ -167,7 +166,7 @@ export function ToolDialog({ tool }: { tool?: ToolRow }) {
               name="notes"
               rows={2}
               defaultValue={tool?.notes ?? ""}
-              placeholder="Nozzle bocor, sudah diganti karet sealnya"
+              placeholder="Tulis catatan"
             />
           </Field>
 

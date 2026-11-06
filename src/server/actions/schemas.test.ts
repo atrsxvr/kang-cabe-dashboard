@@ -19,6 +19,9 @@ const validSeason = {
   name: "Musim Tanam 2",
   variety: "Rawit Ori 212",
   plantCount: "5000",
+  gardenId: "lahan-1",
+  sprayTankLitres: "16",
+  kocorTankLitres: "20",
   startDate: "2026-08-01",
   status: "PLANNING",
   notes: "",
@@ -34,6 +37,19 @@ describe("createSeasonSchema", () => {
     }
     expect(createSeasonSchema.safeParse({ ...validSeason, status: "ACTIVE" }).success).toBe(
       true
+    );
+  });
+
+  it("needs a lahan, and tanks of some size", () => {
+    expect(createSeasonSchema.safeParse({ ...validSeason, gardenId: "" }).success).toBe(false);
+    expect(createSeasonSchema.safeParse({ ...validSeason, kocorTankLitres: "0" }).success).toBe(
+      false
+    );
+  });
+
+  it("reads a tank written with a comma", () => {
+    expect(createSeasonSchema.parse({ ...validSeason, sprayTankLitres: "16,5" }).sprayTankLitres).toBe(
+      16.5
     );
   });
 

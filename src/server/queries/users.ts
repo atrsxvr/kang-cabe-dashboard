@@ -57,35 +57,3 @@ export async function listMembers(): Promise<MemberRow[]> {
     },
   }));
 }
-
-export type GardenProfileRow = {
-  name: string;
-  latitude: number | null;
-  longitude: number | null;
-  locationName: string | null;
-  /** Kode wilayah BMKG tingkat desa. Kosong berarti kartu cuaca diam. */
-  bmkgAdm4: string | null;
-  defaultTankLitres: number;
-};
-
-/**
- * The single garden row, created on first read.
- *
- * Upserting here rather than seeding it means the settings page works on a
- * database that has never been seeded — including the throwaway one CI builds.
- */
-export async function getGardenProfile(): Promise<GardenProfileRow> {
-  return prisma.gardenProfile.upsert({
-    where: { id: "garden" },
-    update: {},
-    create: { id: "garden" },
-    select: {
-      name: true,
-      latitude: true,
-      longitude: true,
-      locationName: true,
-      bmkgAdm4: true,
-      defaultTankLitres: true,
-    },
-  });
-}

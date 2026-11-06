@@ -103,7 +103,7 @@ export function MemberDialog({ member }: { member?: MemberRow }) {
               name="name"
               required
               defaultValue={member?.name}
-              placeholder="Gotay"
+              placeholder="Tulis nama anggota"
               aria-invalid={Boolean(errors.name)}
             />
           </Field>
@@ -115,7 +115,7 @@ export function MemberDialog({ member }: { member?: MemberRow }) {
               type="email"
               required
               defaultValue={member?.email}
-              placeholder="logistik@kangcabe.id"
+              placeholder="Tulis email Google-nya"
               aria-invalid={Boolean(errors.email)}
             />
           </Field>

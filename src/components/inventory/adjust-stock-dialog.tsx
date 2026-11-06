@@ -151,7 +151,6 @@ export function AdjustStockDialog({
               autoFocus
               value={amount}
               onChange={(event) => setAmount(event.target.value)}
-              placeholder="0"
               aria-invalid={Boolean(errors.delta)}
             />
           </Field>
@@ -251,7 +250,7 @@ export function AdjustStockDialog({
             <Input
               id={`note-${material.id}-${direction}`}
               name="note"
-              placeholder={adding ? "Beli di toko Tani Makmur" : "Kocor blok A"}
+              placeholder="Tulis catatan"
             />
           </Field>
 

@@ -237,7 +237,7 @@ function EmptyTools() {
         <div>
           <p className="font-medium">Belum ada alat terdaftar</p>
           <p className="text-muted-foreground mt-1 text-sm">
-            Catat tangki semprot, cangkul, gembor, dan selang agar kondisinya
+            Catat tangki spray, cangkul, gembor, dan selang agar kondisinya
             terpantau.
           </p>
         </div>

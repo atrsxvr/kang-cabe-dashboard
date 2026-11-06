@@ -111,7 +111,6 @@ export function OpeningDialog({ opening }: { opening?: OpeningRow }) {
                 required
                 value={amount}
                 onValueChange={setAmount}
-                placeholder="3.000.000"
                 aria-invalid={Boolean(errors.amount)}
               />
               {parsed > 0 ? (
@@ -143,7 +142,7 @@ export function OpeningDialog({ opening }: { opening?: OpeningRow }) {
               id="opening-note"
               name="note"
               defaultValue={opening?.note ?? ""}
-              placeholder="Sisa kas Musim 1"
+              placeholder="Tulis catatan"
             />
           </Field>
 

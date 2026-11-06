@@ -191,7 +191,6 @@ export function PriceField({
             setPrice(digits);
             setPriceDriven(true);
           }}
-          placeholder={basis.per > 1 ? "25.000" : "150"}
           aria-invalid={Boolean(error)}
         />
       ) : (
@@ -199,7 +198,6 @@ export function PriceField({
           id={id}
           value={total}
           onValueChange={setTotal}
-          placeholder="160.000"
           aria-invalid={Boolean(error)}
         />
       )}
@@ -221,7 +219,6 @@ export function PriceField({
               // A new size re-prices what was typed against it.
               if (price !== "") setPriceDriven(true);
             }}
-            placeholder="1000"
             className="h-8 w-28"
           />
           <span className="text-muted-foreground text-xs">{unit}</span>

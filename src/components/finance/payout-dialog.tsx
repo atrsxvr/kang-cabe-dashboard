@@ -177,7 +177,6 @@ export function PayoutDialog({
                 required
                 value={amount}
                 onValueChange={setAmount}
-                placeholder="500.000"
                 aria-invalid={Boolean(errors.amount)}
               />
               {parsed > 0 ? (
@@ -228,7 +227,7 @@ export function PayoutDialog({
               id="payout-note"
               name="note"
               defaultValue={payout?.note ?? ""}
-              placeholder="Transfer BCA"
+              placeholder="Tulis catatan"
             />
           </Field>
 
