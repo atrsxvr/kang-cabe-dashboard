@@ -147,3 +147,37 @@
     color: var(--destructive);
   }
 }
+/*
+ * The first-open splash (app-splash.tsx) hides itself here if the JavaScript
+ * that would remove it never arrives, so a failed load is never a green
+ * screen with no way past it.
+ */
+@keyframes app-splash-failsafe {
+  to {
+    opacity: 0;
+    visibility: hidden;
+  }
+}
+.app-splash {
+  animation: app-splash-failsafe 0.3s ease-out 8s forwards;
+}
+
+/* The navigation bar (navigation-progress.tsx) easing towards 85% and
+   waiting there until the page arrives. */
+@keyframes nav-progress-grow {
+  from {
+    transform: scaleX(0.05);
+  }
+  to {
+    transform: scaleX(0.85);
+  }
+}
+.nav-progress-grow {
+  animation: nav-progress-grow 8s cubic-bezier(0.1, 0.7, 0.3, 1) forwards;
+}
+@media (prefers-reduced-motion: reduce) {
+  .nav-progress-grow {
+    animation: none;
+    transform: scaleX(0.6);
+  }
+}

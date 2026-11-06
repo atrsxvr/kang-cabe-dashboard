@@ -1,3 +1,4 @@
+import { SkeletonSignal } from "@/components/layout/navigation-progress";
 import { Skeleton } from "@/components/ui/skeleton";
 
 /**
@@ -61,6 +62,8 @@ export function TableSkeleton({ rows = 4 }: { rows?: number }) {
 export function Loading({ children }: { children: React.ReactNode }) {
   return (
     <div role="status" aria-busy aria-label="Memuat halaman">
+      {/* Keeps the top bar running while this skeleton is up. */}
+      <SkeletonSignal />
       {children}
     </div>
   );
