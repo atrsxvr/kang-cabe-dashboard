@@ -215,7 +215,7 @@ export function StockOpnameDialog({
             <Input
               id="opname-note"
               name="note"
-              placeholder="Opname akhir bulan"
+              placeholder="Tulis catatan"
             />
           </Field>
 

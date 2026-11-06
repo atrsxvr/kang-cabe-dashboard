@@ -4,6 +4,7 @@ import { Sprout } from "lucide-react";
 
 import { CanWrite } from "@/components/auth/can-write";
 import { currentActor } from "@/server/auth/guard";
+import { gardenOptions, type GardenOption } from "@/server/queries/gardens";
 import { PageHeader } from "@/components/common/page-header";
 import { StatusBadge } from "@/components/common/status-badge";
 import { SeasonArchiveAction } from "@/components/seasons/season-archive-action";
@@ -26,7 +27,11 @@ export const metadata: Metadata = { title: "Manajemen Musim" };
 export default async function SeasonsPage() {
   await connection();
 
-  const [seasons, actor] = await Promise.all([listSeasonRows(), currentActor()]);
+  const [seasons, actor, gardens] = await Promise.all([
+    listSeasonRows(),
+    currentActor(),
+    gardenOptions(),
+  ]);
   // Tutup Musim stays Admin's even when seasons is granted to another role.
   const canClose = actor?.role === "ADMIN";
 
@@ -38,7 +43,7 @@ export default async function SeasonsPage() {
           description="Semua siklus tanam, dari perencanaan sampai arsip."
         />
         <CanWrite area="seasons">
-          <SeasonDialog />
+          <SeasonDialog gardens={gardens} />
         </CanWrite>
       </div>
 
@@ -57,7 +62,7 @@ export default async function SeasonsPage() {
                     <div className="min-w-0">
                       <p className="font-medium">{season.name}</p>
                       <p className="text-muted-foreground text-sm">
-                        {season.variety}
+                        {season.variety} · {season.garden.name}
                       </p>
                     </div>
                     <StatusBadge status={season.status} kind="season" />
@@ -97,7 +102,7 @@ export default async function SeasonsPage() {
 
                   <CanWrite area="seasons">
                     <div className="border-t pt-2">
-                      <SeasonActions season={season} canClose={canClose} />
+                      <SeasonActions season={season} canClose={canClose} gardens={gardens} />
                     </div>
                   </CanWrite>
                 </CardContent>
@@ -137,7 +142,7 @@ export default async function SeasonsPage() {
                         </span>
                       ) : null}
                     </TableCell>
-                    <TableCell>{season.variety}</TableCell>
+                    <TableCell>{season.variety} · {season.garden.name}</TableCell>
                     <TableCell className="text-right tabular-nums">
                       {season.plantCount.toLocaleString("id-ID")}
                     </TableCell>
@@ -157,7 +162,7 @@ export default async function SeasonsPage() {
                     </TableCell>
                     <CanWrite area="seasons">
                       <TableCell className="text-right">
-                        <SeasonActions season={season} canClose={canClose} />
+                        <SeasonActions season={season} canClose={canClose} gardens={gardens} />
                       </TableCell>
                     </CanWrite>
                   </TableRow>
@@ -175,9 +180,11 @@ export default async function SeasonsPage() {
 function SeasonActions({
   season,
   canClose,
+  gardens,
 }: {
   season: Awaited<ReturnType<typeof listSeasonRows>>[number];
   canClose: boolean;
+  gardens: GardenOption[];
 }) {
   return (
     <div className="flex items-center justify-end gap-1">
@@ -187,7 +194,7 @@ function SeasonActions({
         status={season.status}
         canClose={canClose}
       />
-      <SeasonDialog season={season} />
+      <SeasonDialog season={season} gardens={gardens} />
       {season.status !== "ARCHIVED" ? (
         <SeasonArchiveAction
           seasonId={season.id}

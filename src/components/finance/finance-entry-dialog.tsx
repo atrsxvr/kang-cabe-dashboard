@@ -189,7 +189,7 @@ export function FinanceEntryDialog({
                     required
                     list="labor-job-suggestions"
                     defaultValue={entry?.laborJob ?? ""}
-                    placeholder="Olah lahan"
+                    placeholder="Tulis jenis pekerjaannya"
                     aria-invalid={Boolean(errors.laborJob)}
                   />
                   <datalist id="labor-job-suggestions">
@@ -204,7 +204,7 @@ export function FinanceEntryDialog({
                     name="payee"
                     required
                     defaultValue={entry?.payee ?? ""}
-                    placeholder="Mang Asep (mandor)"
+                    placeholder="Tulis nama penerimanya"
                     aria-invalid={Boolean(errors.payee)}
                   />
                 </Field>
@@ -245,7 +245,6 @@ export function FinanceEntryDialog({
                 required
                 value={amount}
                 onValueChange={setAmount}
-                placeholder="150.000"
                 aria-invalid={Boolean(errors.amount)}
               />
               {parsed > 0 ? (
@@ -277,7 +276,7 @@ export function FinanceEntryDialog({
               name="description"
               required
               defaultValue={entry?.description ?? ""}
-              placeholder="Upah 2 orang, bersihin gulma"
+              placeholder="Tulis keterangannya"
               aria-invalid={Boolean(errors.description)}
             />
           </Field>

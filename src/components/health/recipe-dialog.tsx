@@ -6,6 +6,7 @@ import { Pencil, Plus, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 
 import { Field } from "@/components/common/form-field";
+import { MaterialCombobox } from "@/components/common/material-combobox";
 import { NativeSelect } from "@/components/common/native-select";
 import { SubmitButton } from "@/components/common/submit-button";
 import {
@@ -35,15 +36,31 @@ import type { StockRow } from "@/server/queries/inventory";
 export function RecipeDialog({
   materials,
   recipe,
+  tanks,
 }: {
   materials: StockRow[];
   recipe?: RecipeRow;
+  /**
+   * The selected season's tanks. A new recipe's volume acuan starts at the
+   * one for its method and follows the method until someone types a volume
+   * of their own.
+   */
+  tanks?: Record<"SEMPROT" | "KOCOR", number>;
 }) {
   const editing = Boolean(recipe);
   const [open, setOpen] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [kind, setKind] = useState<string>(recipe?.kind ?? "ROUTINE");
+  const startBasis = () =>
+    String(recipe?.basisVolumeL ?? tanks?.SEMPROT ?? DEFAULT_TANK_LITRES);
+  const [basis, setBasis] = useState(startBasis);
+  const [basisTyped, setBasisTyped] = useState(false);
   // One row per existing ingredient when editing, otherwise a single blank.
+  // Which material each row holds, keyed by the row's own key so removing a
+  // row does not shift the others' choices.
+  const startChosen = () =>
+    Object.fromEntries((recipe?.items ?? []).map((item, index) => [index, item.material.id]));
+  const [chosen, setChosen] = useState<Record<number, string>>(startChosen);
   const [rows, setRows] = useState(() =>
     recipe ? recipe.items.map((_, index) => index) : [0],
   );
@@ -52,7 +69,10 @@ export function RecipeDialog({
   const reset = () => {
     setErrors({});
     setKind(recipe?.kind ?? "ROUTINE");
+    setBasis(startBasis());
+    setBasisTyped(false);
     setRows(recipe ? recipe.items.map((_, index) => index) : [0]);
+    setChosen(startChosen());
   };
 
   async function onSubmit(formData: FormData) {
@@ -143,7 +163,7 @@ export function RecipeDialog({
               name="name"
               required
               defaultValue={recipe?.name}
-              placeholder="Kocor NPK fase produksi"
+              placeholder="Tulis nama racikan"
               aria-invalid={Boolean(errors.name)}
             />
           </Field>
@@ -171,6 +191,10 @@ export function RecipeDialog({
                 id="method"
                 name="method"
                 defaultValue={recipe?.method ?? "SEMPROT"}
+                onChange={(event) => {
+                  const tank = tanks?.[event.target.value as "SEMPROT" | "KOCOR"];
+                  if (!editing && !basisTyped && tank) setBasis(String(tank));
+                }}
               >
                 {Object.entries(methodLabels).map(([value, label]) => (
                   <option key={value} value={value}>
@@ -212,7 +236,6 @@ export function RecipeDialog({
                   type="number"
                   min={1}
                   defaultValue={recipe?.intervalDays ?? ""}
-                  placeholder="10"
                 />
               </Field>
             </div>
@@ -228,7 +251,7 @@ export function RecipeDialog({
                 // Only rendered for a treatment, where the server demands it.
                 required
                 defaultValue={recipe?.targetIssue ?? ""}
-                placeholder="Antraknosa"
+                placeholder="Tulis masalah yang ditangani"
                 aria-invalid={Boolean(errors.targetIssue)}
               />
             </Field>
@@ -239,7 +262,11 @@ export function RecipeDialog({
               id="basisVolumeL"
               label="Volume acuan (liter)"
               error={errors.basisVolumeL}
-              hint="Ukuran tangki yang biasa dipakai"
+              hint={
+                tanks && !editing
+                  ? "Terisi dari tangki musim yang dipilih, sesuai cara aplikasinya. Boleh diganti."
+                  : "Ukuran tangki yang biasa dipakai"
+              }
             >
               <Input
                 id="basisVolumeL"
@@ -248,7 +275,11 @@ export function RecipeDialog({
                 min={1}
                 step="any"
                 required
-                defaultValue={recipe?.basisVolumeL ?? DEFAULT_TANK_LITRES}
+                value={basis}
+                onChange={(event) => {
+                  setBasis(event.target.value);
+                  setBasisTyped(true);
+                }}
                 aria-invalid={Boolean(errors.basisVolumeL)}
               />
             </Field>
@@ -265,7 +296,6 @@ export function RecipeDialog({
                 type="number"
                 min={0}
                 defaultValue={recipe?.preHarvestIntervalDays ?? ""}
-                placeholder="7"
               />
             </Field>
           </div>
@@ -288,17 +318,14 @@ export function RecipeDialog({
                       htmlFor={`materialId-${row}`}
                       className="sr-only"
                     >{`Bahan ${index + 1}`}</Label>
-                    <NativeSelect
+                    <MaterialCombobox
                       id={`materialId-${row}`}
                       name="materialId"
-                      defaultValue={recipe?.items[index]?.material.id}
-                    >
-                      {dosable.map((material) => (
-                        <option key={material.id} value={material.id}>
-                          {material.name} ({material.unit})
-                        </option>
-                      ))}
-                    </NativeSelect>
+                      materials={dosable}
+                      value={chosen[row] ?? ""}
+                      onChange={(id) => setChosen((current) => ({ ...current, [row]: id }))}
+                      describe={(material) => material.unit}
+                    />
                   </div>
                   <div className="w-28">
                     <Label
@@ -348,7 +375,7 @@ export function RecipeDialog({
               name="notes"
               rows={2}
               defaultValue={recipe?.notes ?? ""}
-              placeholder="Aplikasi pagi hari, hindari saat akan hujan"
+              placeholder="Tulis catatan"
             />
           </Field>
 

@@ -216,7 +216,7 @@ export function FindingDialog({
               rows={3}
               required
               defaultValue={finding?.symptoms}
-              placeholder="Daun menguning dari bawah, ada bercak coklat di beberapa tanaman…"
+              placeholder="Tulis apa yang terlihat di tanaman"
               aria-invalid={Boolean(errors.symptoms)}
             />
           </Field>
@@ -268,7 +268,7 @@ export function FindingDialog({
               id="location"
               name="location"
               defaultValue={finding?.location ?? ""}
-              placeholder="Blok A baris 3"
+              placeholder="Tulis lokasi atau bloknya"
             />
           </Field>
 

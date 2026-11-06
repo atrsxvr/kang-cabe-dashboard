@@ -47,7 +47,7 @@ export function HarvestBlockCard({ blocks }: { blocks: SafeHarvest[] }) {
               Jangan panen dulu — {worst.daysLeft} hari lagi
             </p>
             <p className="text-muted-foreground text-xs">
-              Aman mulai {formatDate(worst.safeFrom)}. Habis disemprot{" "}
+              Aman mulai {formatDate(worst.safeFrom)}. Habis di-spray{" "}
               {worst.recipeName} tanggal {formatDate(worst.appliedAt)}.
             </p>
           </div>

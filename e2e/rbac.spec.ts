@@ -415,15 +415,15 @@ test.describe("tombol di dalam tabel", () => {
     await context.close();
   });
 
-  /** Semua boleh membaca profil kebun; hanya Admin yang menyimpannya. */
-  test("profil kebun terkunci untuk yang bukan Admin", async ({ browser }) => {
+  /** Semua boleh membaca daftar lahan; hanya Admin yang mengubahnya. */
+  test("lahan kebun terkunci untuk yang bukan Admin", async ({ browser }) => {
     const context = await contextFor(browser, "LOGISTICS");
     const page = await context.newPage();
     await page.goto("/settings");
 
-    await expect(page.getByRole("heading", { name: "Profil Kebun" })).toBeVisible();
-    await expect(page.getByRole("button", { name: "Simpan Profil" })).toHaveCount(0);
-    await expect(page.getByText("Cuma Admin yang bisa mengubah profil kebun.")).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Lahan Kebun" })).toBeVisible();
+    await expect(page.getByRole("button", { name: "Tambah Lahan" })).toHaveCount(0);
+    await expect(page.getByRole("button", { name: /^Edit / })).toHaveCount(0);
 
     await context.close();
   });
@@ -483,7 +483,7 @@ test("menu Akses Peran tidak terlihat oleh yang bukan Admin", async ({ browser }
   const page = await context.newPage();
   await page.goto("/settings");
 
-  await expect(page.getByRole("heading", { name: "Profil Kebun" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Lahan Kebun" })).toBeVisible();
   await expect(page.getByRole("heading", { name: "Akses Peran" })).toHaveCount(0);
   await expect(page.getByRole("checkbox", { name: /Logistik — / })).toHaveCount(0);
 

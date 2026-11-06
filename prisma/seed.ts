@@ -51,8 +51,14 @@ async function seedSeason() {
     return;
   }
 
+  // The garden_lahan migration always leaves one garden behind.
+  const garden =
+    (await prisma.garden.findFirst({ orderBy: { createdAt: "asc" } })) ??
+    (await prisma.garden.create({ data: { name: "Kebun Kang Cabe" } }));
+
   const season = await prisma.season.create({
     data: {
+      gardenId: garden.id,
       name,
       variety: "Rawit Ori 212",
       plantCount: 5000,

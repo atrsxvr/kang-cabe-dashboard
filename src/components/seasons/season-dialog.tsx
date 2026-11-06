@@ -23,6 +23,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { amountToInput } from "@/lib/dose";
 import { SEASON_PARAM } from "@/lib/season-param";
 import { createSeason, updateSeason } from "@/server/actions/seasons";
+import type { GardenOption } from "@/server/queries/gardens";
 import type { SeasonRow } from "@/server/queries/seasons";
 
 const statusOptions = [
@@ -38,9 +39,25 @@ const statusOptions = [
  * identical, and keeping two copies is how a validation rule ends up applying
  * to new records but not to corrections.
  */
-export function SeasonDialog({ season }: { season?: SeasonRow }) {
+export function SeasonDialog({
+  season,
+  gardens,
+}: {
+  season?: SeasonRow;
+  /** Latest-planted plot first; a new season opens on it. */
+  gardens: GardenOption[];
+}) {
   const editing = Boolean(season);
   const [open, setOpen] = useState(false);
+  const initialGarden = season?.gardenId ?? gardens[0]?.id ?? "";
+  const tanksOf = (gardenId: string) => gardens.find((garden) => garden.id === gardenId);
+  const [gardenId, setGardenId] = useState(initialGarden);
+  const [spray, setSpray] = useState(
+    amountToInput(season?.sprayTankLitres ?? tanksOf(initialGarden)?.sprayTankLitres ?? 16)
+  );
+  const [kocor, setKocor] = useState(
+    amountToInput(season?.kocorTankLitres ?? tanksOf(initialGarden)?.kocorTankLitres ?? 20)
+  );
   const [errors, setErrors] = useState<Record<string, string>>({});
   const router = useRouter();
 
@@ -117,7 +134,7 @@ export function SeasonDialog({ season }: { season?: SeasonRow }) {
               name="name"
               required
               defaultValue={season?.name}
-              placeholder="Musim Tanam 2"
+              placeholder="Tulis nama musim"
               aria-invalid={Boolean(errors.name)}
             />
           </Field>
@@ -128,7 +145,7 @@ export function SeasonDialog({ season }: { season?: SeasonRow }) {
               name="variety"
               required
               defaultValue={season?.variety}
-              placeholder="Rawit Ori 212"
+              placeholder="Tulis varietas benihnya"
               aria-invalid={Boolean(errors.variety)}
             />
           </Field>
@@ -145,7 +162,7 @@ export function SeasonDialog({ season }: { season?: SeasonRow }) {
                 type="number"
                 min={1}
                 required
-                defaultValue={season?.plantCount ?? 1000}
+                defaultValue={season?.plantCount ?? ""}
                 aria-invalid={Boolean(errors.plantCount)}
               />
             </Field>
@@ -183,10 +200,75 @@ export function SeasonDialog({ season }: { season?: SeasonRow }) {
                   ? amountToInput(season.projectedHarvestKg)
                   : ""
               }
-              placeholder="150"
               aria-invalid={Boolean(errors.projectedHarvestKg)}
             />
           </Field>
+
+          <Field id="gardenId" label="Lahan" error={errors.gardenId}>
+            <NativeSelect
+              id="gardenId"
+              name="gardenId"
+              required
+              value={gardenId}
+              onChange={(event) => {
+                const next = event.target.value;
+                setGardenId(next);
+                // A new season on another plot takes that plot's last tanks;
+                // an existing one keeps what was typed for it.
+                const tanks = tanksOf(next);
+                if (!editing && tanks) {
+                  setSpray(amountToInput(tanks.sprayTankLitres));
+                  setKocor(amountToInput(tanks.kocorTankLitres));
+                }
+              }}
+              aria-invalid={Boolean(errors.gardenId)}
+            >
+              {gardens.map((garden) => (
+                <option key={garden.id} value={garden.id}>
+                  {garden.name}
+                </option>
+              ))}
+            </NativeSelect>
+          </Field>
+
+          {/* Per season: the two plots are not the same size, and a mix is
+              made up in whichever tank that plot uses. */}
+          <div className="grid grid-cols-2 gap-4">
+            <Field
+              id="sprayTankLitres"
+              label="Tangki spray (L)"
+              error={errors.sprayTankLitres}
+            >
+              <Input
+                id="sprayTankLitres"
+                name="sprayTankLitres"
+                inputMode="decimal"
+                required
+                value={spray}
+                onChange={(event) => setSpray(event.target.value)}
+                aria-invalid={Boolean(errors.sprayTankLitres)}
+              />
+            </Field>
+            <Field
+              id="kocorTankLitres"
+              label="Tangki kocor (L)"
+              error={errors.kocorTankLitres}
+            >
+              <Input
+                id="kocorTankLitres"
+                name="kocorTankLitres"
+                inputMode="decimal"
+                required
+                value={kocor}
+                onChange={(event) => setKocor(event.target.value)}
+                aria-invalid={Boolean(errors.kocorTankLitres)}
+              />
+            </Field>
+          </div>
+          <p className="text-muted-foreground -mt-2 text-xs">
+            Volume acuan racikan dan takaran di Jadwalkan Program mengikuti
+            tangki musim ini.
+          </p>
 
           {/* Only when creating. An existing season's status moves through
               the buttons on its row, and Selesai only through Tutup Musim's

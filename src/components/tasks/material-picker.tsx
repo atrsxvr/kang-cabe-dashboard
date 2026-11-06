@@ -3,8 +3,7 @@
 import { useId, useMemo, useState } from "react";
 import { PackagePlus } from "lucide-react";
 
-import { NativeSelect } from "@/components/common/native-select";
-import { materialCategoryLabels } from "@/components/inventory/inventory-labels";
+import { MaterialCombobox } from "@/components/common/material-combobox";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -48,8 +47,9 @@ export function MaterialPicker({
   const [selected, setSelected] = useState("");
   const [amount, setAmount] = useState("");
 
-  const material =
-    available.find((row) => row.id === selected) ?? available[0] ?? null;
+  // Nothing chosen until someone chooses: defaulting to the first material
+  // put fertiliser on tasks that never asked for any.
+  const material = available.find((row) => row.id === selected) ?? null;
 
   const parsed = parseAmount(amount);
   const valid = Number.isFinite(parsed) && parsed > 0;
@@ -76,17 +76,16 @@ export function MaterialPicker({
         Ambil bahan dari gudang (opsional)
       </Label>
 
-      <NativeSelect
+      <MaterialCombobox
         id={`${uid}-material`}
+        materials={available}
         value={material?.id ?? ""}
-        onChange={(event) => setSelected(event.target.value)}
-      >
-        {available.map((row) => (
-          <option key={row.id} value={row.id}>
-            {row.name} · {materialCategoryLabels[row.category] ?? row.category}
-          </option>
-        ))}
-      </NativeSelect>
+        onChange={setSelected}
+        describe={(row) => {
+          const stock = available.find((item) => item.id === row.id)?.stock ?? 0;
+          return formatStock(stock, row.unit);
+        }}
+      />
 
       <div className="flex flex-wrap items-end gap-2">
         <div className="grid gap-1">
@@ -100,7 +99,6 @@ export function MaterialPicker({
               onChange={(event) => setAmount(event.target.value)}
               inputMode="decimal"
               className="w-24"
-              placeholder="0"
               aria-invalid={amount !== "" && !valid}
             />
             <span className="text-muted-foreground text-sm">

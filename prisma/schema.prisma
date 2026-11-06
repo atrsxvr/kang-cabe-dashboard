@@ -242,6 +242,28 @@ model Verification {
 /// Satu baris untuk seluruh kebun. Hal-hal yang berlaku di mana-mana dan tidak
 /// masuk akal diulang per musim: di mana kebunnya, dan tangki ukuran berapa
 /// yang biasa dipakai.
+/// Satu lahan kebun. Musim memilih lahannya; Dashboard dan Laporan memakai
+/// lahan dari musim yang sedang dipilih.
+///
+/// Menggantikan GardenProfile, yang dulu satu baris untuk seluruh aplikasi.
+/// Lahan yang sudah dipakai musim tidak bisa dihapus — namanya ada di laporan
+/// musim itu.
+model Garden {
+  id           String   @id @default(uuid())
+  name         String
+  locationName String?
+  latitude     Float?
+  longitude    Float?
+  /// Kode wilayah desa/kelurahan BMKG untuk kartu cuaca. Lihat catatan di
+  /// GardenProfile.bmkgAdm4.
+  bmkgAdm4     String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  seasons      Season[]
+}
+
+/// Tidak dipakai lagi sejak Garden; isinya dipindah ke lahan pertama oleh
+/// migrasi garden_lahan. Dibiarkan sampai rilis itu sudah live, lalu dibuang.
 model GardenProfile {
   id                String   @id @default("garden")
   name              String   @default("Kebun Kang Cabe")
@@ -379,6 +401,16 @@ model Season {
   /// ditampilkan — menebak angkanya akan menghasilkan harga lantai palsu, dan
   /// harga lantai palsu lebih berbahaya daripada tidak ada panduan sama sekali.
   projectedHarvestKg Float?
+  /// Volume tangki yang dipakai di lahan musim ini, liter — dua lahan kebun
+  /// ini berbeda luas, jadi tiap musim punya ukurannya sendiri. Dipakai
+  /// mengisi volume acuan racikan dan takaran Jadwalkan Program.
+  sprayTankLitres    Float        @default(16)
+  kocorTankLitres    Float        @default(20)
+  /// Lahan tempat musim ini ditanam. Lokasi, koordinat, dan kode cuaca BMKG
+  /// dibaca dari sini, jadi kebun baru di tempat lain cukup didaftarkan
+  /// sebagai lahan baru.
+  gardenId           String
+  garden             Garden       @relation(fields: [gardenId], references: [id], onDelete: Restrict)
   startDate          DateTime // Tanggal tanam (HST 0)
   endDate            DateTime? // Tanggal selesai musim
   status             SeasonStatus @default(PLANNING)
@@ -396,6 +428,8 @@ model Season {
   stockMovements      StockMovement[]
   contributions       CapitalContribution[]
   payouts             MemberPayout[]
+
+  @@index([gardenId])
 }
 
 model Task {

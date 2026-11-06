@@ -10,6 +10,7 @@ import {
   FINDING_STATUS_PARAM,
   type FindingStatusValue,
 } from "@/lib/finding-filter";
+import { startNavigationProgress } from "@/components/layout/navigation-progress";
 
 /**
  * A dropdown rather than clickable stat tiles. The tiles look exactly like the
@@ -34,6 +35,7 @@ export function FindingStatusSelect({
     if (value) next.set(FINDING_STATUS_PARAM, value);
     else next.delete(FINDING_STATUS_PARAM);
 
+    startNavigationProgress();
     router.push(next.size ? `${pathname}?${next}` : pathname);
   };
 

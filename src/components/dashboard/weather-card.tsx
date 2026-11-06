@@ -93,13 +93,13 @@ export function WeatherCard({
             <h2 className="text-sm font-medium">Cuaca Kebun</h2>
           </div>
           <p className="text-muted-foreground text-sm">
-            Belum tahu kebunnya di kelurahan mana. Isi{" "}
+            Belum tahu lahan musim ini di kelurahan mana. Isi{" "}
             <span className="text-foreground font-medium">
               Kode Wilayah BMKG
             </span>{" "}
             di{" "}
             <Link href="/settings" className="underline">
-              Settings
+              Settings → Lahan Kebun
             </Link>
             , nanti ramalannya muncul di sini.
           </p>
@@ -198,10 +198,10 @@ export function WeatherCard({
 
         {off !== null ? (
           <p className="text-amber-700 text-[11px] dark:text-amber-400">
-            Ramalannya buat tempat yang {off} km dari koordinat kebun. Cek lagi
+            Ramalannya buat tempat yang {off} km dari koordinat lahan. Cek lagi
             Kode Wilayah BMKG di{" "}
             <Link href="/settings" className="underline">
-              Settings
+              Settings → Lahan Kebun
             </Link>
             .
           </p>

@@ -140,7 +140,6 @@ export function HarvestDialog({
                 inputMode="decimal"
                 value={good}
                 onChange={(event) => setGood(event.target.value)}
-                placeholder="0"
                 aria-invalid={Boolean(errors.goodKg)}
               />
             </Field>
@@ -156,7 +155,6 @@ export function HarvestDialog({
                 inputMode="decimal"
                 value={reject}
                 onChange={(event) => setReject(event.target.value)}
-                placeholder="0"
                 aria-invalid={Boolean(errors.rejectKg)}
               />
             </Field>
@@ -198,7 +196,7 @@ export function HarvestDialog({
               name="notes"
               rows={2}
               defaultValue={harvest?.notes ?? ""}
-              placeholder="Petik pagi, blok A"
+              placeholder="Tulis catatan"
             />
           </Field>
 

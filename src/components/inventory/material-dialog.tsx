@@ -130,7 +130,7 @@ export function MaterialDialog({
               name="name"
               required
               defaultValue={material?.name}
-              placeholder="NPK 16-16-16"
+              placeholder="Tulis nama bahan"
               aria-invalid={Boolean(errors.name)}
             />
           </Field>
@@ -261,7 +261,6 @@ export function MaterialDialog({
                 name="purchaseUnit"
                 value={packName}
                 onChange={(event) => setPackName(event.target.value)}
-                placeholder="bungkus"
                 aria-invalid={Boolean(errors.purchaseUnit)}
               />
             </Field>
@@ -280,7 +279,6 @@ export function MaterialDialog({
                 step="any"
                 value={packSize}
                 onChange={(event) => setPackSize(event.target.value)}
-                placeholder="1000"
                 aria-invalid={Boolean(errors.purchaseSize)}
               />
             </Field>
@@ -350,7 +348,7 @@ export function MaterialDialog({
               name="notes"
               rows={2}
               defaultValue={material?.notes ?? ""}
-              placeholder="Beli di Tani Makmur, yang karung merah"
+              placeholder="Tulis catatan"
             />
           </Field>
 

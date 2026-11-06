@@ -11,7 +11,7 @@ export const kindLabels: Record<string, string> = {
 
 export const methodLabels: Record<string, string> = {
   KOCOR: "Kocor",
-  SEMPROT: "Semprot",
+  SEMPROT: "Spray",
 };
 
 export const phaseTones: Record<string, string> = {

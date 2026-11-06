@@ -94,7 +94,7 @@ export function ShoppingNotes({
         <Input
           value={text}
           onChange={(event) => setText(event.target.value)}
-          placeholder="Tali rafia 2 roll, servis tangki…"
+          placeholder="Tulis yang perlu dibeli atau diurus"
           aria-label="Tambah catatan belanja"
           className="min-w-48 flex-1"
         />

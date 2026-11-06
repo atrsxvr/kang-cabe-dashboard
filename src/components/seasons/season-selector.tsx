@@ -11,6 +11,7 @@ import {
 } from "@/components/ui/select";
 import { SEASON_PARAM } from "@/lib/season-param";
 import type { SeasonSummary } from "@/server/queries/seasons";
+import { startNavigationProgress } from "@/components/layout/navigation-progress";
 
 const statusLabel: Record<string, string> = {
   PLANNING: "Perencanaan",
@@ -48,6 +49,7 @@ export function SeasonSelector({
   const onChange = (value: string) => {
     const next = new URLSearchParams(searchParams);
     next.set(SEASON_PARAM, value);
+    startNavigationProgress();
     router.push(`${pathname}?${next}`);
   };
 

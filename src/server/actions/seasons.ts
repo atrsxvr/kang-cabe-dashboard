@@ -28,6 +28,9 @@ export async function createSeason(formData: FormData): Promise<ActionResult> {
     variety: formData.get("variety"),
     plantCount: formData.get("plantCount"),
     projectedHarvestKg: formData.get("projectedHarvestKg"),
+    gardenId: formData.get("gardenId"),
+    sprayTankLitres: formData.get("sprayTankLitres"),
+    kocorTankLitres: formData.get("kocorTankLitres"),
     startDate: formData.get("startDate"),
     status: formData.get("status"),
     notes: formData.get("notes") ?? "",
@@ -38,6 +41,10 @@ export async function createSeason(formData: FormData): Promise<ActionResult> {
   }
 
   const { notes, ...rest } = parsed.data;
+
+  if (!(await gardenExists(rest.gardenId))) {
+    return { ok: false, message: "Lahan tidak ditemukan.", fieldErrors: { gardenId: "Pilih lahannya" } };
+  }
 
   const season = await prisma.season.create({
     data: { ...rest, notes: notes ? notes : null },
@@ -139,6 +146,9 @@ export async function updateSeason(formData: FormData): Promise<ActionResult> {
     variety: formData.get("variety"),
     plantCount: formData.get("plantCount"),
     projectedHarvestKg: formData.get("projectedHarvestKg"),
+    gardenId: formData.get("gardenId"),
+    sprayTankLitres: formData.get("sprayTankLitres"),
+    kocorTankLitres: formData.get("kocorTankLitres"),
     startDate: formData.get("startDate"),
     notes: formData.get("notes") ?? "",
   });
@@ -146,6 +156,10 @@ export async function updateSeason(formData: FormData): Promise<ActionResult> {
   if (!parsed.success) return invalidForm(parsed.error);
 
   const { seasonId, notes, ...rest } = parsed.data;
+
+  if (!(await gardenExists(rest.gardenId))) {
+    return { ok: false, message: "Lahan tidak ditemukan.", fieldErrors: { gardenId: "Pilih lahannya" } };
+  }
 
   // Neither the status nor the end date: both belong to closing. Writing the
   // end date here used to restamp a closed season as ending "today" every
@@ -191,4 +205,8 @@ export async function archiveSeason(formData: FormData): Promise<ActionResult> {
 
   revalidatePath("/", "layout");
   return { ok: true, seasonId };
+}
+
+async function gardenExists(gardenId: string): Promise<boolean> {
+  return (await prisma.garden.count({ where: { id: gardenId } })) > 0;
 }

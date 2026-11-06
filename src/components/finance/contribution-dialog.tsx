@@ -163,7 +163,6 @@ export function ContributionDialog({
                 required
                 value={amount}
                 onValueChange={setAmount}
-                placeholder="2.500.000"
                 aria-invalid={Boolean(errors.amount)}
               />
               {parsed > 0 ? (
@@ -218,7 +217,7 @@ export function ContributionDialog({
               id="contrib-note"
               name="note"
               defaultValue={contribution?.note ?? ""}
-              placeholder="Transfer BCA, iuran awal"
+              placeholder="Tulis catatan"
             />
           </Field>
 

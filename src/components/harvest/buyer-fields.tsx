@@ -38,7 +38,7 @@ export function BuyerFields({
           name={key("name")}
           required
           defaultValue={defaults?.name ?? ""}
-          placeholder="Pak Dedi"
+          placeholder="Tulis nama pembeli"
           aria-invalid={Boolean(errors[key("name")])}
         />
       </Field>
@@ -55,7 +55,7 @@ export function BuyerFields({
             name={key("location")}
             required
             defaultValue={defaults?.location ?? ""}
-            placeholder="Pasar Cisarua"
+            placeholder="Tulis lokasinya"
             aria-invalid={Boolean(errors[key("location")])}
           />
         </Field>
@@ -92,7 +92,7 @@ export function BuyerFields({
           inputMode="tel"
           autoComplete="off"
           defaultValue={defaults?.whatsapp ?? ""}
-          placeholder="0812 3456 7890"
+          placeholder="Tulis nomor WhatsApp"
           aria-invalid={Boolean(errors[key("whatsapp")])}
         />
       </Field>

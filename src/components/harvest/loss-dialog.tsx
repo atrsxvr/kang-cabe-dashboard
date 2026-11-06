@@ -98,7 +98,6 @@ export function LossDialog({
                 name="weightKg"
                 inputMode="decimal"
                 required
-                placeholder="2"
                 aria-invalid={Boolean(errors.weightKg)}
               />
             </Field>
@@ -119,7 +118,7 @@ export function LossDialog({
             <Input
               id="loss-reason"
               name="reason"
-              placeholder="Busuk, kelamaan nunggu pengepul"
+              placeholder="Tulis penyebabnya"
               aria-invalid={Boolean(errors.reason)}
             />
           </Field>

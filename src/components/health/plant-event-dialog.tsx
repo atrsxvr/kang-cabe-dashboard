@@ -141,7 +141,6 @@ export function PlantEventDialog({
                 min={1}
                 required
                 defaultValue={event?.count ?? ""}
-                placeholder="5"
                 aria-invalid={Boolean(errors.count)}
               />
             </Field>
@@ -165,7 +164,7 @@ export function PlantEventDialog({
                   id="plant-cause"
                   name="cause"
                   defaultValue={event?.cause ?? ""}
-                  placeholder="Layu fusarium"
+                  placeholder="Tulis penyebabnya"
                   aria-invalid={Boolean(errors.cause)}
                 />
               </Field>
@@ -224,7 +223,7 @@ export function PlantEventDialog({
               id="plant-note"
               name="note"
               defaultValue={event?.note ?? ""}
-              placeholder="Blok A bagian bawah, dekat saluran"
+              placeholder="Tulis lokasi atau bloknya"
             />
           </Field>
 

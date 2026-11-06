@@ -21,7 +21,6 @@ import { currentActor } from "@/server/auth/guard";
 import { countWeekTasks, overview } from "@/server/queries/dashboard";
 import { seasonMaterialCost } from "@/server/queries/finance";
 import { harvestCurve, harvestSummary } from "@/server/queries/harvest";
-import { getGardenProfile } from "@/server/queries/users";
 import { getWeather } from "@/server/queries/weather";
 import { resolveSeason } from "@/server/queries/seasons";
 
@@ -36,17 +35,18 @@ export default async function DashboardPage(props: PageProps<"/">) {
 
   if (!season) return <NoSeason />;
 
-  const [week, cost, harvest, curve, profile, board, actor] = await Promise.all([
+  const profile = season.garden;
+  const [week, cost, harvest, curve, board, actor] = await Promise.all([
     countWeekTasks(season.id),
     seasonMaterialCost(season.id),
     harvestSummary(season.id),
     harvestCurve(season.id, season.startDate),
-    getGardenProfile(),
     overview(season.id),
     currentActor(),
   ]);
 
-  // Fetched after the profile because it needs the garden's BMKG region code,
+  // The plot this season is planted on decides the forecast. Fetched after it
+  // because it needs that plot's BMKG region code,
   // and skipped entirely when that is not set — a missing forecast must never
   // be the reason this page fails.
   const weather = profile.bmkgAdm4

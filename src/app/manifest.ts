@@ -17,7 +17,9 @@ export default function manifest(): MetadataRoute.Manifest {
     scope: "/",
     display: "standalone",
     orientation: "portrait",
-    background_color: "#ffffff",
+    // Android draws its own launch screen from this and the icon: the same
+    // green as the iPhone startup images and the in-app splash.
+    background_color: "#14532d",
     theme_color: "#14532d",
     icons: [
       { src: "/icons/icon-192.png", sizes: "192x192", type: "image/png" },
