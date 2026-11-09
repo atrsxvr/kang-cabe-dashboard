@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 import { Field } from "@/components/common/form-field";
 import { RupiahInput } from "@/components/common/rupiah-input";
@@ -51,6 +51,7 @@ export function PriceField({
   defaultMode,
   error,
   emptyHint,
+  onTotalChange,
 }: {
   id: string;
   /** The form field the total is posted under. */
@@ -68,6 +69,11 @@ export function PriceField({
   error?: string;
   /** Shown while nothing is typed yet. */
   emptyHint: string;
+  /**
+   * The total as it is typed, for a form that collects lines in state rather
+   * than posting this field — the shopping trip, which adds one item at a time.
+   */
+  onTotalChange?: (total: string) => void;
 }) {
   // The pack size typed for this entry only. Until it is touched it follows
   // the material's usual pack, which on the new-material form is still being
@@ -112,6 +118,10 @@ export function PriceField({
       : total;
 
   const amount = totalValue === "" ? null : Number(totalValue);
+
+  useEffect(() => {
+    onTotalChange?.(totalValue);
+  }, [onTotalChange, totalValue]);
 
   const select = (next: number | null) => {
     if (next === choice) return;

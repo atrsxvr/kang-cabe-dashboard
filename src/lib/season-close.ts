@@ -130,3 +130,11 @@ export function closingChecklist(
 export function canCloseSeason(checks: ClosingCheck[]): boolean {
   return checks.every((check) => check.ok);
 }
+
+/**
+ * Selesai or archived: the report has been signed. Whatever would change its
+ * numbers — deleting a task whose materials it was charged — stops here.
+ */
+export function isSeasonClosed(status: string): boolean {
+  return status === "COMPLETED" || status === "ARCHIVED";
+}

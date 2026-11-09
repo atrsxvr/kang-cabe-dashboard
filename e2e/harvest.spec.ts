@@ -180,7 +180,7 @@ test.describe.serial("panen, jual, tagih", () => {
     await expect(main.getByText(/jualan/).first()).toBeVisible();
 
     // Named honestly: it is only as accurate as what has been written down.
-    await expect(page.getByText(/Seakurat apa yang kalian catat/)).toBeVisible();
+    await expect(page.getByText(/Kalau ada upah yang belum diketik/)).toBeVisible();
   });
 
   /**
@@ -234,7 +234,9 @@ test.describe.serial("panen, jual, tagih", () => {
   test("dan ke kartu panen di Dashboard", async ({ page }) => {
     await page.goto(`/?season=${seasonId}`);
 
-    await expect(page.getByText("Total Panen Sementara")).toBeVisible();
-    await expect(page.getByText("25,50").first()).toBeVisible();
+    // Bagus only, the same 20 kg the Panen page leads with; afkir beside it.
+    await expect(page.getByText("Panen Bagus Sejauh Ini")).toBeVisible();
+    await expect(page.getByText("20,00").first()).toBeVisible();
+    await expect(page.getByText(/plus 5,5 kg afkir/)).toBeVisible();
   });
 });

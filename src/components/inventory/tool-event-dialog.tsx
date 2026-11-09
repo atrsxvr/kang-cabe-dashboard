@@ -116,11 +116,15 @@ export function ToolEventDialog({
               value={type}
               onChange={(event) => setType(event.target.value)}
             >
-              {toolEventTypes.map((value) => (
-                <option key={value} value={value}>
-                  {toolEventLabels[value]}
-                </option>
-              ))}
+              {/* Buying goes through Catat Belanja, so a bought tool lands
+                  in the kas the same way a bought sack does. */}
+              {toolEventTypes
+                .filter((value) => value !== "ACQUIRED")
+                .map((value) => (
+                  <option key={value} value={value}>
+                    {toolEventLabels[value]}
+                  </option>
+                ))}
             </NativeSelect>
           </Field>
 

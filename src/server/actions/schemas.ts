@@ -36,6 +36,28 @@ export function nextSeasonStatus(
   return seasonProgression[index + 1];
 }
 
+/**
+ * One step back, for a stage tapped by mistake. Only the two middle steps:
+ * Perencanaan has nothing before it, and Selesai was signed through the
+ * closing checklist — reopening that is not an undo.
+ */
+export function previousSeasonStatus(
+  current: (typeof seasonStatuses)[number]
+): "PLANNING" | "ACTIVE" | null {
+  if (current === "ACTIVE") return "PLANNING";
+  if (current === "HARVESTING") return "ACTIVE";
+  return null;
+}
+
+/**
+ * Only a season that is finished, or one that was planned and never planted,
+ * is put away. Archiving one mid-season would skip Tutup Musim's checklist and
+ * leave nothing to say what stage it was in when it comes back.
+ */
+export function canArchiveSeason(status: (typeof seasonStatuses)[number]) {
+  return status === "COMPLETED" || status === "PLANNING";
+}
+
 /** A tank's volume in litres, typed with a comma in the field ("16,5"). */
 const tankLitres = (kind: string) =>
   z.preprocess(
@@ -340,6 +362,90 @@ export const recordToolEventSchema = z.object({
   holderId: z.string().optional().or(z.literal("")),
 });
 
+/**
+ * One line of a shopping trip: a material or a tool, either already in the
+ * shed or registered by this purchase.
+ *
+ * Exactly one of the id or the new item's fields — both would leave it
+ * ambiguous which row the stock lands on, and neither names nothing.
+ */
+const purchaseMaterialLine = z
+  .object({
+    kind: z.literal("material"),
+    materialId: z.string().min(1).optional(),
+    newMaterial: z
+      .object({
+        name: createMaterialSchema.shape.name,
+        unit: createMaterialSchema.shape.unit,
+        category: createMaterialSchema.shape.category,
+        minStock: createMaterialSchema.shape.minStock,
+      })
+      .optional(),
+    amount: z.coerce
+      .number("Jumlah tidak valid")
+      .positive("Jumlah harus lebih dari 0")
+      .max(10_000_000),
+    totalCost: rupiah.nullable(),
+  })
+  .refine((line) => Boolean(line.materialId) !== Boolean(line.newMaterial), {
+    message: "Pilih bahan yang ada, atau isi bahan baru",
+  });
+
+const purchaseToolLine = z
+  .object({
+    kind: z.literal("tool"),
+    toolId: z.string().min(1).optional(),
+    newTool: z.object({ name: createToolSchema.shape.name }).optional(),
+    quantity: z.coerce
+      .number()
+      .int("Jumlah harus bilangan bulat")
+      .min(1, "Jumlah minimal 1")
+      .max(1000),
+    totalCost: rupiah.nullable(),
+  })
+  .refine((line) => Boolean(line.toolId) !== Boolean(line.newTool), {
+    message: "Pilih alat yang ada, atau isi alat baru",
+  });
+
+export const purchaseLineSchema = z.union([
+  purchaseMaterialLine,
+  purchaseToolLine,
+]);
+
+export type PurchaseLine = z.infer<typeof purchaseLineSchema>;
+
+// Defensive about a line that names neither: zod still runs the array's
+// refine after a line's own refine has failed, and a crash there would turn a
+// form error into a server error.
+const lineKey = (line: PurchaseLine) =>
+  line.kind === "material"
+    ? `m:${line.materialId ?? `new:${line.newMaterial?.name.toLowerCase() ?? ""}`}`
+    : `t:${line.toolId ?? `new:${line.newTool?.name.toLowerCase() ?? ""}`}`;
+
+/**
+ * A shopping trip, recorded by hand: what was bought, on which day.
+ *
+ * Each priced line is money out of the kas on that day — a material as a
+ * PURCHASE movement, a tool as an ACQUIRED event, the same two rows the cash
+ * ledger has always read. Nothing about buying lands on a season.
+ */
+export const recordPurchaseSchema = z.object({
+  purchasedAt: z.coerce.date("Tanggal belanja tidak valid"),
+  actorId: z.string().optional().or(z.literal("")),
+  /// Toko, nomor nota — apa pun yang membantu menemukannya lagi di buku kas.
+  note: z.string().trim().max(300).optional().or(z.literal("")),
+  items: z
+    .array(purchaseLineSchema)
+    .min(1, "Tambahkan minimal satu barang")
+    .max(50)
+    // The same sack twice on one trip is one line with a bigger number; two
+    // lines would only make the receipt harder to check.
+    .refine(
+      (items) => new Set(items.map(lineKey)).size === items.length,
+      "Barang yang sama tercantum dua kali"
+    ),
+});
+
 export const createShoppingNoteSchema = z.object({
   text: z.string().trim().min(2, "Tulis dulu apa yang perlu dibeli").max(200),
   actorId: z.string().optional().or(z.literal("")),
@@ -425,6 +531,12 @@ export const updateMaterialSchema = createMaterialSchema
   // value on the opening movement rather than adding a new one.
   .omit({ stock: true })
   .extend({ materialId: z.string().min(1) });
+
+export const postponeTaskSchema = z.object({
+  taskId: z.string().min(1),
+  seasonId: z.string().min(1),
+  dueDate: z.coerce.date("Tanggal tidak valid"),
+});
 
 export const updateTaskStatusSchema = z.object({
   taskId: z.string().min(1),
@@ -645,10 +757,18 @@ export const expenseCategories = [
 
 export const transactionTypes = ["INCOME", "EXPENSE"] as const;
 
+/**
+ * Uang masuk tidak dipilihkan kategori: daftar di atas adalah daftar
+ * pengeluaran, dan "Upah" atau "Sewa" untuk uang yang masuk tidak berarti
+ * apa-apa. Asalnya ditulis di keterangan; kolomnya diisi satu label tetap.
+ */
+export const INCOME_CATEGORY = "Pemasukan";
+
 const financeBase = {
   seasonId: z.string().min(1),
   type: z.enum(transactionTypes),
-  category: z.enum(expenseCategories),
+  /// Hanya berarti untuk uang keluar; uang masuk diisi INCOME_CATEGORY.
+  category: z.string().trim().max(40).optional().or(z.literal("")),
   amount: rupiah.refine((value) => value > 0, "Isi jumlahnya"),
   description: z.string().trim().min(2, "Tulis keterangannya").max(300),
   date: z.coerce.date("Tanggal tidak valid"),
@@ -665,10 +785,17 @@ const financeBase = {
  * fields for Upah and a category switched afterwards would otherwise slip by.
  */
 function requireLaborFields(
-  entry: { type: string; category: string; laborJob?: string; payee?: string },
+  entry: { type: string; category?: string; laborJob?: string; payee?: string },
   ctx: z.RefinementCtx
 ) {
-  if (!isLaborEntry(entry.type, entry.category)) return;
+  if (
+    entry.type === "EXPENSE" &&
+    !(expenseCategories as readonly string[]).includes(entry.category ?? "")
+  ) {
+    ctx.addIssue({ code: "custom", path: ["category"], message: "Pilih kategorinya" });
+    return;
+  }
+  if (!isLaborEntry(entry.type, entry.category ?? "")) return;
   if (!entry.laborJob || entry.laborJob.length < 2) {
     ctx.addIssue({ code: "custom", path: ["laborJob"], message: "Pekerjaan apa yang dibayar?" });
   }
@@ -677,16 +804,25 @@ function requireLaborFields(
   }
 }
 
+const settleCategory = <T extends { type: string; category?: string }>(
+  entry: T
+) => ({
+  ...entry,
+  category: entry.type === "INCOME" ? INCOME_CATEGORY : (entry.category ?? ""),
+});
+
 export const createFinanceEntrySchema = z
   .object(financeBase)
-  .superRefine(requireLaborFields);
+  .superRefine(requireLaborFields)
+  .transform(settleCategory);
 
 export const updateFinanceEntrySchema = z
   .object({
     ...financeBase,
     entryId: z.string().min(1),
   })
-  .superRefine(requireLaborFields);
+  .superRefine(requireLaborFields)
+  .transform(settleCategory);
 
 /**
  * Menjadwalkan racikan rutin berulang di rentang HST tertentu.
@@ -784,6 +920,17 @@ export const createPayoutSchema = payoutFields.refine(
 export const updatePayoutSchema = payoutFields
   .extend({ payoutId: z.string().min(1) })
   .refine(seasonForProfitShare, seasonMessage);
+
+export const loanEntryTypes = ["LENT", "REPAID"] as const;
+
+/** Uang kas dipinjam anggota, atau dikembalikannya. Tanpa bunga. */
+export const loanEntrySchema = z.object({
+  userId: z.string().min(1, "Pilih anggotanya"),
+  type: z.enum(loanEntryTypes),
+  amount: rupiah.refine((value) => value > 0, "Isi jumlahnya"),
+  date: z.coerce.date("Tanggal tidak valid"),
+  note: z.string().trim().max(300).optional().or(z.literal("")),
+});
 
 export const plantEventTypes = ["DIED", "REPLANTED"] as const;
 

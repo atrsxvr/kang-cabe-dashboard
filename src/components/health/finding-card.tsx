@@ -1,4 +1,4 @@
-import { ImageIcon, MapPin, User as UserIcon } from "lucide-react";
+import { CalendarPlus, ImageIcon, MapPin, User as UserIcon } from "lucide-react";
 
 import { ConfirmDelete } from "@/components/common/confirm-delete";
 import { canManageFinding, canWrite, type AccessMatrix, type Role } from "@/lib/permissions";
@@ -12,12 +12,15 @@ import {
   severityLabels,
   severityTones,
 } from "@/components/health/finding-labels";
+import { TaskDialog } from "@/components/tasks/task-dialog";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { formatDate } from "@/lib/hst";
 import { cn } from "@/lib/utils";
 import { deleteFinding } from "@/server/actions/findings";
 import type { FindingRow } from "@/server/queries/findings";
+import type { StockRow } from "@/server/queries/inventory";
 import type { RecipeRow } from "@/server/queries/recipes";
 import type { MemberOption } from "@/server/queries/users";
 
@@ -29,6 +32,7 @@ export function FindingCard({
   currentHst,
   photoEnabled,
   actor,
+  scheduling,
 }: {
   finding: FindingRow;
   seasonId: string;
@@ -38,6 +42,12 @@ export function FindingCard({
   photoEnabled: boolean;
   /** Yang sedang membuka halaman. Null berarti tidak ada tombol apa pun. */
   actor: { id: string; role: Role; access: AccessMatrix } | null;
+  /**
+   * What the task form needs, given only to whoever may write tasks. A
+   * treatment written here is only advice until it is on the board — that is
+   * where it gets a date, someone to do it, and its materials out of the shed.
+   */
+  scheduling?: { recipes: RecipeRow[]; materials: StockRow[] };
 }) {
   // Tombol cuma kerapian; penegakannya di Server Action. Tapi tombol yang
   // menolak saat ditekan mengajari orang bahwa aplikasinya suka gagal, jadi
@@ -141,6 +151,31 @@ export function FindingCard({
                 seasonId={seasonId}
                 members={members}
                 treatmentRecipes={treatmentRecipes}
+              />
+            ) : null}
+            {scheduling && finding.status === "DIAGNOSED" && finding.diagnosis ? (
+              <TaskDialog
+                seasonId={seasonId}
+                members={members}
+                currentHst={currentHst}
+                recipes={scheduling.recipes}
+                materials={scheduling.materials}
+                draft={{
+                  title: `Penanganan: ${finding.diagnosis}`.slice(0, 200),
+                  description: [
+                    finding.treatment ?? "",
+                    `Dari temuan HST ${finding.hst}${finding.location ? ` di ${finding.location}` : ""}: ${finding.symptoms}`,
+                  ]
+                    .filter(Boolean)
+                    .join("\n\n")
+                    .slice(0, 2000),
+                }}
+                trigger={
+                  <Button size="sm" variant="secondary">
+                    <CalendarPlus className="size-4" aria-hidden />
+                    Jadwalkan penanganan
+                  </Button>
+                }
               />
             ) : null}
             {curates ? (

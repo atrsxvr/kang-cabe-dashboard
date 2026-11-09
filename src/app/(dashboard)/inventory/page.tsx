@@ -8,6 +8,10 @@ import { currentActor } from "@/server/auth/guard";
 import { PageHeader } from "@/components/common/page-header";
 import { InventoryViews } from "@/components/inventory/inventory-views";
 import { MaterialDialog } from "@/components/inventory/material-dialog";
+import {
+  PurchaseDialog,
+  PurchaseSourcesProvider,
+} from "@/components/inventory/purchase-dialog";
 import { ShoppingList } from "@/components/inventory/shopping-list";
 import { StockOpnameDialog } from "@/components/inventory/stock-opname-dialog";
 import { StockTable } from "@/components/inventory/stock-table";
@@ -54,6 +58,7 @@ export default async function InventoryPage() {
   // klien, dan `CanWrite` menanyakan sesi di server.
   const actor = await currentActor();
   const mayWrite = actor ? canWrite(actor.role, "inventory", actor.access) : false;
+  const mayRegister = actor ? canWrite(actor.role, "materials", actor.access) : false;
 
   const restock = selectRestock(rows);
   const { replace, service } = selectToolNeeds(tools);
@@ -65,13 +70,23 @@ export default async function InventoryPage() {
   const expiring = selectExpiring(rows);
 
   return (
-    <>
+    <PurchaseSourcesProvider
+      materials={rows}
+      tools={tools}
+      members={members}
+      canRegisterMaterials={mayRegister}
+    >
       <div className="mb-6 flex flex-wrap items-start justify-between gap-3">
         <PageHeader
           title="Inventaris & Alat"
           description="Stok saprodi dan kondisi alat kerja. Berlaku untuk semua musim."
         />
         <div className="flex flex-wrap gap-2">
+          {/* First: buying is the everyday job. The two below register what
+              was already in the shed before the app, and cost the kas nothing. */}
+          <CanWrite area="inventory">
+            <PurchaseDialog />
+          </CanWrite>
           <CanWrite area="inventory">
             <MaterialDialog />
           </CanWrite>
@@ -145,6 +160,7 @@ export default async function InventoryPage() {
         }
         shopping={
           <ShoppingList
+            canWrite={mayWrite}
             rows={restock}
             replace={replace}
             service={service}
@@ -154,7 +170,7 @@ export default async function InventoryPage() {
         }
         tools={<ToolList tools={tools} members={members} canWrite={mayWrite} />}
       />
-    </>
+    </PurchaseSourcesProvider>
   );
 }
 

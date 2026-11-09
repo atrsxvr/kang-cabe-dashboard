@@ -58,7 +58,7 @@ export default async function DashboardPage(props: PageProps<"/">) {
   return (
     <>
       <PageHeader
-        title="Dashboard Overview"
+        title="Ringkasan Kebun"
         description={`${season.name} · ditanam ${formatDate(season.startDate)}`}
       />
 
@@ -100,16 +100,21 @@ export default async function DashboardPage(props: PageProps<"/">) {
           icon={Wallet}
         />
 
+        {/* Bagus only, like every headline yield — the Panen page shows the
+            same figure, and afkir is said beside it rather than added in. */}
         <SummaryCard
-          title="Total Panen Sementara"
-          value={harvest.totalHarvestedKg.toLocaleString("id-ID", {
+          title="Panen Bagus Sejauh Ini"
+          value={harvest.sellableHarvestedKg.toLocaleString("id-ID", {
             minimumFractionDigits: 2,
             maximumFractionDigits: 2,
           })}
           unit="kg"
           hint={
             harvest.lastHarvestAt
-              ? `Terakhir petik ${formatDate(harvest.lastHarvestAt)}`
+              ? `Terakhir petik ${formatDate(harvest.lastHarvestAt)}` +
+                (harvest.harvested.REJECT > 0
+                  ? ` · plus ${harvest.harvested.REJECT.toLocaleString("id-ID", { maximumFractionDigits: 2 })} kg afkir`
+                  : "")
               : "Belum ada panen tercatat"
           }
           icon={Wheat}
@@ -174,7 +179,7 @@ export default async function DashboardPage(props: PageProps<"/">) {
 function NoSeason() {
   return (
     <>
-      <PageHeader title="Dashboard Overview" />
+      <PageHeader title="Ringkasan Kebun" />
       <Card>
         <CardContent className="flex flex-col items-center gap-3 py-14 text-center">
           <div className="bg-muted rounded-lg p-3">

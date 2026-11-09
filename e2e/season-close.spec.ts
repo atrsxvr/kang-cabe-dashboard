@@ -1,4 +1,12 @@
-import { expect, test, type Page } from "@playwright/test";
+import { expect, test, type Locator, type Page } from "@playwright/test";
+
+/** One stage forward through the row's button and its confirmation. */
+async function advance(page: Page, card: Locator, stage: string) {
+  await card.getByRole("button", { name: stage, exact: true }).click();
+  const ask = page.getByRole("alertdialog");
+  await ask.getByRole("button", { name: `Ya, ${stage}` }).click();
+  await expect(ask).toHaveCount(0);
+}
 
 import { chooseNewBuyer } from "./buyer";
 
@@ -64,10 +72,10 @@ test.describe.serial("tutup musim", () => {
     await page.goto("/seasons");
     const card = seasonCard(page);
 
-    // Perencanaan → Berjalan → Panen are single taps, as before.
-    await card.getByRole("button", { name: "Berjalan" }).click();
+    // Perencanaan → Berjalan → Panen each ask once, then move.
+    await advance(page, card, "Berjalan");
     await expect(card.getByText("Berjalan").first()).toBeVisible();
-    await card.getByRole("button", { name: "Panen" }).click();
+    await advance(page, card, "Panen");
 
     // The last step is not.
     await card.getByRole("button", { name: "Tutup Musim" }).click();
@@ -159,9 +167,9 @@ test.describe.serial("tutup musim yang sudah beres", () => {
   test("semua beres, musim ditutup, laporannya tidak lagi sementara", async ({ page }) => {
     await page.goto("/seasons");
     const card = page.locator('[data-slot="card"]').filter({ hasText: SETTLED });
-    await card.getByRole("button", { name: "Berjalan" }).click();
+    await advance(page, card, "Berjalan");
     await expect(card.getByText("Berjalan").first()).toBeVisible();
-    await card.getByRole("button", { name: "Panen" }).click();
+    await advance(page, card, "Panen");
     await card.getByRole("button", { name: "Tutup Musim" }).click();
 
     const dialog = page.getByRole("dialog");

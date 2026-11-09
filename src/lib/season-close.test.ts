@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import {
   canCloseSeason,
   closingChecklist,
+  isSeasonClosed,
   type ClosingFacts,
 } from "@/lib/season-close";
 
@@ -78,6 +79,16 @@ describe("canCloseSeason", () => {
         canCloseSeason(closingChecklist({ ...settled, ...loose }, "s1", format)),
         JSON.stringify(loose)
       ).toBe(false);
+    }
+  });
+});
+
+describe("isSeasonClosed", () => {
+  it("Selesai dan diarsipkan sudah tertutup; selebihnya masih berjalan", () => {
+    expect(isSeasonClosed("COMPLETED")).toBe(true);
+    expect(isSeasonClosed("ARCHIVED")).toBe(true);
+    for (const status of ["PLANNING", "ACTIVE", "HARVESTING"]) {
+      expect(isSeasonClosed(status)).toBe(false);
     }
   });
 });

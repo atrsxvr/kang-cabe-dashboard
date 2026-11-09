@@ -167,6 +167,7 @@ model User {
   salesRecorded     SaleTransaction[]     @relation("RecordedSales")
   contributions     CapitalContribution[] @relation("Contributions")
   payouts           MemberPayout[]        @relation("Payouts")
+  loans             MemberLoan[]          @relation("Loans")
   plantEventsLogged PlantEvent[]          @relation("RecordedPlantEvents")
   lossesLogged      HarvestLoss[]         @relation("RecordedLosses")
   sessions          Session[]
@@ -349,10 +350,45 @@ model MemberPayout {
 
   user   User    @relation("Payouts", fields: [userId], references: [id], onDelete: Restrict)
   season Season? @relation(fields: [seasonId], references: [id], onDelete: SetNull)
+  /// Pinjaman yang dilunasi dengan memotong bagi hasil ini, kalau ada.
+  loanOffset MemberLoan?
 
   @@index([userId])
   @@index([paidAt])
   @@index([seasonId])
+}
+
+/// Uang kas yang dipinjam anggota untuk keperluan pribadi, dan pengembaliannya.
+///
+/// Satu buku untuk keduanya: sisa pinjaman seseorang adalah semua LENT
+/// dikurangi semua REPAID, dihitung, tidak disimpan — kolom sisa adalah angka
+/// yang suatu hari berhenti diperbarui. Tanpa bunga.
+///
+/// Bukan modal dan bukan bagi hasil. Meminjam tidak mengubah porsi modal, dan
+/// mengembalikan tidak menambahnya: uangnya milik kas bersama, keluar lalu
+/// kembali.
+model MemberLoan {
+  id     String        @id @default(uuid())
+  userId String
+  type   LoanEntryType
+  /// Rupiah bulat, selalu positif; arahnya dari `type`.
+  amount Int
+  /// Hari uangnya berpindah tangan.
+  date   DateTime
+  note   String?
+
+  /// Pengembalian yang dipotong dari bagi hasil: menunjuk bagi hasil itu.
+  /// Cascade — menghapus bagi hasilnya membatalkan potongannya juga, kalau
+  /// tidak pinjamannya tercatat lunas oleh uang yang tidak pernah dibagikan.
+  payoutId String? @unique
+
+  createdAt DateTime @default(now())
+
+  user   User          @relation("Loans", fields: [userId], references: [id], onDelete: Restrict)
+  payout MemberPayout? @relation(fields: [payoutId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([date])
 }
 
 /// Uang yang sudah ada di kas saat aplikasi mulai dipakai.
@@ -382,6 +418,11 @@ model CashOpening {
 enum PayoutType {
   PROFIT_SHARE // bagi hasil
   CAPITAL_RETURN // tarik modal
+}
+
+enum LoanEntryType {
+  LENT // dipinjam dari kas
+  REPAID // dikembalikan ke kas
 }
 
 model Season {

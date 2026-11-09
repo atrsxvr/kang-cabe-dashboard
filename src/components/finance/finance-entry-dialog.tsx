@@ -134,8 +134,10 @@ export function FinanceEntryDialog({
             {editing ? "Edit Catatan" : "Catat Pemasukan / Pengeluaran"}
           </DialogTitle>
           <DialogDescription>
-            Buat uang yang nggak lewat gudang atau timbangan — upah, sewa,
-            transport. Penjualan panen nggak usah diketik lagi di sini.
+            Untuk uang yang tidak lewat gudang atau timbangan — upah, sewa,
+            transport. Penjualan panen tidak perlu diketik lagi di sini. Beli
+            bahan atau alat? Pakai Catat Belanja di Inventaris, supaya stoknya
+            ikut bertambah.
           </DialogDescription>
         </DialogHeader>
 
@@ -159,21 +161,34 @@ export function FinanceEntryDialog({
               </NativeSelect>
             </Field>
 
-            <Field id="entry-category" label="Kategori" error={errors.category}>
-              <NativeSelect
-                required
+            {/* Money in gets no category: the list is a list of costs, and
+                where the money came from is said in Keterangan below. */}
+            {type === "EXPENSE" ? (
+              <Field
                 id="entry-category"
-                name="category"
-                value={category}
-                onChange={(event) => setCategory(event.target.value)}
+                label="Kategori"
+                error={errors.category}
+                hint={
+                  category === "Benih"
+                    ? "Bibit yang langsung ditanam. Benih yang disimpan dulu di gudang dicatat lewat Catat Belanja."
+                    : undefined
+                }
               >
-                {expenseCategories.map((category) => (
-                  <option key={category} value={category}>
-                    {category}
-                  </option>
-                ))}
-              </NativeSelect>
-            </Field>
+                <NativeSelect
+                  required
+                  id="entry-category"
+                  name="category"
+                  value={category}
+                  onChange={(event) => setCategory(event.target.value)}
+                >
+                  {expenseCategories.map((category) => (
+                    <option key={category} value={category}>
+                      {category}
+                    </option>
+                  ))}
+                </NativeSelect>
+              </Field>
+            ) : null}
           </div>
 
           {/* Hired hands are paid per job once it is done, so a wage says
@@ -268,7 +283,7 @@ export function FinanceEntryDialog({
 
           <Field
             id="entry-description"
-            label="Keterangan"
+            label={type === "INCOME" ? "Uang dari mana?" : "Keterangan"}
             error={errors.description}
           >
             <Input
@@ -276,7 +291,11 @@ export function FinanceEntryDialog({
               name="description"
               required
               defaultValue={entry?.description ?? ""}
-              placeholder="Tulis keterangannya"
+              placeholder={
+                type === "INCOME"
+                  ? "Mis. jual bibit sisa, sewa traktor ke tetangga"
+                  : "Tulis keterangannya"
+              }
               aria-invalid={Boolean(errors.description)}
             />
           </Field>

@@ -1,9 +1,10 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { Archive, Package, Search, X } from "lucide-react";
+import { Archive, Package, Plus, Search, X } from "lucide-react";
 
 import { AdjustStockDialog } from "@/components/inventory/adjust-stock-dialog";
+import { PurchaseDialog } from "@/components/inventory/purchase-dialog";
 import {
   materialCategoryLabels,
   stockStatusLabels,
@@ -244,11 +245,7 @@ export function StockTable({
                             seasons={seasons}
                             currentSeasonId={currentSeasonId}
                           />
-                          <AdjustStockDialog
-                            material={row}
-                            members={members}
-                            direction="in"
-                          />
+                          <BuyButton material={row} />
                           <StockHistoryDialog material={row} compact />
                           <MaterialDialog material={row} compact />
                           <MaterialArchiveAction material={row} compact />
@@ -329,11 +326,7 @@ function StockCard({
               seasons={seasons}
               currentSeasonId={currentSeasonId}
             />
-            <AdjustStockDialog
-              material={row}
-              members={members}
-              direction="in"
-            />
+            <BuyButton material={row} />
             <StockHistoryDialog material={row} compact />
             <MaterialDialog material={row} compact />
             <MaterialArchiveAction material={row} compact />
@@ -380,5 +373,29 @@ function EmptyStock() {
         </div>
       </CardContent>
     </Card>
+  );
+}
+
+/**
+ * Stock goes up by being bought. The + opens the shopping-trip form with this
+ * material already chosen, so one purchase is recorded the same way as five —
+ * and lands in the kas the same way. A count that turned out higher than the
+ * books is an opname's job, not this button's.
+ */
+function BuyButton({ material }: { material: StockRow }) {
+  return (
+    <PurchaseDialog
+      preset={{ kind: "material", id: material.id }}
+      trigger={
+        <Button
+          variant="ghost"
+          size="icon"
+          className="size-8"
+          aria-label={`Belanja ${material.name}`}
+        >
+          <Plus className="size-4" aria-hidden />
+        </Button>
+      }
+    />
   );
 }

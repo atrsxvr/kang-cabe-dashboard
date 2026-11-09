@@ -19,6 +19,7 @@ export function TaskBoard({
   recipes,
   materials,
   canWriteTasks,
+  canDeleteTasks,
   canRecordUsage,
 }: {
   tasks: TaskRow[];
@@ -29,6 +30,8 @@ export function TaskBoard({
   materials: StockRow[];
   /** Boleh menyunting, menghapus, dan menggeser status tugas. */
   canWriteTasks: boolean;
+  /** Admin, and the season is not yet Selesai. */
+  canDeleteTasks: boolean;
   /** Boleh menekan "Catat pemakaian" — izin gudang, bukan izin tugas. */
   canRecordUsage: boolean;
 }) {
@@ -58,6 +61,7 @@ export function TaskBoard({
                   column.map((task) => (
                     <TaskCard
               canWriteTasks={canWriteTasks}
+              canDeleteTasks={canDeleteTasks}
               canRecordUsage={canRecordUsage}
                       key={task.id}
                       task={task}

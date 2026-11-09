@@ -4,6 +4,7 @@ import { PackageMinus, Sprout } from "lucide-react";
 
 import { CanWrite } from "@/components/auth/can-write";
 import { canWrite } from "@/lib/permissions";
+import { isSeasonClosed } from "@/lib/season-close";
 import { currentActor } from "@/server/auth/guard";
 import { PageHeader } from "@/components/common/page-header";
 import { StatusBadge } from "@/components/common/status-badge";
@@ -53,6 +54,8 @@ export default async function TasksPage(props: PageProps<"/tasks">) {
   const actor = await currentActor();
   const canWriteTasks = actor ? canWrite(actor.role, "tasks", actor.access) : false;
   const canRecordUsage = actor ? canWrite(actor.role, "usage", actor.access) : false;
+  // A closed season's report is signed; deleteTask refuses, so no button.
+  const canDeleteTasks = canWriteTasks && !isSeasonClosed(season.status);
 
   const currentHst = calculateHst(season.startDate);
 
@@ -132,6 +135,7 @@ export default async function TasksPage(props: PageProps<"/tasks">) {
         board={
           <TaskBoard
             canWriteTasks={canWriteTasks}
+            canDeleteTasks={canDeleteTasks}
             canRecordUsage={canRecordUsage}
             tasks={tasks}
             seasonId={season.id}
@@ -144,6 +148,7 @@ export default async function TasksPage(props: PageProps<"/tasks">) {
         table={
           <TaskTable
             canWriteTasks={canWriteTasks}
+            canDeleteTasks={canDeleteTasks}
             canRecordUsage={canRecordUsage}
             tasks={tasks}
             seasonId={season.id}

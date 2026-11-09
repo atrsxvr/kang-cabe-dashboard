@@ -25,7 +25,7 @@ export const navItems: NavItem[] = [
   { href: "/inventory", label: "Inventaris & Alat", icon: Package },
   { href: "/harvest", label: "Panen & Penjualan", icon: Wheat },
   { href: "/finance", label: "Keuangan & Kas", icon: Wallet },
-  { href: "/settings", label: "Settings & Users", icon: Settings },
+  { href: "/settings", label: "Pengaturan & Anggota", icon: Settings },
 ];
 
 export function isActive(pathname: string, href: string): boolean {

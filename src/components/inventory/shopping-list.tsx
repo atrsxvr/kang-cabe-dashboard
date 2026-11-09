@@ -11,7 +11,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 
-import { AdjustStockDialog } from "@/components/inventory/adjust-stock-dialog";
+import { PurchaseDialog } from "@/components/inventory/purchase-dialog";
 import {
   materialCategoryLabels,
   stockStatusLabels,
@@ -97,12 +97,15 @@ function asText(
 }
 
 export function ShoppingList({
+  canWrite,
   rows,
   replace,
   service,
   notes,
   members,
 }: {
+  /** Buying from the list records a purchase, which needs the shed's write access. */
+  canWrite: boolean;
   rows: StockRow[];
   replace: ToolRow[];
   service: ToolRow[];
@@ -227,20 +230,23 @@ export function ShoppingList({
                   {/* Closes the loop: buying is where stock should go back up,
                       and doing it here means it is not forgotten on the way
                       home. */}
-                  <div className="flex justify-start">
-                    <AdjustStockDialog
-                      material={row}
-                      members={members}
-                      direction="in"
-                      defaultAmount={suggestion.amount ?? undefined}
-                      trigger={
-                        <Button size="sm" variant="secondary">
-                          <Check className="size-4" aria-hidden />
-                          Sudah dibeli
-                        </Button>
-                      }
-                    />
-                  </div>
+                  {canWrite ? (
+                    <div className="flex justify-start">
+                      <PurchaseDialog
+                        preset={{
+                          kind: "material",
+                          id: row.id,
+                          amount: suggestion.amount ?? undefined,
+                        }}
+                        trigger={
+                          <Button size="sm" variant="secondary">
+                            <Check className="size-4" aria-hidden />
+                            Sudah dibeli
+                          </Button>
+                        }
+                      />
+                    </div>
+                  ) : null}
                 </CardContent>
               </Card>
             );
@@ -252,6 +258,7 @@ export function ShoppingList({
         <ToolSection
           title="Alat perlu diganti"
           tools={replace}
+          canBuy={canWrite}
           describe={(tool) =>
             tool.quantity === 0
               ? "tidak ada lagi"
@@ -286,10 +293,13 @@ function ToolSection({
   title,
   tools,
   describe,
+  canBuy = false,
 }: {
   title: string;
   tools: ToolRow[];
   describe: (tool: ToolRow) => string;
+  /** A replacement is bought; a service is paid for from the tool's own log. */
+  canBuy?: boolean;
 }) {
   return (
     <section className="grid gap-3">
@@ -305,6 +315,19 @@ function ToolSection({
             <span className="text-muted-foreground text-sm">
               — {describe(tool)}
             </span>
+            {canBuy ? (
+              <div className="ml-auto">
+                <PurchaseDialog
+                  preset={{ kind: "tool", id: tool.id }}
+                  trigger={
+                    <Button size="sm" variant="secondary">
+                      <Check className="size-4" aria-hidden />
+                      Sudah dibeli
+                    </Button>
+                  }
+                />
+              </div>
+            ) : null}
           </CardContent>
         </Card>
       ))}

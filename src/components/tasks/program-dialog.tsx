@@ -220,7 +220,7 @@ export function ProgramDialog({
 
           <fieldset className="grid gap-2">
             <legend className="mb-2 text-sm font-medium">
-              Penugas (opsional)
+              Dikerjakan oleh (opsional)
             </legend>
             <div className="grid gap-2 sm:grid-cols-2">
               {members.map((member) => (

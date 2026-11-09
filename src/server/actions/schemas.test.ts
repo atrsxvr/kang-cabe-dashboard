@@ -1,6 +1,9 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  INCOME_CATEGORY,
+  canArchiveSeason,
+  createFinanceEntrySchema,
   createMaterialSchema,
   createOpeningSchema,
   createPayoutSchema,
@@ -8,6 +11,8 @@ import {
   createTaskSchema,
   expenseCategories,
   nextSeasonStatus,
+  previousSeasonStatus,
+  recordPurchaseSchema,
   recordTaskUsageSchema,
   stockOpnameSchema,
   updateMaterialSchema,
@@ -378,5 +383,112 @@ describe("createOpeningSchema", () => {
       createOpeningSchema.safeParse({ amount: "0", countedAt: "2026-09-26" })
         .success
     ).toBe(false);
+  });
+});
+
+describe("recordPurchaseSchema", () => {
+  const base = { purchasedAt: "2026-11-01", actorId: "", note: "" };
+  const sack = { kind: "material", materialId: "m1", amount: 2, totalCost: 100000 };
+
+  it("menerima bahan dan alat, lama dan baru, dalam satu belanja", () => {
+    const parsed = recordPurchaseSchema.safeParse({
+      ...base,
+      items: [
+        sack,
+        {
+          kind: "material",
+          newMaterial: { name: "NPK 16-16-16", unit: "kg", category: "FERTILIZER", minStock: 0 },
+          amount: 5,
+          totalCost: null,
+        },
+        { kind: "tool", toolId: "t1", quantity: 1, totalCost: 75000 },
+        { kind: "tool", newTool: { name: "Cangkul" }, quantity: 2, totalCost: null },
+      ],
+    });
+    expect(parsed.success).toBe(true);
+  });
+
+  it("menolak belanja kosong", () => {
+    expect(recordPurchaseSchema.safeParse({ ...base, items: [] }).success).toBe(false);
+  });
+
+  it("menolak baris yang menyebut barang lama dan baru sekaligus, atau tidak keduanya", () => {
+    const both = {
+      ...sack,
+      newMaterial: { name: "NPK", unit: "kg", category: "FERTILIZER", minStock: 0 },
+    };
+    const neither = { kind: "material", amount: 1, totalCost: null };
+    expect(recordPurchaseSchema.safeParse({ ...base, items: [both] }).success).toBe(false);
+    expect(recordPurchaseSchema.safeParse({ ...base, items: [neither] }).success).toBe(false);
+  });
+
+  it("menolak barang yang sama dua kali, termasuk nama baru beda huruf besar", () => {
+    expect(recordPurchaseSchema.safeParse({ ...base, items: [sack, sack] }).success).toBe(false);
+    const fresh = (name: string) => ({
+      kind: "tool",
+      newTool: { name },
+      quantity: 1,
+      totalCost: null,
+    });
+    expect(
+      recordPurchaseSchema.safeParse({ ...base, items: [fresh("Cangkul"), fresh("cangkul")] })
+        .success
+    ).toBe(false);
+  });
+
+  it("menolak jumlah nol, alat pecahan, dan harga minus", () => {
+    const bad = [
+      { ...sack, amount: 0 },
+      { ...sack, totalCost: -1 },
+      { kind: "tool", toolId: "t1", quantity: 1.5, totalCost: null },
+    ];
+    for (const item of bad) {
+      expect(recordPurchaseSchema.safeParse({ ...base, items: [item] }).success).toBe(false);
+    }
+  });
+});
+
+describe("createFinanceEntrySchema", () => {
+  const base = {
+    seasonId: "s1",
+    amount: 50000,
+    description: "Jual bibit sisa",
+    date: "2026-11-01",
+  };
+
+  it("uang masuk tidak butuh kategori, dan selalu dicatat sebagai Pemasukan", () => {
+    const parsed = createFinanceEntrySchema.parse({ ...base, type: "INCOME", category: "Upah" });
+    expect(parsed.category).toBe(INCOME_CATEGORY);
+    expect(createFinanceEntrySchema.safeParse({ ...base, type: "INCOME" }).success).toBe(true);
+  });
+
+  it("uang keluar tetap harus memilih kategori dari daftar", () => {
+    expect(createFinanceEntrySchema.safeParse({ ...base, type: "EXPENSE" }).success).toBe(false);
+    expect(
+      createFinanceEntrySchema.safeParse({ ...base, type: "EXPENSE", category: "Peralatan" }).success
+    ).toBe(false);
+    expect(
+      createFinanceEntrySchema.parse({ ...base, type: "EXPENSE", category: "Sewa" }).category
+    ).toBe("Sewa");
+  });
+});
+
+describe("previousSeasonStatus", () => {
+  it("mundur satu langkah hanya dari dua tahap tengah", () => {
+    expect(previousSeasonStatus("ACTIVE")).toBe("PLANNING");
+    expect(previousSeasonStatus("HARVESTING")).toBe("ACTIVE");
+    for (const status of ["PLANNING", "COMPLETED", "ARCHIVED"] as const) {
+      expect(previousSeasonStatus(status)).toBeNull();
+    }
+  });
+});
+
+describe("canArchiveSeason", () => {
+  it("hanya musim yang selesai atau yang batal ditanam", () => {
+    expect(canArchiveSeason("COMPLETED")).toBe(true);
+    expect(canArchiveSeason("PLANNING")).toBe(true);
+    for (const status of ["ACTIVE", "HARVESTING", "ARCHIVED"] as const) {
+      expect(canArchiveSeason(status)).toBe(false);
+    }
   });
 });

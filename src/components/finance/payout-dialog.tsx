@@ -10,6 +10,7 @@ import { RupiahInput } from "@/components/common/rupiah-input";
 import { SubmitButton } from "@/components/common/submit-button";
 import { useSaveAndRefresh } from "@/components/common/use-save-and-refresh";
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   Dialog,
   DialogContent,
@@ -20,6 +21,7 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
+import { loanOffset } from "@/lib/loans";
 import { formatRupiah } from "@/lib/money";
 import { createPayout, updatePayout } from "@/server/actions/payouts";
 import type { PayoutRow } from "@/server/queries/cash";
@@ -47,11 +49,14 @@ export function PayoutDialog({
   seasons,
   payout,
   photoEnabled,
+  loanBalances,
 }: {
   members: MemberOption[];
   seasons: SeasonSummary[];
   payout?: PayoutRow;
   photoEnabled: boolean;
+  /** What each member still owes the kas, counting this payout's own cut. */
+  loanBalances: Record<string, number>;
 }) {
   const editing = Boolean(payout);
   const initialType: PayoutType = payout?.type ?? "PROFIT_SHARE";
@@ -59,6 +64,12 @@ export function PayoutDialog({
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [type, setType] = useState<PayoutType>(initialType);
   const [amount, setAmount] = useState(payout ? String(payout.amount) : "");
+  const initialUser = payout?.user.id ?? members[0]?.id ?? "";
+  const [userId, setUserId] = useState(initialUser);
+  // On by default: the owners' rule is that an unpaid loan comes out of the
+  // share. Editing keeps whatever was chosen when it was recorded.
+  const initialOffset = payout ? Boolean(payout.loanOffset) : true;
+  const [offsetLoan, setOffsetLoan] = useState(initialOffset);
   const [proof, setProof] = useState<File | null>(null);
   const [keepProof, setKeepProof] = useState(Boolean(payout?.proofUrl));
   const inputRef = useRef<HTMLInputElement>(null);
@@ -68,6 +79,8 @@ export function PayoutDialog({
     setErrors({});
     setType(initialType);
     setAmount(payout ? String(payout.amount) : "");
+    setUserId(initialUser);
+    setOffsetLoan(initialOffset);
     setProof(null);
     setKeepProof(Boolean(payout?.proofUrl));
     if (inputRef.current) inputRef.current.value = "";
@@ -98,6 +111,14 @@ export function PayoutDialog({
   const parsed = Number(amount.replace(/[^0-9]/g, ""));
   const needsSeason = type === "PROFIT_SHARE";
 
+  // The balance shown counts this payout's own cut as still owed, so editing
+  // it recomputes the cut from scratch — the same thing the server does.
+  const owed =
+    (loanBalances[userId] ?? 0) +
+    (payout?.loanOffset && payout.user.id === userId ? payout.loanOffset.amount : 0);
+  const canOffset = needsSeason && owed > 0;
+  const cut = canOffset && offsetLoan ? loanOffset(owed, parsed) : 0;
+
   return (
     <Dialog
       open={open}
@@ -119,7 +140,7 @@ export function PayoutDialog({
         ) : (
           <Button size="sm">
             <HandCoins className="size-4" aria-hidden />
-            Catat Uang Keluar
+            Bayar ke Anggota
           </Button>
         )}
       </DialogTrigger>
@@ -127,11 +148,11 @@ export function PayoutDialog({
       <DialogContent className="max-h-[90dvh] overflow-y-auto sm:max-w-lg">
         <DialogHeader>
           <DialogTitle>
-            {editing ? "Edit Uang Keluar ke Anggota" : "Catat Uang Keluar ke Anggota"}
+            {editing ? "Edit Pembayaran ke Anggota" : "Bayar ke Anggota"}
           </DialogTitle>
           <DialogDescription>
-            Uang dari kas yang dibayarkan ke anggota. Tanpa dicatat, saldo kas
-            tetap menganggap uangnya masih ada.
+            Bagi hasil atau modal yang ditarik. Untuk anggota yang meminjam uang
+            kas, pakai Catat Pinjaman di bagian Pinjaman Anggota.
           </DialogDescription>
         </DialogHeader>
 
@@ -159,7 +180,8 @@ export function PayoutDialog({
               required
               id="payout-user"
               name="userId"
-              defaultValue={payout?.user.id ?? members[0]?.id ?? ""}
+              value={userId}
+              onChange={(event) => setUserId(event.target.value)}
             >
               {members.map((member) => (
                 <option key={member.id} value={member.id}>
@@ -197,6 +219,28 @@ export function PayoutDialog({
               />
             </Field>
           </div>
+
+          {canOffset ? (
+            <div className="grid gap-1.5 rounded-md border border-amber-300 bg-amber-50 px-3 py-2 text-sm text-amber-900 dark:border-amber-900/60 dark:bg-amber-950/40 dark:text-amber-200">
+              <label className="flex items-center gap-2">
+                <Checkbox
+                  name="offsetLoan"
+                  checked={offsetLoan}
+                  onCheckedChange={(checked) => setOffsetLoan(checked === true)}
+                />
+                <span>
+                  Potong pinjaman (sisa {formatRupiah(owed)})
+                </span>
+              </label>
+              {cut > 0 ? (
+                <p className="text-xs tabular-nums">
+                  Dipotong {formatRupiah(cut)} · diserahkan{" "}
+                  <span className="font-semibold">{formatRupiah(parsed - cut)}</span>
+                  {owed > cut ? ` · sisa pinjaman ${formatRupiah(owed - cut)}` : " · pinjaman lunas"}
+                </p>
+              ) : null}
+            </div>
+          ) : null}
 
           <Field
             id="payout-season"

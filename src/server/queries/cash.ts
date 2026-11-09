@@ -2,6 +2,7 @@ import "server-only";
 
 import { summariseCash, type CashEntry, type CashTotals } from "@/lib/cash";
 import { lineTotal } from "@/lib/harvest";
+import { outstandingByMember } from "@/lib/loans";
 import { roundUpToCash } from "@/lib/money";
 import { prisma } from "@/lib/prisma";
 
@@ -39,6 +40,7 @@ export async function cashReport(): Promise<CashReport> {
     unpricedPurchases,
     toolEvents,
     payouts,
+    loans,
   ] = await Promise.all([
     prisma.cashOpening.findMany({
       select: { id: true, amount: true, countedAt: true, note: true },
@@ -106,6 +108,17 @@ export async function cashReport(): Promise<CashReport> {
         note: true,
         user: { select: { name: true } },
         season: { select: { name: true } },
+      },
+    }),
+    prisma.memberLoan.findMany({
+      select: {
+        id: true,
+        type: true,
+        amount: true,
+        date: true,
+        note: true,
+        payoutId: true,
+        user: { select: { name: true } },
       },
     }),
   ]);
@@ -206,6 +219,17 @@ export async function cashReport(): Promise<CashReport> {
     });
   }
 
+  for (const row of loans) {
+    entries.push({
+      id: `loan:${row.id}`,
+      date: row.date,
+      source: row.type === "LENT" ? "LOAN_OUT" : "LOAN_REPAID",
+      amount: row.amount,
+      label: row.user.name,
+      detail: row.payoutId ? "dipotong dari bagi hasil" : row.note,
+    });
+  }
+
   return {
     ...summariseCash(entries),
     unpricedPurchases,
@@ -223,6 +247,8 @@ export type PayoutRow = {
   proofUrl: string | null;
   user: { id: string; name: string };
   season: { id: string; name: string } | null;
+  /** The loan repayment cut from this profit share, if any. */
+  loanOffset: { amount: number } | null;
 };
 
 export async function listPayouts(): Promise<PayoutRow[]> {
@@ -237,6 +263,7 @@ export async function listPayouts(): Promise<PayoutRow[]> {
       proofUrl: true,
       user: { select: { id: true, name: true } },
       season: { select: { id: true, name: true } },
+      loanOffset: { select: { amount: true } },
     },
   });
 }
@@ -253,4 +280,81 @@ export async function listOpenings(): Promise<OpeningRow[]> {
     orderBy: [{ countedAt: "desc" }, { createdAt: "desc" }],
     select: { id: true, amount: true, countedAt: true, note: true },
   });
+}
+
+export type LoanEntryRow = {
+  id: string;
+  type: "LENT" | "REPAID";
+  amount: number;
+  date: Date;
+  note: string | null;
+  /** Set when the repayment was cut from a profit share; deleted with it. */
+  payoutId: string | null;
+  user: { id: string; name: string };
+};
+
+export type LoanReport = {
+  /** Newest first. */
+  entries: LoanEntryRow[];
+  /** What each member still owes the kas, only those who owe anything. */
+  outstanding: { user: { id: string; name: string }; amount: number }[];
+  /** Same figures by user id, for the forms. */
+  balances: Record<string, number>;
+};
+
+/** Uang kas yang dipinjam anggota, dan sisa yang belum kembali. Lintas musim. */
+export async function loanReport(): Promise<LoanReport> {
+  const entries = await prisma.memberLoan.findMany({
+    orderBy: [{ date: "desc" }, { createdAt: "desc" }],
+    select: {
+      id: true,
+      type: true,
+      amount: true,
+      date: true,
+      note: true,
+      payoutId: true,
+      user: { select: { id: true, name: true } },
+    },
+  });
+
+  const balances = outstandingByMember(
+    entries.map((entry) => ({
+      userId: entry.user.id,
+      type: entry.type,
+      amount: entry.amount,
+    }))
+  );
+  const names = new Map(entries.map((entry) => [entry.user.id, entry.user]));
+
+  return {
+    entries,
+    outstanding: [...balances]
+      .map(([userId, amount]) => ({ user: names.get(userId)!, amount }))
+      .sort((a, b) => b.amount - a.amount),
+    balances: Object.fromEntries(balances),
+  };
+}
+
+/**
+ * What one member still owes the kas, leaving out the repayment cut from
+ * `excludePayoutId` — the share being edited, whose cut is about to be
+ * recomputed.
+ */
+export async function loanOutstanding(
+  userId: string,
+  excludePayoutId?: string
+): Promise<number> {
+  const rows = await prisma.memberLoan.groupBy({
+    by: ["type"],
+    where: {
+      userId,
+      ...(excludePayoutId
+        ? { OR: [{ payoutId: null }, { payoutId: { not: excludePayoutId } }] }
+        : {}),
+    },
+    _sum: { amount: true },
+  });
+  const sum = (type: "LENT" | "REPAID") =>
+    rows.find((row) => row.type === type)?._sum.amount ?? 0;
+  return sum("LENT") - sum("REPAID");
 }
