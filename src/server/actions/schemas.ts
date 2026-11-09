@@ -130,6 +130,9 @@ export const createTaskSchema = z.object({
   assigneeIds: z.array(z.string().min(1)).default([]),
   recipeId: z.string().optional().or(z.literal("")),
   recipeVolumeL: z.coerce.number().positive().max(10_000).optional(),
+  /// The finding this task treats, when scheduled from one. Set on creation
+  /// only; an edit never moves a task to another finding.
+  findingId: z.string().optional().or(z.literal("")),
   /// Snapshot of the recipe's amounts, serialised by the form.
   materials: z
     .array(
@@ -508,7 +511,9 @@ export const updateSeasonSchema = createSeasonSchema
   .omit({ status: true })
   .extend({ seasonId: z.string().min(1) });
 
-export const updateTaskSchema = createTaskSchema.extend({
+// Without findingId: set when a task is scheduled from a finding, and an edit
+// never moves it to another one.
+export const updateTaskSchema = createTaskSchema.omit({ findingId: true }).extend({
   taskId: z.string().min(1),
 });
 

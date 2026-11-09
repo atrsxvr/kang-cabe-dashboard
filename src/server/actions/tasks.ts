@@ -47,6 +47,7 @@ export async function createTask(formData: FormData): Promise<ActionResult> {
     assigneeIds: formData.getAll("assigneeIds").map(String),
     recipeId: formData.get("recipeId") ?? "",
     recipeVolumeL: formData.get("recipeVolumeL") || undefined,
+    findingId: formData.get("findingId") ?? "",
     materials: parseMaterials(formData.get("materials")),
   });
 
@@ -62,6 +63,7 @@ export async function createTask(formData: FormData): Promise<ActionResult> {
     recipeId,
     recipeVolumeL,
     materials,
+    findingId,
     ...rest
   } = parsed.data;
 
@@ -74,6 +76,15 @@ export async function createTask(formData: FormData): Promise<ActionResult> {
 
   if (!season) return { ok: false, message: "Musim tidak ditemukan." };
 
+  // Same season, or the link would tie a task to a finding no page shows it
+  // beside.
+  if (findingId) {
+    const finding = await prisma.healthLog.count({
+      where: { id: findingId, seasonId },
+    });
+    if (!finding) return { ok: false, message: "Temuan tidak ditemukan pada musim ini." };
+  }
+
   const task = await prisma.task.create({
     data: {
       ...rest,
@@ -84,6 +95,7 @@ export async function createTask(formData: FormData): Promise<ActionResult> {
       completedAt: status === "DONE" ? new Date() : null,
       recipeId: recipeId ? recipeId : null,
       recipeVolumeL: recipeId ? (recipeVolumeL ?? null) : null,
+      findingId: findingId ? findingId : null,
       assignees: {
         create: assigneeIds.map((userId) => ({ userId })),
       },
@@ -93,8 +105,10 @@ export async function createTask(formData: FormData): Promise<ActionResult> {
   });
 
   if (status !== "DONE") announceIfSoon(task.id);
+  else await markFindingTreated(task.id);
 
   revalidatePath("/tasks");
+  if (findingId) revalidatePath("/health");
   return { ok: true, taskId: task.id };
 }
 
@@ -128,8 +142,24 @@ export async function updateTaskStatus(
     return { ok: false, message: "Tugas tidak ditemukan pada musim ini." };
   }
 
+  if (status === "DONE") await markFindingTreated(taskId);
+
   revalidatePath("/tasks");
   return { ok: true };
+}
+
+/**
+ * A finding waiting on treatment is treated once a task scheduled from it is
+ * done. Forward only, and only from "Menunggu penanganan": a finding already
+ * marked resolved stays resolved, and reopening the task does not unsay that
+ * the spraying happened.
+ */
+async function markFindingTreated(taskId: string) {
+  const result = await prisma.healthLog.updateMany({
+    where: { status: "DIAGNOSED", tasks: { some: { id: taskId } } },
+    data: { status: "TREATED" },
+  });
+  if (result.count > 0) revalidatePath("/health");
 }
 
 export async function deleteTask(formData: FormData): Promise<ActionResult> {
@@ -314,6 +344,8 @@ export async function updateTask(formData: FormData): Promise<ActionResult> {
           }),
         ]),
   ]);
+
+  if (status === "DONE" && existing.status !== "DONE") await markFindingTreated(taskId);
 
   // Moved onto today or tomorrow: the same reminder a new task would get.
   if (status !== "DONE" && rest.dueDate.getTime() !== existing.dueDate.getTime()) {

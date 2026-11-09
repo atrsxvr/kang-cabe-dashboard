@@ -1,7 +1,11 @@
 import "server-only";
 
 import { prisma } from "@/lib/prisma";
-import type { FindingStatus, Severity } from "@/generated/prisma/client";
+import type {
+  FindingStatus,
+  Severity,
+  TaskStatus,
+} from "@/generated/prisma/client";
 
 // Re-exported so components can name these without reaching into the generated
 // client, which ESLint blocks outside src/server.
@@ -24,6 +28,8 @@ export type FindingRow = {
   createdAt: Date;
   reportedBy: { id: string; name: string } | null;
   diagnosedBy: { id: string; name: string } | null;
+  /** Treatment tasks scheduled from this finding, oldest first. */
+  tasks: { id: string; title: string; dueDate: Date; status: TaskStatus }[];
 };
 
 const findingSelect = {
@@ -41,6 +47,10 @@ const findingSelect = {
   createdAt: true,
   reportedBy: { select: { id: true, name: true } },
   diagnosedBy: { select: { id: true, name: true } },
+  tasks: {
+    orderBy: { dueDate: "asc" },
+    select: { id: true, title: true, dueDate: true, status: true },
+  },
 } as const;
 
 export async function listFindingsBySeason(

@@ -241,7 +241,6 @@ export function StockTable({
                           <AdjustStockDialog
                             material={row}
                             members={members}
-                            direction="out"
                             seasons={seasons}
                             currentSeasonId={currentSeasonId}
                           />
@@ -322,7 +321,6 @@ function StockCard({
             <AdjustStockDialog
               material={row}
               members={members}
-              direction="out"
               seasons={seasons}
               currentSeasonId={currentSeasonId}
             />

@@ -496,8 +496,13 @@ model Task {
   /// pencatatan idempoten: tugas selesai yang belum tercatat masih bisa
   /// ditagih lewat tombol, dan yang sudah tidak bisa dipotong dua kali.
   usageRecordedAt DateTime?
+  /// Temuan yang ditangani tugas ini, kalau dijadwalkan dari sana. Saat tugas
+  /// selesai, temuannya ikut menjadi "Sudah ditangani". SetNull: menghapus
+  /// temuan tidak boleh menghapus pekerjaan yang sudah dijadwalkan.
+  findingId       String?
 
   season        Season               @relation(fields: [seasonId], references: [id], onDelete: Cascade)
+  finding       HealthLog?           @relation(fields: [findingId], references: [id], onDelete: SetNull)
   assignees     TaskAssignee[]
   // SetNull: menghapus racikan tidak boleh merusak tugas yang terlanjur
   // memakainya — salinan takarannya tetap utuh.
@@ -510,6 +515,7 @@ model Task {
   @@index([status, dueDate]) // Papan tugas: filter status, urut jatuh tempo
   @@index([seasonId, completedAt]) // Logbook: riwayat selesai per musim
   @@index([recipeId])
+  @@index([findingId])
 }
 
 /// Takaran yang disalin ke tugas saat dibuat dari racikan.
@@ -575,6 +581,8 @@ model HealthLog {
   reportedBy  User?        @relation("ReportedFindings", fields: [reportedById], references: [id], onDelete: Restrict)
   diagnosedBy User?        @relation("DiagnosedFindings", fields: [diagnosedById], references: [id], onDelete: Restrict)
   plantEvents PlantEvent[]
+  /// Tugas penanganan yang dijadwalkan dari temuan ini.
+  tasks       Task[]
 
   @@index([seasonId])
   @@index([seasonId, status]) // Antrean temuan per tahap

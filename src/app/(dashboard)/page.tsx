@@ -17,6 +17,7 @@ import { StockCapacityCard } from "@/components/dashboard/stock-capacity-card";
 import { TodayCard } from "@/components/dashboard/today-card";
 import { WeatherCard } from "@/components/dashboard/weather-card";
 import { canWrite } from "@/lib/permissions";
+import { isSeasonClosed } from "@/lib/season-close";
 import { currentActor } from "@/server/auth/guard";
 import { countWeekTasks, overview } from "@/server/queries/dashboard";
 import { seasonMaterialCost } from "@/server/queries/finance";
@@ -133,6 +134,12 @@ export default async function DashboardPage(props: PageProps<"/">) {
           overdue={board.overdue}
           seasonId={season.id}
           canRecordUsage={actor ? canWrite(actor.role, "usage", actor.access) : false}
+          canPostpone={
+            actor
+              ? canWrite(actor.role, "tasks", actor.access) &&
+                !isSeasonClosed(season.status)
+              : false
+          }
         />
 
         <AttentionCard
