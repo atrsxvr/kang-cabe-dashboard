@@ -2,6 +2,7 @@ import Link from "next/link";
 import { CalendarCheck, CheckCircle2 } from "lucide-react";
 
 import { StatusBadge } from "@/components/common/status-badge";
+import { TaskPostpone } from "@/components/tasks/task-postpone";
 import { TaskStatusButtons } from "@/components/tasks/task-status-buttons";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -22,12 +23,19 @@ export function TodayCard({
   overdue,
   seasonId,
   canRecordUsage,
+  canPostpone,
 }: {
   dueToday: DueTask[];
   overdue: DueTask[];
   seasonId: string;
   /** Boleh "Catat pemakaian" — yang diajak setelah menandai Selesai. */
   canRecordUsage: boolean;
+  /**
+   * Boleh menunda: izin tugas, dan musimnya belum Selesai. Everything listed
+   * here is due today or late — exactly what Tunda is for, on the page
+   * opened first thing in the morning.
+   */
+  canPostpone: boolean;
 }) {
   const rows = [...overdue, ...dueToday];
 
@@ -81,6 +89,15 @@ export function TodayCard({
                 </div>
 
                 <StatusBadge status={task.status} kind="task" />
+
+                {canPostpone ? (
+                  <TaskPostpone
+                    taskId={task.id}
+                    seasonId={seasonId}
+                    title={task.title}
+                    dueDate={task.dueDate}
+                  />
+                ) : null}
 
                 <TaskStatusButtons
                   taskId={task.id}

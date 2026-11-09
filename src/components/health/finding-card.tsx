@@ -1,4 +1,10 @@
-import { CalendarPlus, ImageIcon, MapPin, User as UserIcon } from "lucide-react";
+import {
+  CalendarCheck,
+  CalendarPlus,
+  ImageIcon,
+  MapPin,
+  User as UserIcon,
+} from "lucide-react";
 
 import { ConfirmDelete } from "@/components/common/confirm-delete";
 import { canManageFinding, canWrite, type AccessMatrix, type Role } from "@/lib/permissions";
@@ -144,6 +150,31 @@ export function FindingCard({
             </div>
           ) : null}
 
+          {/* What was scheduled from this finding. Done here is what turned it
+              into "Sudah ditangani". */}
+          {finding.tasks.length > 0 ? (
+            <ul className="mt-3 grid gap-1 text-xs" aria-label="Tugas penanganan">
+              {finding.tasks.map((task) => (
+                <li key={task.id} className="flex flex-wrap items-center gap-1.5">
+                  <CalendarCheck
+                    className={cn(
+                      "size-3.5 shrink-0",
+                      task.status === "DONE"
+                        ? "text-emerald-600 dark:text-emerald-400"
+                        : "text-muted-foreground",
+                    )}
+                    aria-hidden
+                  />
+                  <span className="min-w-0 break-words">{task.title}</span>
+                  <span className="text-muted-foreground">
+                    · {formatDate(task.dueDate)} ·{" "}
+                    {task.status === "DONE" ? "selesai" : "belum dikerjakan"}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          ) : null}
+
           <div className="mt-3 flex flex-wrap items-center gap-2">
             {curates && finding.status !== "RESOLVED" ? (
               <DiagnoseDialog
@@ -161,6 +192,7 @@ export function FindingCard({
                 recipes={scheduling.recipes}
                 materials={scheduling.materials}
                 draft={{
+                  findingId: finding.id,
                   title: `Penanganan: ${finding.diagnosis}`.slice(0, 200),
                   description: [
                     finding.treatment ?? "",
@@ -173,7 +205,7 @@ export function FindingCard({
                 trigger={
                   <Button size="sm" variant="secondary">
                     <CalendarPlus className="size-4" aria-hidden />
-                    Jadwalkan penanganan
+                    {finding.tasks.length > 0 ? "Jadwalkan lagi" : "Jadwalkan penanganan"}
                   </Button>
                 }
               />

@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 
 import { amountForVolume } from "@/lib/dose";
 import { prisma } from "@/lib/prisma";
+import { programTaskTitle, uncoveredSlots } from "@/lib/program";
 import { invalidForm, type ActionResult } from "@/server/actions/result";
 import { guardWrite } from "@/server/auth/guard";
 import { scheduleProgramSchema } from "@/server/actions/schemas";
@@ -62,23 +63,25 @@ export async function scheduleProgram(
   if (!season) return { ok: false, message: "Musim tidak ditemukan." };
   if (!recipe) return { ok: false, message: "Racikan tidak ditemukan." };
 
-  // Which HSTs this recipe already covers, so running the same program twice
-  // extends it rather than doubling it.
+  // Which slots this recipe already covers, so running the same program twice
+  // extends it rather than doubling it — including tasks Tunda has moved.
   const existing = await prisma.task.findMany({
     where: { seasonId, recipeId },
-    select: { hst: true },
+    select: { hst: true, title: true },
   });
-  const taken = new Set(existing.map((task) => task.hst));
 
   const materials = recipe.items.map((item) => ({
     materialId: item.material.id,
     amount: amountForVolume(item, volumeL),
   }));
 
-  const planned: number[] = [];
-  for (let hst = fromHst; hst <= toHst; hst += intervalDays) {
-    if (!taken.has(hst)) planned.push(hst);
-  }
+  const planned = uncoveredSlots({
+    fromHst,
+    toHst,
+    intervalDays,
+    recipeName: recipe.name,
+    existing,
+  });
 
   if (planned.length === 0) {
     return {
@@ -95,7 +98,7 @@ export async function scheduleProgram(
       return prisma.task.create({
         data: {
           seasonId,
-          title: `${recipe.name} · HST ${hst}`,
+          title: programTaskTitle(recipe.name, hst),
           description: `${recipe.name}, ${volumeL} liter.\n${recipe.items
             .map(
               (item) =>

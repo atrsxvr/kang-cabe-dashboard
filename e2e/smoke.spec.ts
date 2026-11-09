@@ -107,6 +107,54 @@ test.describe("layar 360px", () => {
   });
 
   /**
+   * The forms with the most on one screen: a shopping trip with a list,
+   * segmented choices and a price field, and the loan and payout dialogs.
+   * Something spilling past a dialog's edge is clipped, not scrollable — the
+   * page-level check cannot see it.
+   */
+  test("form belanja dan pinjaman muat di layar", async ({ page }) => {
+    const spills = () =>
+      page.evaluate(() => {
+        const dialog = document.querySelector<HTMLElement>('[role="dialog"]');
+        if (!dialog) return ["dialog tidak terbuka"];
+        const box = dialog.getBoundingClientRect();
+        const out: string[] = [];
+        if (box.right > window.innerWidth + 1) out.push("dialognya keluar layar");
+        dialog.querySelectorAll<HTMLElement>("*").forEach((el) => {
+          const rect = el.getBoundingClientRect();
+          if (rect.width === 0 || el.closest(".sr-only")) return;
+          if (rect.right > box.right + 1 || rect.left < box.left - 1) {
+            out.push(`${el.tagName.toLowerCase()} "${(el.textContent ?? "").trim().slice(0, 30)}"`);
+          }
+        });
+        return [...new Set(out)].slice(0, 5);
+      });
+
+    await page.goto("/inventory");
+    await page.getByRole("button", { name: "Catat Belanja" }).click();
+    const buy = page.getByRole("dialog");
+    await buy.getByRole("button", { name: "Baru", exact: true }).click();
+    await buy.getByLabel("Nama bahan baru", { exact: true }).fill("E2E Pupuk dengan nama yang cukup panjang sekali");
+    await buy.getByLabel(/^Jumlah/).fill("2");
+    await buy.getByRole("button", { name: "Tambahkan ke daftar" }).click();
+    await buy.getByRole("button", { name: "Alat", exact: true }).click();
+    expect(await spills(), "Catat Belanja").toEqual([]);
+    await buy.getByRole("button", { name: "Batal" }).click();
+
+    await page.goto("/finance");
+    await page.getByRole("tab", { name: "Kas" }).click();
+    expect(
+      await page.evaluate(() => document.documentElement.scrollWidth > window.innerWidth + 1),
+      "tab Kas melebar"
+    ).toBe(false);
+    for (const name of ["Catat Pinjaman", "Bayar ke Anggota"]) {
+      await page.getByRole("button", { name }).click();
+      expect(await spills(), name).toEqual([]);
+      await page.getByRole("dialog").getByRole("button", { name: "Batal" }).click();
+    }
+  });
+
+  /**
    * Icon-only buttons sit shoulder to shoulder with ones that archive a row.
    * A 24px target with two pixels of clearance is a mis-tap, and this is an
    * app used one-handed in a garden.

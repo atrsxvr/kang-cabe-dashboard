@@ -56,7 +56,7 @@ export function TaskDialog({
   materials: StockRow[];
   task?: TaskRow;
   /** A new task already worded — a finding's treatment, scheduled. */
-  draft?: { title: string; description: string };
+  draft?: { title: string; description: string; findingId?: string };
   trigger?: React.ReactNode;
 }) {
   const editing = Boolean(task);
@@ -199,6 +199,9 @@ export function TaskDialog({
           <input type="hidden" name="seasonId" value={seasonId} />
           {editing ? (
             <input type="hidden" name="taskId" value={task!.id} />
+          ) : null}
+          {!editing && draft?.findingId ? (
+            <input type="hidden" name="findingId" value={draft.findingId} />
           ) : null}
 
           <Field id="title" label="Judul Tugas" error={errors.title}>
