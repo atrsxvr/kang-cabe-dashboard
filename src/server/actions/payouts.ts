@@ -3,12 +3,32 @@
 import { revalidatePath } from "next/cache";
 
 import { netCapital } from "@/lib/cash";
+import { loanOffset } from "@/lib/loans";
 import { formatRupiah } from "@/lib/money";
 import { prisma } from "@/lib/prisma";
 import { invalidForm, type ActionResult } from "@/server/actions/result";
 import { createPayoutSchema, updatePayoutSchema } from "@/server/actions/schemas";
 import { guardWrite } from "@/server/auth/guard";
 import { deletePhoto, uploadPhoto } from "@/server/storage";
+import { loanOutstanding } from "@/server/queries/cash";
+
+/**
+ * How much of a profit share goes to pay off the member's loan.
+ *
+ * Only a profit share, and only when the form asked for it — the owners'
+ * rule is that an unpaid loan comes out of the member's share. A capital
+ * return is the member's own money coming back, not a share to cut.
+ */
+async function offsetFor(
+  formData: FormData,
+  type: string,
+  userId: string,
+  amount: number,
+  excludePayoutId?: string
+): Promise<number> {
+  if (type !== "PROFIT_SHARE" || formData.get("offsetLoan") !== "on") return 0;
+  return loanOffset(await loanOutstanding(userId, excludePayoutId), amount);
+}
 
 /**
  * Uang yang keluar dari kas ke tangan anggota: bagi hasil dan tarik modal.
@@ -116,6 +136,10 @@ export async function createPayout(formData: FormData): Promise<ActionResult> {
     proofUrl = uploaded.url;
   }
 
+  const offset = await offsetFor(formData, type, userId, amount);
+
+  // The share is recorded in full, and the cut as a repayment beside it: the
+  // kas loses only what was handed over, and the loan is paid by the rest.
   await prisma.memberPayout.create({
     data: {
       userId,
@@ -125,6 +149,13 @@ export async function createPayout(formData: FormData): Promise<ActionResult> {
       seasonId: seasonId ? seasonId : null,
       note: note ? note : null,
       proofUrl,
+      ...(offset > 0
+        ? {
+            loanOffset: {
+              create: { userId, type: "REPAID", amount: offset, date: paidAt },
+            },
+          }
+        : {}),
     },
   });
 
@@ -191,18 +222,37 @@ export async function updatePayout(formData: FormData): Promise<ActionResult> {
     nextProof = null;
   }
 
-  await prisma.memberPayout.update({
-    where: { id: payoutId },
-    data: {
-      userId,
-      type,
-      amount,
-      paidAt,
-      seasonId: seasonId ? seasonId : null,
-      note: note ? note : null,
-      proofUrl: nextProof,
-    },
-  });
+  const offset = await offsetFor(formData, type, userId, amount, payoutId);
+
+  // The cut is recomputed whole: amount, member or type may all have changed.
+  await prisma.$transaction([
+    prisma.memberLoan.deleteMany({ where: { payoutId } }),
+    prisma.memberPayout.update({
+      where: { id: payoutId },
+      data: {
+        userId,
+        type,
+        amount,
+        paidAt,
+        seasonId: seasonId ? seasonId : null,
+        note: note ? note : null,
+        proofUrl: nextProof,
+      },
+    }),
+    ...(offset > 0
+      ? [
+          prisma.memberLoan.create({
+            data: {
+              userId,
+              type: "REPAID",
+              amount: offset,
+              date: paidAt,
+              payoutId,
+            },
+          }),
+        ]
+      : []),
+  ]);
 
   revalidate();
   return { ok: true };

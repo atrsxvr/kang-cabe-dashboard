@@ -10,7 +10,7 @@ test("layar pembuka tampil saat aplikasi dibuka, lalu pergi sendiri", async ({ p
   // In the first HTML, before any JavaScript has run.
   await expect(page.locator(".app-splash")).toHaveCount(1);
   await expect(page.locator(".app-splash")).toHaveCount(0);
-  await expect(page.getByRole("heading", { name: "Settings & Users" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Pengaturan & Anggota" })).toBeVisible();
 });
 
 test("bar tipis berjalan selama perpindahan halaman, lalu hilang", async ({ page }) => {

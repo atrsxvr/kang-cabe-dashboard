@@ -4,12 +4,16 @@ import { revalidatePath } from "next/cache";
 import { after } from "next/server";
 
 import { prisma } from "@/lib/prisma";
+import { calculateHst, startOfDayInJakarta } from "@/lib/hst";
+import { isSeasonClosed } from "@/lib/season-close";
 import { invalidForm, type ActionResult } from "@/server/actions/result";
 import { guardWrite } from "@/server/auth/guard";
 import { notifyScheduledTask } from "@/server/notifications";
 import { revalidateSeasonMoney } from "@/server/actions/revalidate";
+import { refreshAvgCost } from "@/server/actions/avg-cost";
 import {
   createTaskSchema,
+  postponeTaskSchema,
   recordTaskUsageSchema,
   updateTaskSchema,
   updateTaskStatusSchema,
@@ -38,7 +42,6 @@ export async function createTask(formData: FormData): Promise<ActionResult> {
     seasonId: formData.get("seasonId"),
     title: formData.get("title"),
     description: formData.get("description") ?? "",
-    hst: formData.get("hst") === "" ? undefined : formData.get("hst"),
     dueDate: formData.get("dueDate"),
     status: formData.get("status"),
     assigneeIds: formData.getAll("assigneeIds").map(String),
@@ -66,7 +69,7 @@ export async function createTask(formData: FormData): Promise<ActionResult> {
   // create orphan rows that no page ever lists.
   const season = await prisma.season.findUnique({
     where: { id: seasonId },
-    select: { id: true },
+    select: { id: true, startDate: true },
   });
 
   if (!season) return { ok: false, message: "Musim tidak ditemukan." };
@@ -74,6 +77,7 @@ export async function createTask(formData: FormData): Promise<ActionResult> {
   const task = await prisma.task.create({
     data: {
       ...rest,
+      hst: calculateHst(season.startDate, rest.dueDate),
       seasonId,
       status,
       description: description ? description : null,
@@ -139,16 +143,91 @@ export async function deleteTask(formData: FormData): Promise<ActionResult> {
     return { ok: false, message: "Permintaan tidak valid." };
   }
 
-  const result = await prisma.task.deleteMany({
+  const task = await prisma.task.findFirst({
     where: { id: taskId, seasonId },
+    select: {
+      title: true,
+      usageRecordedAt: true,
+      season: { select: { status: true } },
+      materials: {
+        select: { materialId: true, amount: true, totalCost: true },
+      },
+    },
   });
 
-  if (result.count === 0) {
+  if (!task) {
     return { ok: false, message: "Tugas tidak ditemukan pada musim ini." };
+  }
+
+  // A closed season's report has been signed and its margin split. Deleting a
+  // task would take its materials' cost back out of that report.
+  if (isSeasonClosed(task.season.status)) {
+    return {
+      ok: false,
+      message: "Musim ini sudah Selesai. Tugasnya tidak bisa dihapus lagi.",
+    };
+  }
+
+  // A task whose usage was recorded took real stock out of the shed. Deleting
+  // it cascades its TaskMaterial rows — the only place that usage was charged
+  // to the season — so leaving the stock down would make the material vanish
+  // from the shed without landing on any report. Put it back.
+  //
+  // Appended as a CORRECTION, not by deleting the USAGE rows: the log says
+  // what happened, and it did happen — then it was undone. Priced at the cost
+  // frozen on the task, so the shed's value returns to exactly what left it.
+  // CORRECTION is not cash (only PURCHASE is), so the kas is untouched.
+  const returned = task.usageRecordedAt ? task.materials : [];
+
+  try {
+    await prisma.$transaction([
+      // `delete`, not `deleteMany`: if another tab got here first this throws
+      // and the stock below is never returned twice.
+      prisma.task.delete({ where: { id: taskId, seasonId } }),
+      ...returned.flatMap((item) => [
+        prisma.material.update({
+          where: { id: item.materialId },
+          data: { stock: { increment: item.amount } },
+        }),
+        prisma.stockMovement.create({
+          data: {
+            materialId: item.materialId,
+            delta: item.amount,
+            reason: "CORRECTION",
+            totalCost: item.totalCost,
+            note: `Tugas dihapus, pemakaian dikembalikan: ${task.title}`,
+            actorId: allowed.actor.id,
+          },
+        }),
+      ]),
+    ]);
+  } catch (error) {
+    if (isNotFound(error)) {
+      return { ok: false, message: "Tugas tidak ditemukan pada musim ini." };
+    }
+    throw error;
+  }
+
+  if (returned.length > 0) {
+    // A positive movement with a price moves the average; recompute it from
+    // the log rather than guessing, as anything touching history must.
+    await Promise.all(returned.map((item) => refreshAvgCost(item.materialId)));
+    revalidatePath("/inventory");
+    revalidatePath("/health/racikan");
+    revalidateSeasonMoney();
   }
 
   revalidatePath("/tasks");
   return { ok: true };
+}
+
+function isNotFound(error: unknown) {
+  return (
+    typeof error === "object" &&
+    error !== null &&
+    "code" in error &&
+    error.code === "P2025"
+  );
 }
 
 export async function updateTask(formData: FormData): Promise<ActionResult> {
@@ -160,7 +239,6 @@ export async function updateTask(formData: FormData): Promise<ActionResult> {
     seasonId: formData.get("seasonId"),
     title: formData.get("title"),
     description: formData.get("description") ?? "",
-    hst: formData.get("hst") === "" ? undefined : formData.get("hst"),
     dueDate: formData.get("dueDate"),
     status: formData.get("status"),
     assigneeIds: formData.getAll("assigneeIds").map(String),
@@ -190,6 +268,7 @@ export async function updateTask(formData: FormData): Promise<ActionResult> {
       completedAt: true,
       usageRecordedAt: true,
       dueDate: true,
+      season: { select: { startDate: true } },
     },
   });
 
@@ -202,6 +281,7 @@ export async function updateTask(formData: FormData): Promise<ActionResult> {
       where: { id: taskId },
       data: {
         ...rest,
+        hst: calculateHst(existing.season.startDate, rest.dueDate),
         status,
         description: description ? description : null,
         recipeId: recipeId ? recipeId : null,
@@ -241,6 +321,59 @@ export async function updateTask(formData: FormData): Promise<ActionResult> {
   }
 
   revalidatePath("/tasks");
+  return { ok: true };
+}
+
+/**
+ * Moves a task that could not be done to another day — rain, or nobody free.
+ *
+ * Its own action rather than the edit form: it is the one change made most
+ * often, from the field, on a task already overdue. The HST moves with the
+ * date, because the HST *is* the date counted from planting.
+ */
+export async function postponeTask(formData: FormData): Promise<ActionResult> {
+  const allowed = await guardWrite("tasks");
+  if (!allowed.ok) return allowed;
+
+  const parsed = postponeTaskSchema.safeParse({
+    taskId: formData.get("taskId"),
+    seasonId: formData.get("seasonId"),
+    dueDate: formData.get("dueDate"),
+  });
+  if (!parsed.success) return invalidForm(parsed.error);
+
+  const { taskId, seasonId, dueDate } = parsed.data;
+
+  // Postponing is forward: a day already gone is not where the work will
+  // happen. Compared in Jakarta days, as the date input is.
+  if (dueDate.getTime() < startOfDayInJakarta(new Date())) {
+    return {
+      ok: false,
+      message: "Pilih hari ini atau sesudahnya.",
+      fieldErrors: { dueDate: "Tanggalnya sudah lewat" },
+    };
+  }
+
+  const task = await prisma.task.findFirst({
+    where: { id: taskId, seasonId },
+    select: { status: true, season: { select: { startDate: true, status: true } } },
+  });
+  if (!task) return { ok: false, message: "Tugas tidak ditemukan pada musim ini." };
+  if (task.status === "DONE") {
+    return { ok: false, message: "Tugas ini sudah selesai." };
+  }
+  if (isSeasonClosed(task.season.status)) {
+    return { ok: false, message: "Musim ini sudah Selesai." };
+  }
+
+  await prisma.task.update({
+    where: { id: taskId },
+    data: { dueDate, hst: calculateHst(task.season.startDate, dueDate) },
+  });
+
+  announceIfSoon(taskId);
+  revalidatePath("/tasks");
+  revalidatePath("/");
   return { ok: true };
 }
 
@@ -294,6 +427,7 @@ export async function recordTaskUsage(
     select: {
       title: true,
       usageRecordedAt: true,
+      season: { select: { status: true } },
       materials: {
         select: {
           id: true,

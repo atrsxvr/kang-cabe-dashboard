@@ -29,6 +29,7 @@ import {
   formatPerPlant,
 } from "@/lib/harvest";
 import { formatDate } from "@/lib/hst";
+import { loanOffset } from "@/lib/loans";
 import { formatRupiah } from "@/lib/money";
 import { readSeasonParam } from "@/lib/season-param";
 import { canCompareSeasons, comparableSeasons } from "@/lib/season-compare";
@@ -43,7 +44,12 @@ import {
 } from "@/server/queries/finance";
 import type { CostLine, SeasonComparison } from "@/server/queries/finance";
 import { capitalSummary, listContributions } from "@/server/queries/capital";
-import { cashReport, listOpenings, listPayouts } from "@/server/queries/cash";
+import {
+  cashReport,
+  listOpenings,
+  listPayouts,
+  loanReport,
+} from "@/server/queries/cash";
 import { listSeasons, resolveSeason } from "@/server/queries/seasons";
 import { listDoneTaskOptions } from "@/server/queries/tasks";
 import { listActiveMembers } from "@/server/queries/users";
@@ -75,6 +81,7 @@ export default async function FinancePage(props: PageProps<"/finance">) {
     openings,
     payouts,
     doneTasks,
+    loans,
   ] = await Promise.all([
     seasonMaterialCost(season.id),
     toolSpend(),
@@ -91,6 +98,7 @@ export default async function FinancePage(props: PageProps<"/finance">) {
     listOpenings(),
     listPayouts(),
     listDoneTaskOptions(season.id),
+    loanReport(),
   ]);
 
   const photoEnabled = isPhotoUploadEnabled();
@@ -137,9 +145,11 @@ export default async function FinancePage(props: PageProps<"/finance">) {
               {formatRupiah(result.margin)}
             </p>
             <p className="text-muted-foreground mx-auto max-w-md text-xs">
-              Uang masuk dikurangi semua biaya yang tercatat. Seakurat apa yang
-              kalian catat — kalau ada upah yang belum diketik, angka ini masih
-              kebesaran.
+              Uang masuk musim ini dikurangi biaya musim ini: bahan yang benar-benar
+              terpakai, upah, sewa, dan biaya lain. Wajar kalau beda dengan saldo
+              kas — kas dipakai bersama semua lahan, dan belanja yang masih
+              tersimpan di gudang atau dibelikan alat belum jadi biaya musim mana
+              pun. Kalau ada upah yang belum diketik, angka ini masih kebesaran.
             </p>
           </div>
 
@@ -155,24 +165,36 @@ export default async function FinancePage(props: PageProps<"/finance">) {
                   : "—"}
               </p>
               <p className="text-muted-foreground text-xs">HPP per kg</p>
+              <p className="text-muted-foreground text-[11px] leading-tight">
+                modal per kg cabai Bagus
+              </p>
             </div>
             <div>
               <p className="text-base font-semibold tabular-nums sm:text-lg">
                 {formatPercent(result.roi, 1)}
               </p>
               <p className="text-muted-foreground text-xs">ROI</p>
+              <p className="text-muted-foreground text-[11px] leading-tight">
+                untung dibanding biaya
+              </p>
             </div>
             <div>
               <p className="text-base font-semibold tabular-nums sm:text-lg">
                 {formatPercent(result.grossMarginRate, 1)}
               </p>
               <p className="text-muted-foreground text-xs">Margin kotor</p>
+              <p className="text-muted-foreground text-[11px] leading-tight">
+                bagian untung dari uang masuk
+              </p>
             </div>
             <div>
               <p className="text-base font-semibold tabular-nums sm:text-lg">
                 {formatRupiah(result.unsoldValue)}
               </p>
               <p className="text-muted-foreground text-xs">Nilai sisa stok</p>
+              <p className="text-muted-foreground text-[11px] leading-tight">
+                cabai Bagus yang belum laku
+              </p>
             </div>
           </div>
 
@@ -278,6 +300,7 @@ export default async function FinancePage(props: PageProps<"/finance">) {
             report={cash}
             openings={openings}
             payouts={payouts}
+            loans={loans}
             members={members}
             seasons={seasonList}
             photoEnabled={photoEnabled}
@@ -316,22 +339,37 @@ export default async function FinancePage(props: PageProps<"/finance">) {
                 </p>
               ) : (
                 <ul className="grid gap-2">
-                  {sharing.rows.map((row) => (
-                    <li
-                      key={row.id}
-                      className="flex items-center justify-between gap-2 rounded-md border px-3 py-2 text-sm"
-                    >
-                      <span className="min-w-0 truncate">{row.name}</span>
-                      <span className="flex items-center gap-3">
-                        <Badge variant="secondary" className="tabular-nums">
-                          {row.share}%
-                        </Badge>
-                        <strong className="tabular-nums">
-                          {formatRupiah(row.amount)}
-                        </strong>
-                      </span>
-                    </li>
-                  ))}
+                  {sharing.rows.map((row) => {
+                    // Said here, where the share is read before paying it: the
+                    // loan comes out of it when Bayar ke Anggota is recorded.
+                    const owed = loans.balances[row.id] ?? 0;
+                    const cut = loanOffset(owed, row.amount);
+                    return (
+                      <li
+                        key={row.id}
+                        className="grid gap-1 rounded-md border px-3 py-2 text-sm"
+                      >
+                        <div className="flex items-center justify-between gap-2">
+                          <span className="min-w-0 truncate">{row.name}</span>
+                          <span className="flex items-center gap-3">
+                            <Badge variant="secondary" className="tabular-nums">
+                              {row.share}%
+                            </Badge>
+                            <strong className="tabular-nums">
+                              {formatRupiah(row.amount)}
+                            </strong>
+                          </span>
+                        </div>
+                        {cut > 0 ? (
+                          <p className="text-xs text-amber-700 tabular-nums dark:text-amber-400">
+                            Masih pinjam {formatRupiah(owed)} — dipotong{" "}
+                            {formatRupiah(cut)}, diserahkan{" "}
+                            {formatRupiah(row.amount - cut)}
+                          </p>
+                        ) : null}
+                      </li>
+                    );
+                  })}
                 </ul>
               )}
 

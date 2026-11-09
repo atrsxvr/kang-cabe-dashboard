@@ -24,7 +24,7 @@ import { capitalSummary } from "@/server/queries/capital";
 import { formatRupiah } from "@/lib/money";
 import { listMembers } from "@/server/queries/users";
 
-export const metadata: Metadata = { title: "Settings & Users" };
+export const metadata: Metadata = { title: "Pengaturan & Anggota" };
 
 export default async function SettingsPage() {
   // Not season-scoped, and read fresh: members and the garden profile change
@@ -47,7 +47,7 @@ export default async function SettingsPage() {
     <>
       <div className="mb-6 flex flex-wrap items-start justify-between gap-3">
         <PageHeader
-          title="Settings & Users"
+          title="Pengaturan & Anggota"
           description="Anggota tim, modal, dan lahan kebun."
         />
         <CanWrite area="settings">

@@ -10,6 +10,8 @@ import { Card, CardContent } from "@/components/ui/card";
 import { daysUntil, formatDate } from "@/lib/hst";
 import { cn } from "@/lib/utils";
 import { deleteTask } from "@/server/actions/tasks";
+import { deleteConsequence } from "@/components/tasks/delete-consequence";
+import { TaskPostpone } from "@/components/tasks/task-postpone";
 import type { TaskRow } from "@/server/queries/tasks";
 import type { StockRow } from "@/server/queries/inventory";
 import type { RecipeRow } from "@/server/queries/recipes";
@@ -24,6 +26,7 @@ export function TaskCard({
   materials,
   showStatus = false,
   canWriteTasks,
+  canDeleteTasks,
   canRecordUsage,
 }: {
   task: TaskRow;
@@ -36,6 +39,8 @@ export function TaskCard({
   showStatus?: boolean;
   /** Boleh menyunting, menghapus, dan menggeser status tugas. */
   canWriteTasks: boolean;
+  /** Admin, and the season is not yet Selesai. */
+  canDeleteTasks: boolean;
   /**
    * Boleh menekan "Catat pemakaian". Izin yang berbeda, dan sengaja.
    *
@@ -47,8 +52,8 @@ export function TaskCard({
 }) {
   const remaining = daysUntil(task.dueDate);
   const overdue = task.status !== "DONE" && remaining < 0;
-  const hstPassed =
-    task.status !== "DONE" && task.hst !== null && currentHst > task.hst;
+  // Due today or late: when "can it still happen today?" gets asked.
+  const postponable = task.status !== "DONE" && remaining <= 0;
 
   return (
     <Card className="gap-0 py-3">
@@ -82,12 +87,9 @@ export function TaskCard({
             {overdue ? ` · telat ${Math.abs(remaining)} hari` : null}
           </span>
 
-          {task.hst !== null ? (
-            <span className={cn(hstPassed && "text-amber-600 font-medium")}>
-              HST {task.hst}
-              {hstPassed ? ` · lewat ${currentHst - task.hst} hari` : null}
-            </span>
-          ) : null}
+          {/* The HST is the date counted from planting, so lateness is
+              already said once, beside the date. */}
+          {task.hst !== null ? <span>HST {task.hst}</span> : null}
         </div>
 
         {task.assignees.length > 0 ? (
@@ -121,13 +123,24 @@ export function TaskCard({
             currentHst={currentHst}
             task={task}
           />
-          <ConfirmDelete
-            title="Hapus tugas ini?"
-            itemName={task.title}
-            action={deleteTask}
-            fields={{ taskId: task.id, seasonId }}
-            iconOnly
-          />
+          {canDeleteTasks && postponable ? (
+            <TaskPostpone
+              taskId={task.id}
+              seasonId={seasonId}
+              title={task.title}
+              dueDate={task.dueDate}
+            />
+          ) : null}
+          {canDeleteTasks ? (
+            <ConfirmDelete
+              title="Hapus tugas ini?"
+              itemName={task.title}
+              consequence={deleteConsequence(task)}
+              action={deleteTask}
+              fields={{ taskId: task.id, seasonId }}
+              iconOnly
+            />
+          ) : null}
           <div className="ml-auto">
             <TaskStatusButtons
               taskId={task.id}

@@ -14,8 +14,10 @@ import { invalidForm, type ActionResult } from "@/server/actions/result";
 import { currentActor, guardWrite } from "@/server/auth/guard";
 import { closingFacts } from "@/server/queries/season-close";
 import {
+  canArchiveSeason,
   createSeasonSchema,
   nextSeasonStatus,
+  previousSeasonStatus,
   updateSeasonSchema,
 } from "@/server/actions/schemas";
 
@@ -113,6 +115,46 @@ export async function advanceSeasonStatus(
 }
 
 /**
+ * Undoes one step of the lifecycle button, for a stage tapped by mistake.
+ *
+ * Neither middle stage writes anything but the status itself, so stepping back
+ * loses nothing. Selesai is out of reach on purpose: it was reached through
+ * the closing checklist and the margin was split on it.
+ */
+export async function revertSeasonStatus(
+  formData: FormData
+): Promise<ActionResult> {
+  const allowed = await guardWrite("seasons");
+  if (!allowed.ok) return allowed;
+
+  const seasonId = String(formData.get("seasonId") ?? "");
+  if (!seasonId) return { ok: false, message: "Musim tidak dikenali." };
+
+  const season = await prisma.season.findUnique({
+    where: { id: seasonId },
+    select: { status: true },
+  });
+  if (!season) return { ok: false, message: "Musim tidak ditemukan." };
+
+  const previous = previousSeasonStatus(season.status);
+  if (!previous) {
+    return { ok: false, message: "Tahap musim ini tidak bisa dikembalikan." };
+  }
+
+  // Guarded on the status just read, so two taps cannot step back twice.
+  const result = await prisma.season.updateMany({
+    where: { id: seasonId, status: season.status },
+    data: { status: previous },
+  });
+  if (result.count === 0) {
+    return { ok: false, message: "Status musim baru saja berubah. Muat ulang halamannya." };
+  }
+
+  revalidatePath("/", "layout");
+  return { ok: true, seasonId };
+}
+
+/**
  * The closing checklist for one season, fetched when its dialog opens.
  *
  * Read-only, and open to anyone signed in, like every read in this app — but
@@ -194,14 +236,55 @@ export async function archiveSeason(formData: FormData): Promise<ActionResult> {
   const seasonId = String(formData.get("seasonId") ?? "");
   if (!seasonId) return { ok: false, message: "Musim tidak dikenali." };
 
-  const result = await prisma.season.updateMany({
+  const season = await prisma.season.findUnique({
+    where: { id: seasonId },
+    select: { status: true },
+  });
+  if (!season) return { ok: false, message: "Musim tidak ditemukan." };
+
+  if (!canArchiveSeason(season.status)) {
+    return {
+      ok: false,
+      message:
+        "Musim yang masih berjalan tidak bisa diarsipkan. Tutup musimnya dulu lewat tombol Selesai.",
+    };
+  }
+
+  await prisma.season.update({
     where: { id: seasonId },
     data: { status: "ARCHIVED" },
   });
 
-  if (result.count === 0) {
-    return { ok: false, message: "Musim tidak ditemukan." };
+  revalidatePath("/", "layout");
+  return { ok: true, seasonId };
+}
+
+/**
+ * Takes a season back out of the archive.
+ *
+ * Only finished or never-planted seasons are archived, and `endDate` tells
+ * the two apart — it is stamped exactly when a season is closed.
+ */
+export async function restoreSeason(formData: FormData): Promise<ActionResult> {
+  const allowed = await guardWrite("seasons");
+  if (!allowed.ok) return allowed;
+
+  const seasonId = String(formData.get("seasonId") ?? "");
+  if (!seasonId) return { ok: false, message: "Musim tidak dikenali." };
+
+  const season = await prisma.season.findUnique({
+    where: { id: seasonId },
+    select: { status: true, endDate: true },
+  });
+  if (!season) return { ok: false, message: "Musim tidak ditemukan." };
+  if (season.status !== "ARCHIVED") {
+    return { ok: false, message: "Musim ini tidak sedang diarsipkan." };
   }
+
+  await prisma.season.update({
+    where: { id: seasonId },
+    data: { status: season.endDate ? "COMPLETED" : "PLANNING" },
+  });
 
   revalidatePath("/", "layout");
   return { ok: true, seasonId };

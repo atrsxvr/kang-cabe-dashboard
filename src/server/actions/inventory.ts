@@ -1,9 +1,12 @@
 "use server";
 
+import { randomUUID } from "node:crypto";
 import { revalidatePath } from "next/cache";
 
 import { prisma } from "@/lib/prisma";
+import { startOfDayInJakarta } from "@/lib/hst";
 import { nextAvgCost } from "@/lib/money";
+import { canWrite, denialMessage } from "@/lib/permissions";
 import { OPENING_NOTE, OPNAME_PREFIX } from "@/lib/stock";
 import { listMovements, type MovementRow } from "@/server/queries/inventory";
 import { invalidForm, type ActionResult } from "@/server/actions/result";
@@ -17,6 +20,7 @@ import {
   createToolSchema,
   archiveMaterialSchema,
   deleteMaterialSchema,
+  recordPurchaseSchema,
   recordToolEventSchema,
   setMovementCostSchema,
   stockOpnameSchema,
@@ -499,6 +503,230 @@ export async function recordToolEvent(
   ]);
 
   revalidatePath("/inventory");
+  revalidateSeasonMoney();
+  return { ok: true };
+}
+
+/**
+ * A shopping trip: several materials and tools, on one day, out of the kas.
+ *
+ * Writes nothing new in kind. Each material is a PURCHASE movement and each
+ * tool an ACQUIRED event — the two rows the cash ledger already reads as money
+ * out, and the shed already reads as stock in. A line for something not yet
+ * in the shed registers it in the same transaction, so a trip is never half
+ * recorded: the sack exists with its price, or neither does.
+ */
+export async function recordPurchase(
+  formData: FormData
+): Promise<ActionResult> {
+  const allowed = await guardWrite("inventory");
+  if (!allowed.ok) return allowed;
+  const { actor } = allowed;
+
+  let items: unknown = [];
+  try {
+    items = JSON.parse(String(formData.get("items") ?? "[]"));
+  } catch {
+    items = [];
+  }
+
+  const parsed = recordPurchaseSchema.safeParse({
+    purchasedAt: formData.get("purchasedAt"),
+    actorId: formData.get("actorId") ?? "",
+    note: formData.get("note") ?? "",
+    items,
+  });
+
+  if (!parsed.success) return invalidForm(parsed.error);
+
+  const { purchasedAt, actorId, note, items: lines } = parsed.data;
+
+  // The date input posts YYYY-MM-DD, read as midnight UTC — the same number
+  // startOfDayInJakarta gives for that day.
+  const now = new Date();
+  const today = startOfDayInJakarta(now);
+  if (purchasedAt.getTime() > today) {
+    return {
+      ok: false,
+      message: "Tanggal belanja belum terjadi.",
+      fieldErrors: { purchasedAt: "Tidak boleh setelah hari ini" },
+    };
+  }
+  // Today keeps the moment it was recorded, so it sorts after whatever else
+  // moved earlier today. A past day lands on that day, which is where the
+  // cash ledger and the average price both need it.
+  const happenedAt = purchasedAt.getTime() === today ? now : purchasedAt;
+
+  const materialLines = lines.filter((line) => line.kind === "material");
+  const toolLines = lines.filter((line) => line.kind === "tool");
+
+  const newMaterialNames = materialLines.flatMap((line) =>
+    line.newMaterial ? [line.newMaterial.name] : []
+  );
+
+  // Registering a material is its own area — the same rule the Tambah Bahan
+  // dialog answers to — so buying cannot be a way around it.
+  if (
+    newMaterialNames.length > 0 &&
+    !canWrite(actor.role, "materials", actor.access)
+  ) {
+    return { ok: false, message: denialMessage("materials", actor.access) };
+  }
+
+  const existingMaterialIds = materialLines.flatMap((line) =>
+    line.materialId ? [line.materialId] : []
+  );
+  const existingToolIds = toolLines.flatMap((line) =>
+    line.toolId ? [line.toolId] : []
+  );
+  const newToolNames = toolLines.flatMap((line) =>
+    line.newTool ? [line.newTool.name] : []
+  );
+
+  const [foundMaterials, sameNameMaterials, foundTools, sameNameTools] =
+    await Promise.all([
+      prisma.material.count({
+        where: { id: { in: existingMaterialIds }, archivedAt: null },
+      }),
+      newMaterialNames.length
+        ? prisma.material.findMany({
+            where: {
+              OR: newMaterialNames.map((name) => ({
+                name: { equals: name, mode: "insensitive" as const },
+              })),
+            },
+            select: { name: true, archivedAt: true },
+          })
+        : [],
+      prisma.tool.count({ where: { id: { in: existingToolIds } } }),
+      newToolNames.length
+        ? prisma.tool.findMany({
+            where: {
+              OR: newToolNames.map((name) => ({
+                name: { equals: name, mode: "insensitive" as const },
+              })),
+            },
+            select: { name: true },
+          })
+        : [],
+    ]);
+
+  if (foundMaterials !== existingMaterialIds.length) {
+    return {
+      ok: false,
+      message: "Ada bahan yang tidak ditemukan atau sudah diarsipkan.",
+    };
+  }
+  if (foundTools !== existingToolIds.length) {
+    return { ok: false, message: "Ada alat yang tidak ditemukan." };
+  }
+
+  // One row per material is the rule the whole shed rests on: typing
+  // "NPK 16-16-16" twice splits its stock and its recipes in two.
+  const clash = sameNameMaterials[0];
+  if (clash) {
+    return {
+      ok: false,
+      message: clash.archivedAt
+        ? `${clash.name} pernah diarsipkan. Pulihkan dulu dari Arsip di tab Stok Bahan, lalu pilih dari bahan yang sudah ada.`
+        : `${clash.name} sudah ada di gudang. Pilih dari bahan yang sudah ada.`,
+    };
+  }
+  const toolClash = sameNameTools[0];
+  if (toolClash) {
+    return {
+      ok: false,
+      message: `${toolClash.name} sudah ada di daftar alat. Pilih dari alat yang sudah ada.`,
+    };
+  }
+
+  const shared = {
+    note: note ? note : null,
+    actorId: actorId ? actorId : null,
+    createdAt: happenedAt,
+  };
+
+  const materialIds = materialLines.map(
+    (line) => line.materialId ?? randomUUID()
+  );
+  const toolIds = toolLines.map((line) => line.toolId ?? randomUUID());
+
+  try {
+    await prisma.$transaction([
+      ...materialLines.flatMap((line, index) => {
+        const id = materialIds[index];
+        return [
+          line.newMaterial
+            ? prisma.material.create({
+                data: { id, ...line.newMaterial, stock: line.amount },
+              })
+            : prisma.material.update({
+                where: { id },
+                data: { stock: { increment: line.amount } },
+              }),
+          prisma.stockMovement.create({
+            data: {
+              materialId: id,
+              delta: line.amount,
+              reason: "PURCHASE",
+              totalCost: line.totalCost,
+              ...shared,
+            },
+          }),
+        ];
+      }),
+      ...toolLines.flatMap((line, index) => {
+        const id = toolIds[index];
+        return [
+          line.newTool
+            ? prisma.tool.create({
+                data: {
+                  id,
+                  name: line.newTool.name,
+                  quantity: line.quantity,
+                  condition: "GOOD",
+                },
+              })
+            : prisma.tool.update({
+                where: { id },
+                data: { quantity: { increment: line.quantity } },
+              }),
+          prisma.toolEvent.create({
+            data: {
+              toolId: id,
+              type: "ACQUIRED",
+              quantity: line.quantity,
+              totalCost: line.totalCost,
+              ...shared,
+            },
+          }),
+        ];
+      }),
+    ]);
+  } catch (error) {
+    // Two people registering the same new material at once: the unique name
+    // catches what the check above could not.
+    if (
+      typeof error === "object" &&
+      error !== null &&
+      "code" in error &&
+      error.code === "P2002"
+    ) {
+      return {
+        ok: false,
+        message: "Ada bahan baru yang namanya baru saja didaftarkan. Muat ulang, lalu pilih dari bahan yang sudah ada.",
+      };
+    }
+    throw error;
+  }
+
+  // Replayed from the log rather than nudged forward: a purchase dated last
+  // week sits behind movements already counted, and only a replay puts it in
+  // its place.
+  await Promise.all(materialIds.map((id) => refreshAvgCost(id)));
+
+  revalidatePath("/inventory");
+  revalidatePath("/health/racikan");
   revalidateSeasonMoney();
   return { ok: true };
 }

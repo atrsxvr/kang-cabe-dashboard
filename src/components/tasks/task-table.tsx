@@ -17,6 +17,8 @@ import {
 import { daysUntil, formatDate } from "@/lib/hst";
 import { cn } from "@/lib/utils";
 import { deleteTask } from "@/server/actions/tasks";
+import { deleteConsequence } from "@/components/tasks/delete-consequence";
+import { TaskPostpone } from "@/components/tasks/task-postpone";
 import type { TaskRow } from "@/server/queries/tasks";
 import type { StockRow } from "@/server/queries/inventory";
 import type { RecipeRow } from "@/server/queries/recipes";
@@ -30,6 +32,7 @@ export function TaskTable({
   recipes,
   materials,
   canWriteTasks,
+  canDeleteTasks,
   canRecordUsage,
 }: {
   tasks: TaskRow[];
@@ -40,6 +43,8 @@ export function TaskTable({
   materials: StockRow[];
   /** Boleh menyunting, menghapus, dan menggeser status tugas. */
   canWriteTasks: boolean;
+  /** Admin, and the season is not yet Selesai. */
+  canDeleteTasks: boolean;
   /** Boleh menekan "Catat pemakaian" — izin gudang, bukan izin tugas. */
   canRecordUsage: boolean;
 }) {
@@ -59,6 +64,7 @@ export function TaskTable({
         {tasks.map((task) => (
           <TaskCard
               canWriteTasks={canWriteTasks}
+              canDeleteTasks={canDeleteTasks}
               canRecordUsage={canRecordUsage}
             key={task.id}
             task={task}
@@ -80,7 +86,7 @@ export function TaskTable({
                 <TableHead className="min-w-56">Tugas</TableHead>
                 <TableHead className="text-right">HST</TableHead>
                 <TableHead>Tanggal Dikerjakan</TableHead>
-                <TableHead>Penugas</TableHead>
+                <TableHead>Dikerjakan oleh</TableHead>
                 {/* Pinned: their content changes with status, and an auto-sized
                     column would re-measure and shift the row on every update. */}
                 <TableHead className="w-40">Status</TableHead>
@@ -144,7 +150,7 @@ export function TaskTable({
                       <StatusBadge status={task.status} kind="task" block />
                     </TableCell>
                     {canWriteTasks ? (
-                    <TableCell className="w-64">
+                    <TableCell className="w-80">
                       <div className="flex items-center gap-1">
                         <TaskStatusButtons
                           taskId={task.id}
@@ -156,6 +162,16 @@ export function TaskTable({
                             !task.usageRecordedAt
                           }
                         />
+                        {canDeleteTasks &&
+                        task.status !== "DONE" &&
+                        daysUntil(task.dueDate) <= 0 ? (
+                          <TaskPostpone
+                            taskId={task.id}
+                            seasonId={seasonId}
+                            title={task.title}
+                            dueDate={task.dueDate}
+                          />
+                        ) : null}
                         <TaskDialog
                           seasonId={seasonId}
                           members={members}
@@ -164,13 +180,16 @@ export function TaskTable({
                           currentHst={currentHst}
                           task={task}
                         />
-                        <ConfirmDelete
-                          title="Hapus tugas ini?"
-                          itemName={task.title}
-                          action={deleteTask}
-                          fields={{ taskId: task.id, seasonId }}
-                          iconOnly
-                        />
+                        {canDeleteTasks ? (
+                          <ConfirmDelete
+                            title="Hapus tugas ini?"
+                            itemName={task.title}
+                            consequence={deleteConsequence(task)}
+                            action={deleteTask}
+                            fields={{ taskId: task.id, seasonId }}
+                            iconOnly
+                          />
+                        ) : null}
                       </div>
                     </TableCell>
                     ) : null}

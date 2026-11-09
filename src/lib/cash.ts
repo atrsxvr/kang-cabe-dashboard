@@ -38,11 +38,13 @@ export const CASH_SOURCES = [
   "CAPITAL",
   "SALE",
   "OTHER_INCOME",
+  "LOAN_REPAID",
   "PURCHASE",
   "TOOL",
   "EXPENSE",
   "PROFIT_SHARE",
   "CAPITAL_RETURN",
+  "LOAN_OUT",
 ] as const;
 
 export type CashSource = (typeof CASH_SOURCES)[number];
@@ -54,11 +56,13 @@ const DIRECTION: Record<CashSource, CashDirection> = {
   CAPITAL: "IN",
   SALE: "IN",
   OTHER_INCOME: "IN",
+  LOAN_REPAID: "IN",
   PURCHASE: "OUT",
   TOOL: "OUT",
   EXPENSE: "OUT",
   PROFIT_SHARE: "OUT",
   CAPITAL_RETURN: "OUT",
+  LOAN_OUT: "OUT",
 };
 
 export const cashSourceLabels: Record<CashSource, string> = {
@@ -66,11 +70,13 @@ export const cashSourceLabels: Record<CashSource, string> = {
   CAPITAL: "Setoran modal",
   SALE: "Penjualan lunas",
   OTHER_INCOME: "Pemasukan lain",
+  LOAN_REPAID: "Pinjaman dikembalikan",
   PURCHASE: "Belanja bahan",
   TOOL: "Beli & servis alat",
   EXPENSE: "Pengeluaran",
   PROFIT_SHARE: "Bagi hasil",
   CAPITAL_RETURN: "Tarik modal",
+  LOAN_OUT: "Dipinjam anggota",
 };
 
 export function directionOf(source: CashSource): CashDirection {

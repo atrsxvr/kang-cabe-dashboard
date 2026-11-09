@@ -8,7 +8,7 @@ import { expect, test } from "@playwright/test";
  * a page down in this project without a single unit test noticing.
  */
 const pages = [
-  { path: "/", heading: "Dashboard Overview" },
+  { path: "/", heading: "Ringkasan Kebun" },
   { path: "/seasons", heading: "Manajemen Musim" },
   { path: "/tasks", heading: "Jadwal & Tugas" },
   { path: "/health", heading: "Kesehatan" },
@@ -16,7 +16,7 @@ const pages = [
   { path: "/inventory", heading: "Inventaris & Alat" },
   { path: "/finance", heading: "Keuangan & Kas" },
   { path: "/harvest", heading: "Panen" },
-  { path: "/settings", heading: "Settings" },
+  { path: "/settings", heading: "Pengaturan" },
 ];
 
 for (const { path, heading } of pages) {

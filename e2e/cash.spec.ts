@@ -58,7 +58,7 @@ test("setoran menambah kas, bagi hasil menguranginya", async ({ page }) => {
   await page.getByRole("tab", { name: "Kas" }).click();
   await expect.poll(() => balance(page)).toBe(before + 1_000_000);
 
-  await page.getByRole("button", { name: "Catat Uang Keluar" }).click();
+  await page.getByRole("button", { name: "Bayar ke Anggota" }).click();
   const keluar = page.getByRole("dialog");
   await keluar.getByLabel("Jenis").selectOption("PROFIT_SHARE");
   await keluar.getByLabel("Jumlah (Rp)").fill("250000");
@@ -170,7 +170,7 @@ test("setoran sebelum saldo awal masuk modal, bukan saldo", async ({ page }) => 
 test("tarik modal melebihi setoran ditolak", async ({ page }) => {
   await openFinance(page, "Kas");
 
-  await page.getByRole("button", { name: "Catat Uang Keluar" }).click();
+  await page.getByRole("button", { name: "Bayar ke Anggota" }).click();
   const keluar = page.getByRole("dialog");
   await keluar.getByLabel("Jenis").selectOption("CAPITAL_RETURN");
   // Di bawah batas Rp 1 miliar milik validasi rupiah — di atasnya formulir

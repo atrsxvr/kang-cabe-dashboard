@@ -47,6 +47,7 @@ export function MaterialCombobox({
   onChange,
   describe,
   placeholder = "Ketik untuk mencari bahan",
+  noun = "bahan",
   invalid = false,
 }: {
   id: string;
@@ -57,6 +58,8 @@ export function MaterialCombobox({
   /** Extra text after the name in the list, e.g. the stock on hand. */
   describe?: (material: MaterialOption) => string;
   placeholder?: string;
+  /** What the list holds, for the empty message — tools use it too. */
+  noun?: string;
   invalid?: boolean;
 }) {
   const listId = useId();
@@ -154,7 +157,7 @@ export function MaterialCombobox({
         >
           {matches.length === 0 ? (
             <li className="text-muted-foreground px-2 py-3 text-center text-sm">
-              Tidak ada bahan bernama &ldquo;{query.trim()}&rdquo;.
+              Tidak ada {noun} bernama &ldquo;{query.trim()}&rdquo;.
             </li>
           ) : (
             matches.map((material, index) => {

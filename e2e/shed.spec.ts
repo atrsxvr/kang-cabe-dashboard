@@ -371,7 +371,7 @@ test.describe.serial("harga bahan bisa dikoreksi", () => {
     await expect(page.getByText(LIQUID, { exact: true }).first()).toBeVisible();
 
     await page
-      .getByRole("button", { name: `Tambah stok ${LIQUID}` })
+      .getByRole("button", { name: `Belanja ${LIQUID}` })
       .first()
       .click();
     const dialog = page.getByRole("dialog");
@@ -379,7 +379,7 @@ test.describe.serial("harga bahan bisa dikoreksi", () => {
     await dialog.getByRole("button", { name: "Per ml", exact: true }).click();
     await dialog.getByLabel("Harga per ml (Rp)", { exact: true }).fill("150");
     await expect(dialog).toContainText("Total Rp 37.500 untuk 250 ml");
-    await dialog.getByRole("button", { name: "Tambah", exact: true }).click();
+    await dialog.getByRole("button", { name: "Simpan Belanja" }).click();
     await expect(dialog).toHaveCount(0);
 
     await page
@@ -419,12 +419,12 @@ test.describe.serial("harga bahan bisa dikoreksi", () => {
     await openInventory(page);
 
     await page
-      .getByRole("button", { name: `Tambah stok ${PRICED}` })
+      .getByRole("button", { name: `Belanja ${PRICED}` })
       .first()
       .click();
     await page.getByLabel("Jumlah (pcs)", { exact: true }).fill("5");
     await page.getByLabel("Total bayar (Rp)", { exact: true }).fill("50000");
-    await page.getByRole("button", { name: "Tambah", exact: true }).click();
+    await page.getByRole("button", { name: "Simpan Belanja" }).click();
     await expect(page.getByRole("dialog")).toHaveCount(0);
 
     await page
@@ -490,7 +490,7 @@ test.describe.serial("harga bahan bisa dikoreksi", () => {
     await buy.getByLabel("Isi bungkus ini").fill("2000");
     await buy.getByLabel("Harga per bungkus (Rp)", { exact: true }).fill("100000");
     await expect(buy).toContainText("Total Rp 100.000 untuk 2 kg");
-    await buy.getByRole("button", { name: "Tambah", exact: true }).click();
+    await buy.getByRole("button", { name: "Simpan Belanja" }).click();
     await expect(buy).toHaveCount(0);
 
     // Kemasan besar tadi cuma untuk catatan itu; kemasan biasanya tetap.

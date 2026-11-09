@@ -61,6 +61,11 @@ async function cleanup() {
 
     // Uang keluar lebih dulu: ia menunjuk musim, dan catatan ini tidak ikut
     // terhapus bersama musimnya — hanya kehilangan labelnya.
+    // Pinjaman dari purchase/cash spec. Potongan bagi hasil tidak bercatatan,
+    // tapi ikut terhapus bersama bagi hasilnya (Cascade) di bawah.
+    const loans = await prisma.memberLoan.deleteMany({
+      where: { note: { startsWith: "E2E " } },
+    });
     const payouts = await prisma.memberPayout.deleteMany({
       where: { note: { startsWith: "E2E " } },
     });
@@ -69,6 +74,11 @@ async function cleanup() {
     });
     const contributions = await prisma.capitalContribution.deleteMany({
       where: { note: { startsWith: "E2E " } },
+    });
+
+    // Alat dari purchase.spec.ts. Riwayatnya ikut terhapus (Cascade).
+    const tools = await prisma.tool.deleteMany({
+      where: { name: { startsWith: "E2E " } },
     });
 
     // Cascades to the tasks, findings, harvests and sales under it.
@@ -96,7 +106,7 @@ async function cleanup() {
     });
 
     console.log(
-      `Teardown: ${materialIds.length} bahan, ${taskIds.length} tugas, ${seasons.count} musim, ${contributions.count} setoran, ${payouts.count} uang keluar, ${openings.count} saldo awal, ${buyers.count} pembeli, ${sessions.count} sesi, ${devices.count} langganan notifikasi, ${gardens.count} lahan E2E dibersihkan.`
+      `Teardown: ${materialIds.length} bahan, ${taskIds.length} tugas, ${seasons.count} musim, ${tools.count} alat, ${contributions.count} setoran, ${payouts.count} uang keluar, ${loans.count} pinjaman, ${openings.count} saldo awal, ${buyers.count} pembeli, ${sessions.count} sesi, ${devices.count} langganan notifikasi, ${gardens.count} lahan E2E dibersihkan.`
     );
   } finally {
     await prisma.$disconnect();

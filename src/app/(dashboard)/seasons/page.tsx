@@ -7,7 +7,10 @@ import { currentActor } from "@/server/auth/guard";
 import { gardenOptions, type GardenOption } from "@/server/queries/gardens";
 import { PageHeader } from "@/components/common/page-header";
 import { StatusBadge } from "@/components/common/status-badge";
-import { SeasonArchiveAction } from "@/components/seasons/season-archive-action";
+import {
+  SeasonArchiveAction,
+  SeasonRestoreAction,
+} from "@/components/seasons/season-archive-action";
 import { SeasonDialog } from "@/components/seasons/season-dialog";
 import { SeasonStatusAction } from "@/components/seasons/season-status-action";
 import { Card, CardContent } from "@/components/ui/card";
@@ -21,6 +24,7 @@ import {
 } from "@/components/ui/table";
 import { calculateHst, formatDate } from "@/lib/hst";
 import { listSeasonRows } from "@/server/queries/seasons";
+import { canArchiveSeason } from "@/server/actions/schemas";
 
 export const metadata: Metadata = { title: "Manajemen Musim" };
 
@@ -195,7 +199,11 @@ function SeasonActions({
         canClose={canClose}
       />
       <SeasonDialog season={season} gardens={gardens} />
-      {season.status !== "ARCHIVED" ? (
+      {season.status === "ARCHIVED" ? (
+        <SeasonRestoreAction seasonId={season.id} name={season.name} />
+      ) : canArchiveSeason(season.status) ? (
+        // Only finished seasons and plans never planted are put away; one
+        // mid-season would skip the closing checklist.
         <SeasonArchiveAction
           seasonId={season.id}
           name={season.name}

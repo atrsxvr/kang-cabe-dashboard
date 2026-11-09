@@ -100,7 +100,16 @@ export function ToolDialog({ tool }: { tool?: ToolRow }) {
           </Field>
 
           <div className="grid gap-4 sm:grid-cols-2">
-            <Field id="tool-quantity" label="Jumlah" error={errors.quantity}>
+            <Field
+              id="tool-quantity"
+              label="Jumlah"
+              error={errors.quantity}
+              hint={
+                editing
+                  ? undefined
+                  : "Alat yang sudah dimiliki — tidak memotong kas. Baru beli? Pakai Catat Belanja di Inventaris."
+              }
+            >
               <Input
                 id="tool-quantity"
                 name="quantity"

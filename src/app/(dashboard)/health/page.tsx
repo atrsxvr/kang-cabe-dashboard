@@ -18,7 +18,8 @@ import {
   listFindingsBySeason,
 } from "@/server/queries/findings";
 import { resolveSeason } from "@/server/queries/seasons";
-import { listTreatmentRecipes } from "@/server/queries/recipes";
+import { listStock } from "@/server/queries/inventory";
+import { listRecipes, listTreatmentRecipes } from "@/server/queries/recipes";
 import { listActiveMembers } from "@/server/queries/users";
 import { canWrite } from "@/lib/permissions";
 import { currentActor } from "@/server/auth/guard";
@@ -34,7 +35,7 @@ export default async function HealthPage(props: PageProps<"/health">) {
 
   const activeStatus = readStatusParam(searchParams);
 
-  const [findings, counts, members, treatmentRecipes, actor] = await Promise.all([
+  const [findings, counts, members, treatmentRecipes, actor, recipes, materials] = await Promise.all([
     listFindingsBySeason(season.id, activeStatus),
     // Counts stay unfiltered — they are the filter control, so they have to
     // keep showing what each stage holds even while one is selected.
@@ -42,7 +43,16 @@ export default async function HealthPage(props: PageProps<"/health">) {
     listActiveMembers(),
     listTreatmentRecipes(),
     currentActor(),
+    // For "Jadwalkan penanganan": the task form picks from every recipe and
+    // the whole shed, as it does on the tasks page.
+    listRecipes(),
+    listStock(),
   ]);
+
+  const scheduling =
+    actor && canWrite(actor.role, "tasks", actor.access)
+      ? { recipes, materials }
+      : undefined;
 
   const currentHst = calculateHst(season.startDate);
 
@@ -87,6 +97,7 @@ export default async function HealthPage(props: PageProps<"/health">) {
               currentHst={currentHst}
               photoEnabled={isPhotoUploadEnabled()}
               actor={actor}
+              scheduling={scheduling}
             />
           ))}
         </div>

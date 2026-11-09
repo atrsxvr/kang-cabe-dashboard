@@ -210,7 +210,7 @@ export function MaterialDialog({
                 id="material-stock"
                 label="Stok Awal"
                 error={errors.stock}
-                hint="Yang sudah ada di gudang sekarang"
+                hint="Yang sudah ada sebelumnya — tidak memotong kas. Baru beli? Pakai Catat Belanja di Inventaris."
               >
                 <Input
                   id="material-stock"

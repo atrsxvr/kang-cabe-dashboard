@@ -6,6 +6,7 @@ import { Pencil, Plus, X } from "lucide-react";
 import { toast } from "sonner";
 
 import { dateInputValue, Field } from "@/components/common/form-field";
+import { daysUntil } from "@/lib/hst";
 import { NativeSelect } from "@/components/common/native-select";
 import { SubmitButton } from "@/components/common/submit-button";
 import { RecipePicker } from "@/components/health/recipe-picker";
@@ -45,6 +46,8 @@ export function TaskDialog({
   recipes,
   materials,
   task,
+  draft,
+  trigger,
 }: {
   seasonId: string;
   members: MemberOption[];
@@ -52,6 +55,9 @@ export function TaskDialog({
   recipes: RecipeRow[];
   materials: StockRow[];
   task?: TaskRow;
+  /** A new task already worded — a finding's treatment, scheduled. */
+  draft?: { title: string; description: string };
+  trigger?: React.ReactNode;
 }) {
   const editing = Boolean(task);
   const [open, setOpen] = useState(false);
@@ -60,8 +66,11 @@ export function TaskDialog({
   const offerUsage = useOfferUsage();
 
   // Controlled so the recipe picker can write into them.
-  const [title, setTitle] = useState(task?.title ?? "");
-  const [description, setDescription] = useState(task?.description ?? "");
+  const [title, setTitle] = useState(task?.title ?? draft?.title ?? "");
+  const [dueDate, setDueDate] = useState(dateInputValue(task?.dueDate));
+  const [description, setDescription] = useState(
+    task?.description ?? draft?.description ?? "",
+  );
 
   // One list, whether a line came from a recipe or straight off the shelf.
   // Carried as a snapshot rather than a live lookup: the shed is deducted
@@ -91,8 +100,9 @@ export function TaskDialog({
   // opens onto the task that was just saved.
   const reset = () => {
     setErrors({});
-    setTitle(task?.title ?? "");
-    setDescription(task?.description ?? "");
+    setTitle(task?.title ?? draft?.title ?? "");
+    setDueDate(dateInputValue(task?.dueDate));
+    setDescription(task?.description ?? draft?.description ?? "");
     setUsed((task?.materials ?? []).map(toRow));
     setRecipe(
       task?.recipeId
@@ -102,6 +112,16 @@ export function TaskDialog({
   };
 
   const bad = used.find((row) => !isPositive(row.amount));
+
+  // The HST that date falls on: today's HST plus the days until it. Before
+  // planting `currentHst` is clamped at 0 and says nothing about the gap, so
+  // the number is left to the server, which counts from the planting date.
+  const plannedHst =
+    dueDate && currentHst > 0 ? currentHst + daysUntil(new Date(dueDate)) : null;
+  const hstHint =
+    plannedHst !== null && plannedHst >= 0
+      ? `Jatuh di HST ${plannedHst} · sekarang HST ${currentHst}`
+      : "HST-nya dihitung otomatis dari tanggal tanam";
 
   async function onSubmit(formData: FormData) {
     // Caught here rather than at the server, which would only be able to say
@@ -146,7 +166,9 @@ export function TaskDialog({
       }}
     >
       <DialogTrigger asChild>
-        {editing ? (
+        {trigger ? (
+          trigger
+        ) : editing ? (
           <Button
             variant="ghost"
             size="icon"
@@ -362,34 +384,25 @@ export function TaskDialog({
             </>
           )}
 
-          <div className="grid gap-4 sm:grid-cols-2">
-            <Field
-              id="hst"
-              label="HST Rencana (opsional)"
-              error={errors.hst}
-              hint={`Musim ini sekarang HST ${currentHst}`}
-            >
-              <Input
-                id="hst"
-                name="hst"
-                type="number"
-                min={0}
-                defaultValue={task?.hst ?? ""}
-                aria-invalid={Boolean(errors.hst)}
-              />
-            </Field>
-
-            <Field id="dueDate" label="Tanggal Dikerjakan" error={errors.dueDate}>
-              <Input
-                id="dueDate"
-                name="dueDate"
-                type="date"
-                required
-                defaultValue={dateInputValue(task?.dueDate)}
-                aria-invalid={Boolean(errors.dueDate)}
-              />
-            </Field>
-          </div>
+          {/* One date, and the HST read off it. Two boxes for the same fact
+              could disagree, and a plan moved for rain only moved one of them. */}
+          <Field
+            id="dueDate"
+            label="Tanggal Dikerjakan"
+            error={errors.dueDate}
+            hint={hstHint}
+          >
+            <Input
+              id="dueDate"
+              name="dueDate"
+              type="date"
+              required
+              value={dueDate}
+              onChange={(event) => setDueDate(event.target.value)}
+              aria-invalid={Boolean(errors.dueDate)}
+              className="w-48"
+            />
+          </Field>
 
           <Field id="status" label="Status" error={errors.status}>
             <NativeSelect
@@ -406,7 +419,7 @@ export function TaskDialog({
 
           <fieldset className="grid gap-2">
             <legend className="mb-2 text-sm font-medium">
-              Penugas (boleh lebih dari satu)
+              Dikerjakan oleh (boleh lebih dari satu)
             </legend>
             {members.length === 0 ? (
               <p className="text-muted-foreground text-sm">

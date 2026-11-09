@@ -3,6 +3,7 @@ import { BookOpen, HandCoins, Wallet } from "lucide-react";
 import { CanWrite } from "@/components/auth/can-write";
 import { ConfirmDelete } from "@/components/common/confirm-delete";
 import { CashLedger } from "@/components/finance/cash-ledger";
+import { LoanDialog } from "@/components/finance/loan-dialog";
 import { OpeningDialog } from "@/components/finance/opening-dialog";
 import { PayoutDialog } from "@/components/finance/payout-dialog";
 import { Badge } from "@/components/ui/badge";
@@ -19,9 +20,11 @@ import { formatDate } from "@/lib/hst";
 import { formatRupiah } from "@/lib/money";
 import { cn } from "@/lib/utils";
 import { deleteOpening } from "@/server/actions/openings";
+import { deleteLoanEntry } from "@/server/actions/loans";
 import { deletePayout } from "@/server/actions/payouts";
 import type {
   CashReport,
+  LoanReport,
   OpeningRow,
   PayoutRow,
 } from "@/server/queries/cash";
@@ -44,6 +47,7 @@ export function CashPanel({
   report,
   openings,
   payouts,
+  loans,
   members,
   seasons,
   photoEnabled,
@@ -51,6 +55,7 @@ export function CashPanel({
   report: CashReport;
   openings: OpeningRow[];
   payouts: PayoutRow[];
+  loans: LoanReport;
   members: MemberOption[];
   seasons: SeasonSummary[];
   photoEnabled: boolean;
@@ -70,9 +75,11 @@ export function CashPanel({
               {formatRupiah(report.balance)}
             </p>
             <p className="text-muted-foreground mx-auto max-w-md text-xs">
-              Semua musim, bukan cuma yang dipilih. Dihitung dari saldo awal, setoran,
-              jualan yang udah lunas, belanja, dan uang yang dibayarkan ke
-              anggota. Cocokkan sesekali sama uang di tangan dan rekening.
+              Satu kas untuk semua lahan dan semua musim. Bertambah dari saldo
+              awal, setoran anggota, dan jualan yang sudah lunas. Berkurang
+              karena belanja bahan dan alat, upah dan biaya lain, serta uang
+              yang dibayarkan ke anggota. Cocokkan sesekali dengan uang di
+              tangan dan rekening.
             </p>
           </div>
 
@@ -161,13 +168,16 @@ export function CashPanel({
         )}
       </div>
 
+      <LoanSection loans={loans} members={members} />
+
       <div className="flex items-center justify-between gap-2">
-        <h2 className="text-sm font-medium">Uang keluar ke anggota</h2>
+        <h2 className="text-sm font-medium">Dibayarkan ke anggota</h2>
         <CanWrite area="capital">
           <PayoutDialog
             members={members}
             seasons={seasons}
             photoEnabled={photoEnabled}
+            loanBalances={loans.balances}
           />
         </CanWrite>
       </div>
@@ -214,6 +224,12 @@ export function CashPanel({
                   {row.note ? (
                     <p className="text-muted-foreground text-xs">{row.note}</p>
                   ) : null}
+                  {row.loanOffset ? (
+                    <p className="text-xs text-amber-700 tabular-nums dark:text-amber-400">
+                      Dipotong pinjaman {formatRupiah(row.loanOffset.amount)} ·
+                      diserahkan {formatRupiah(row.amount - row.loanOffset.amount)}
+                    </p>
+                  ) : null}
                 </div>
 
                 <p className="font-semibold tabular-nums">
@@ -227,6 +243,7 @@ export function CashPanel({
                       seasons={seasons}
                       payout={row}
                       photoEnabled={photoEnabled}
+                      loanBalances={loans.balances}
                     />
                     <ConfirmDelete
                       title="Hapus catatan ini?"
@@ -234,7 +251,9 @@ export function CashPanel({
                       consequence={
                         row.type === "CAPITAL_RETURN"
                           ? "Saldo kas dan modal orangnya ikut berubah."
-                          : "Saldo kas ikut berubah."
+                          : row.loanOffset
+                            ? "Saldo kas ikut berubah, dan potongan pinjamannya batal — pinjamannya kembali seperti sebelum dipotong."
+                            : "Saldo kas ikut berubah."
                       }
                       action={deletePayout}
                       fields={{ payoutId: row.id }}
@@ -318,6 +337,134 @@ function SourceList({
           </li>
         ))}
       </ul>
+    </div>
+  );
+}
+
+const loanTypeLabels = { LENT: "Pinjam", REPAID: "Kembali" } as const;
+
+/**
+ * Uang kas yang sedang dipinjam anggota.
+ *
+ * Sisa per orang di atas, karena itu yang ditanyakan; riwayatnya di bawah,
+ * karena itu yang dicari kalau angkanya diperdebatkan.
+ */
+function LoanSection({
+  loans,
+  members,
+}: {
+  loans: LoanReport;
+  members: MemberOption[];
+}) {
+  const total = loans.outstanding.reduce((sum, row) => sum + row.amount, 0);
+
+  return (
+    <div className="grid gap-3">
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <h2 className="text-sm font-medium">Pinjaman anggota</h2>
+        <CanWrite area="capital">
+          <div className="flex flex-wrap gap-2">
+            <LoanDialog
+              type="REPAID"
+              members={loans.outstanding.map((row) => row.user)}
+              balances={loans.balances}
+            />
+            <LoanDialog type="LENT" members={members} balances={loans.balances} />
+          </div>
+        </CanWrite>
+      </div>
+
+      {loans.entries.length === 0 ? (
+        <p className="text-muted-foreground rounded-md border border-dashed px-3 py-3 text-xs">
+          Kalau ada anggota yang meminjam uang kas untuk keperluan pribadi,
+          catat di sini. Kas berkurang saat dipinjam dan bertambah lagi saat
+          dikembalikan. Sisa yang belum kembali dipotong dari bagi hasilnya.
+        </p>
+      ) : (
+        <Card className="py-3">
+          <CardContent className="grid gap-3 px-4">
+            {loans.outstanding.length === 0 ? (
+              <p className="text-muted-foreground text-sm">
+                Semua pinjaman sudah lunas.
+              </p>
+            ) : (
+              <ul className="grid gap-1.5" aria-label="Sisa pinjaman">
+                {loans.outstanding.map((row) => (
+                  <li
+                    key={row.user.id}
+                    className="flex items-baseline justify-between gap-2 text-sm"
+                  >
+                    <span className="min-w-0 truncate">{row.user.name}</span>
+                    <span className="font-semibold tabular-nums">
+                      {formatRupiah(row.amount)}
+                    </span>
+                  </li>
+                ))}
+                {loans.outstanding.length > 1 ? (
+                  <li className="text-muted-foreground flex items-baseline justify-between gap-2 border-t pt-1.5 text-xs">
+                    <span>Total belum kembali</span>
+                    <span className="tabular-nums">{formatRupiah(total)}</span>
+                  </li>
+                ) : null}
+              </ul>
+            )}
+
+            <details className="border-t pt-2">
+              <summary className="text-muted-foreground cursor-pointer text-xs">
+                Riwayat pinjaman ({loans.entries.length})
+              </summary>
+              <ul className="mt-2 divide-y">
+                {loans.entries.map((entry) => (
+                  <li
+                    key={entry.id}
+                    className="flex flex-wrap items-center gap-2 py-2 text-sm"
+                  >
+                    <div className="min-w-0 flex-1">
+                      <p className="flex flex-wrap items-center gap-2">
+                        {entry.user.name}
+                        <Badge variant="secondary">
+                          {loanTypeLabels[entry.type]}
+                        </Badge>
+                      </p>
+                      <p className="text-muted-foreground text-xs">
+                        {formatDate(entry.date)}
+                        {entry.payoutId
+                          ? " · dipotong dari bagi hasil"
+                          : entry.note
+                            ? ` · ${entry.note}`
+                            : ""}
+                      </p>
+                    </div>
+                    <span
+                      className={cn(
+                        "tabular-nums",
+                        entry.type === "LENT"
+                          ? "text-destructive"
+                          : "text-emerald-700 dark:text-emerald-400",
+                      )}
+                    >
+                      {entry.type === "LENT" ? "−" : "+"}
+                      {formatRupiah(entry.amount)}
+                    </span>
+                    {entry.payoutId ? null : (
+                      <CanWrite area="capital">
+                        <ConfirmDelete
+                          title="Hapus catatan pinjaman ini?"
+                          itemName={`${entry.user.name} · ${formatRupiah(entry.amount)}`}
+                          consequence="Saldo kas dan sisa pinjamannya ikut berubah."
+                          action={deleteLoanEntry}
+                          fields={{ entryId: entry.id }}
+                          iconOnly
+                        />
+                      </CanWrite>
+                    )}
+                  </li>
+                ))}
+              </ul>
+            </details>
+          </CardContent>
+        </Card>
+      )}
     </div>
   );
 }
