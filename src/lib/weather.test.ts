@@ -3,6 +3,8 @@ import { describe, expect, it } from "vitest";
 import {
   RAIN_TRACE_MM,
   RAIN_WASHOUT_MM,
+  isPastSlot,
+  slotStart,
   nextSprayWindow,
   sprayReason,
   sprayVerdict,
@@ -240,5 +242,53 @@ describe("sprayReason", () => {
 
   it("stays quiet when there is nothing to explain", () => {
     expect(sprayReason(day({ slots: 0 }))).toBe("");
+  });
+});
+
+describe("isPastSlot", () => {
+  // Sabtu 21 Nov 2026, 07:30 WIB.
+  const now = new Date("2026-11-21T00:30:00Z");
+
+  /**
+   * Cache sejam yang kedaluwarsa tetap disajikan sekali lagi. Kebun yang dibuka
+   * pagi setelah semalam sepi menerima ramalan semalam — slot kemarin ikut, dan
+   * kartunya menampilkan kemarin sebagai kolom pertama.
+   */
+  it("drops slots from a stale forecast that have already ended", () => {
+    // Jumat 22:00 WIB
+    expect(isPastSlot("2026-11-20T22:00:00+07:00", now)).toBe(true);
+    // Sabtu 04:00 WIB, berakhir 07:00 — sudah lewat
+    expect(isPastSlot("2026-11-21T04:00:00+07:00", now)).toBe(true);
+  });
+
+  it("keeps the slot still running and everything after it", () => {
+    // Sabtu 07:00 WIB, berlaku sampai 10:00
+    expect(isPastSlot("2026-11-21T07:00:00+07:00", now)).toBe(false);
+    expect(isPastSlot("2026-11-21T13:00:00+07:00", now)).toBe(false);
+  });
+
+  it("keeps a slot it cannot date rather than emptying the card", () => {
+    expect(isPastSlot(null, now)).toBe(false);
+    expect(isPastSlot("bukan tanggal", now)).toBe(false);
+  });
+});
+
+describe("slotStart", () => {
+  it("prefers BMKG's UTC time", () => {
+    expect(slotStart("2026-11-21 00:00:00", "2026-11-21 07:00:00", "+0700")).toBe(
+      "2026-11-21T00:00:00Z"
+    );
+  });
+
+  /** Tanpa offset, jam setempat dibaca sebagai jam server — UTC di produksi. */
+  it("falls back to local time with the location's offset", () => {
+    const start = slotStart(undefined, "2026-11-21 07:00:00", "+0700");
+    expect(start).toBe("2026-11-21T07:00:00+07:00");
+    expect(Date.parse(start!)).toBe(Date.parse("2026-11-21T00:00:00Z"));
+  });
+
+  it("gives up rather than guess the zone", () => {
+    expect(slotStart(undefined, "2026-11-21 07:00:00", undefined)).toBeNull();
+    expect(slotStart(undefined, "2026-11-21 07:00:00", "Asia/Jakarta")).toBeNull();
   });
 });

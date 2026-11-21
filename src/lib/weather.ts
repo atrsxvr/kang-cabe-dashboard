@@ -101,6 +101,53 @@ export type DayWindow = {
   slots: number;
 };
 
+/** BMKG mengirim satu slot tiap tiga jam; satu slot berlaku sampai slot berikutnya. */
+const SLOT_HOURS = 3;
+
+/**
+ * Slot yang jamnya sudah habis.
+ *
+ * Ramalan yang sampai ke sini tidak selalu segar. Fetch-nya di-cache sejam,
+ * dan cache yang kedaluwarsa tetap disajikan sekali lagi sambil diperbarui di
+ * belakang — jadi kebun yang dibuka pagi hari setelah semalam sepi menerima
+ * ramalan semalam, lengkap dengan slot-slot hari kemarin. Kartunya lalu
+ * menampilkan kemarin di kolom pertama dan memberi vonis untuk hari yang sudah
+ * lewat. Membuang slot yang sudah habis membuat isinya benar apa pun umur
+ * cache-nya, termasuk kalau BMKG sendiri yang mengirim data lama.
+ *
+ * `start` harus membawa zonanya — lihat `slotStart`. Yang tidak bisa dibaca
+ * dipertahankan: lebih baik menampilkan satu slot lama daripada mengosongkan
+ * kartu karena satu kolom hilang.
+ */
+export function isPastSlot(start: string | null, now: Date): boolean {
+  if (!start) return false;
+
+  const ms = Date.parse(start);
+  if (Number.isNaN(ms)) return false;
+
+  return ms + SLOT_HOURS * 3_600_000 <= now.getTime();
+}
+
+/**
+ * Awal slot BMKG sebagai waktu yang zonanya jelas.
+ *
+ * `utc_datetime` dulu; kalau tidak ada, `local_datetime` ditambah offset
+ * lokasinya ("+0700"). `local_datetime` saja tidak cukup — tanpa offset ia
+ * dibaca sebagai jam server, yang di produksi UTC, dan meleset tujuh jam.
+ */
+export function slotStart(
+  utc: string | undefined,
+  local: string | undefined,
+  offset: string | undefined
+): string | null {
+  if (utc) return `${utc.replace(" ", "T")}Z`;
+
+  const zone = offset?.match(/^([+-]\d{2}):?(\d{2})$/);
+  if (local && zone) return `${local.replace(" ", "T")}${zone[1]}:${zone[2]}`;
+
+  return null;
+}
+
 const hourOf = (time: string) => Number(time.slice(11, 13));
 export const dateOf = (time: string) => time.slice(0, 10);
 
