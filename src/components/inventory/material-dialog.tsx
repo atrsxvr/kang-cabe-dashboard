@@ -1,13 +1,13 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
 import { FlaskConical, Pencil } from "lucide-react";
 import { toast } from "sonner";
 
 import { dateInputValue, Field } from "@/components/common/form-field";
 import { NativeSelect } from "@/components/common/native-select";
 import { SubmitButton } from "@/components/common/submit-button";
+import { useSaveAndRefresh } from "@/components/common/use-save-and-refresh";
 import {
   materialCategoryLabels,
   UNIT_OPTIONS,
@@ -56,7 +56,7 @@ export function MaterialDialog({
   const [packSize, setPackSize] = useState(
     material?.purchaseSize ? String(material.purchaseSize) : "",
   );
-  const router = useRouter();
+  const { refreshing, saved, finish } = useSaveAndRefresh();
 
   async function onSubmit(formData: FormData) {
     const result = editing
@@ -69,10 +69,10 @@ export function MaterialDialog({
       return;
     }
 
-    setErrors({});
-    setOpen(false);
-    toast.success(editing ? "Bahan diperbarui." : "Bahan ditambahkan.");
-    router.refresh();
+    finish(editing ? "Bahan diperbarui." : "Bahan ditambahkan.", () => {
+      setErrors({});
+      setOpen(false);
+    });
   }
 
   return (
@@ -360,7 +360,7 @@ export function MaterialDialog({
             >
               Batal
             </Button>
-            <SubmitButton>
+            <SubmitButton busy={refreshing} saved={saved}>
               {editing ? "Simpan Perubahan" : "Simpan Bahan"}
             </SubmitButton>
           </DialogFooter>

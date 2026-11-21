@@ -1,13 +1,13 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
 import { Pencil, Wrench } from "lucide-react";
 import { toast } from "sonner";
 
 import { dateInputValue, Field } from "@/components/common/form-field";
 import { NativeSelect } from "@/components/common/native-select";
 import { SubmitButton } from "@/components/common/submit-button";
+import { useSaveAndRefresh } from "@/components/common/use-save-and-refresh";
 import { toolConditionLabels } from "@/components/inventory/inventory-labels";
 import { Button } from "@/components/ui/button";
 import {
@@ -28,7 +28,7 @@ export function ToolDialog({ tool }: { tool?: ToolRow }) {
   const editing = Boolean(tool);
   const [open, setOpen] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
-  const router = useRouter();
+  const { refreshing, saved, finish } = useSaveAndRefresh();
 
   async function onSubmit(formData: FormData) {
     const result = editing
@@ -41,10 +41,10 @@ export function ToolDialog({ tool }: { tool?: ToolRow }) {
       return;
     }
 
-    setErrors({});
-    setOpen(false);
-    toast.success(editing ? "Alat diperbarui." : "Alat ditambahkan.");
-    router.refresh();
+    finish(editing ? "Alat diperbarui." : "Alat ditambahkan.", () => {
+      setErrors({});
+      setOpen(false);
+    });
   }
 
   return (
@@ -187,7 +187,7 @@ export function ToolDialog({ tool }: { tool?: ToolRow }) {
             >
               Batal
             </Button>
-            <SubmitButton>
+            <SubmitButton busy={refreshing} saved={saved}>
               {editing ? "Simpan Perubahan" : "Simpan Alat"}
             </SubmitButton>
           </DialogFooter>

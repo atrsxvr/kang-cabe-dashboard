@@ -39,7 +39,7 @@ export function TaskBoard({
     // Three columns do not fit a phone. Scrolling horizontally keeps the board
     // shape intact; the Tabel view is there for anyone who prefers not to.
     <div className="-mx-4 overflow-x-auto px-4 pb-2 sm:mx-0 sm:px-0">
-      <div className="grid min-w-[46rem] grid-cols-3 gap-4">
+      <div className="grid min-w-[46rem] grid-cols-3 gap-4" data-fresh-scope="">
         {taskStatuses.map((status) => {
           const column = tasks.filter((task) => task.status === status);
 

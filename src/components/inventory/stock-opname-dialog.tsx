@@ -1,13 +1,13 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
 import { ClipboardCheck } from "lucide-react";
 import { toast } from "sonner";
 
 import { Field } from "@/components/common/form-field";
 import { NativeSelect } from "@/components/common/native-select";
 import { SubmitButton } from "@/components/common/submit-button";
+import { useSaveAndRefresh } from "@/components/common/use-save-and-refresh";
 import { materialCategoryLabels } from "@/components/inventory/inventory-labels";
 import { Button } from "@/components/ui/button";
 import {
@@ -48,7 +48,7 @@ export function StockOpnameDialog({
   // Kept so the differences can be shown as they are typed — an opname where
   // you cannot see the gap is just data entry.
   const [counted, setCounted] = useState<Record<string, string>>({});
-  const router = useRouter();
+  const { refreshing, saved, finish } = useSaveAndRefresh();
 
   const reset = () => {
     setErrors({});
@@ -76,10 +76,10 @@ export function StockOpnameDialog({
       return;
     }
 
-    setOpen(false);
-    reset();
-    toast.success(result.message ?? "Opname tersimpan.");
-    router.refresh();
+    finish(result.message ?? "Opname tersimpan.", () => {
+      setOpen(false);
+      reset();
+    });
   }
 
   if (rows.length === 0) return null;
@@ -236,7 +236,7 @@ export function StockOpnameDialog({
             >
               Batal
             </Button>
-            <SubmitButton>Simpan Opname</SubmitButton>
+            <SubmitButton busy={refreshing} saved={saved}>Simpan Opname</SubmitButton>
           </DialogFooter>
         </form>
       </DialogContent>

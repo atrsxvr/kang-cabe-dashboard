@@ -30,6 +30,7 @@ import type {
 } from "@/server/queries/cash";
 import type { SeasonSummary } from "@/server/queries/seasons";
 import type { MemberOption } from "@/server/queries/users";
+import { EmptyState } from "@/components/common/empty-state";
 
 const payoutLabels: Record<PayoutRow["type"], string> = {
   PROFIT_SHARE: "Bagi hasil",
@@ -63,7 +64,7 @@ export function CashPanel({
   return (
     <div className="grid gap-6">
       <Card>
-        <CardContent className="grid gap-4 py-5">
+        <CardContent className="grid gap-4">
           <div className="grid gap-1 text-center">
             <p className="text-muted-foreground text-sm">Saldo kas sekarang</p>
             <p
@@ -183,17 +184,11 @@ export function CashPanel({
       </div>
 
       {payouts.length === 0 ? (
-        <Card>
-          <CardContent className="flex flex-col items-center gap-3 py-10 text-center">
-            <div className="bg-muted rounded-lg p-3">
-              <HandCoins className="text-muted-foreground size-6" aria-hidden />
-            </div>
-            <p className="text-muted-foreground max-w-sm text-sm">
-              Catat di sini tiap bagi hasil yang dibayarkan atau modal yang
-              ditarik, biar saldo kas nggak kelebihan.
-            </p>
-          </CardContent>
-        </Card>
+        <EmptyState
+          icon={HandCoins}
+          description="Catat di sini tiap bagi hasil yang dibayarkan atau modal yang ditarik, biar saldo kas nggak kelebihan."
+          compact
+        />
       ) : (
         <div className="grid gap-3">
           {payouts.map((row) => (
@@ -268,7 +263,7 @@ export function CashPanel({
       )}
 
       <Card>
-        <CardContent className="grid gap-3 py-5">
+        <CardContent className="grid gap-3">
           <div className="flex items-center gap-2">
             <BookOpen className="text-muted-foreground size-4" aria-hidden />
             <h2 className="text-sm font-medium">Buku kas</h2>

@@ -1,13 +1,13 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
 import { CalendarPlus } from "lucide-react";
 import { toast } from "sonner";
 
 import { Field } from "@/components/common/form-field";
 import { NativeSelect } from "@/components/common/native-select";
 import { SubmitButton } from "@/components/common/submit-button";
+import { useSaveAndRefresh } from "@/components/common/use-save-and-refresh";
 import { phaseLabels } from "@/components/health/recipe-labels";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -58,7 +58,7 @@ export function ProgramDialog({
   );
   const [fromHst, setFromHst] = useState(String(currentHst));
   const [toHst, setToHst] = useState(String(currentHst + 30));
-  const router = useRouter();
+  const { refreshing, saved, finish } = useSaveAndRefresh();
 
   const recipe = routine.find((item) => item.id === recipeId) ?? routine[0];
 
@@ -81,10 +81,10 @@ export function ProgramDialog({
       return;
     }
 
-    setErrors({});
-    setOpen(false);
-    toast.success(result.message ?? "Program dijadwalkan.");
-    router.refresh();
+    finish(result.message ?? "Program dijadwalkan.", () => {
+      setErrors({});
+      setOpen(false);
+    });
   }
 
   if (routine.length === 0) return null;
@@ -243,7 +243,7 @@ export function ProgramDialog({
             >
               Batal
             </Button>
-            <SubmitButton>Jadwalkan {count} Tugas</SubmitButton>
+            <SubmitButton busy={refreshing} saved={saved}>Jadwalkan {count} Tugas</SubmitButton>
           </DialogFooter>
         </form>
       </DialogContent>

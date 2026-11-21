@@ -25,6 +25,7 @@ import {
 import { calculateHst, formatDate } from "@/lib/hst";
 import { listSeasonRows } from "@/server/queries/seasons";
 import { canArchiveSeason } from "@/server/actions/schemas";
+import { EmptyState } from "@/components/common/empty-state";
 
 export const metadata: Metadata = { title: "Manajemen Musim" };
 
@@ -52,7 +53,7 @@ export default async function SeasonsPage() {
       </div>
 
       {seasons.length === 0 ? (
-        <EmptyState />
+        <NoSeasons />
       ) : (
         <>
           {/* Cards on a phone. Eight columns at 360px left only the name and
@@ -214,20 +215,12 @@ function SeasonActions({
   );
 }
 
-function EmptyState() {
+function NoSeasons() {
   return (
-    <Card>
-      <CardContent className="flex flex-col items-center gap-3 py-14 text-center">
-        <div className="bg-muted rounded-lg p-3">
-          <Sprout className="text-muted-foreground size-6" aria-hidden />
-        </div>
-        <div>
-          <p className="font-medium">Belum ada musim tanam</p>
-          <p className="text-muted-foreground mt-1 text-sm">
-            Buat musim pertama untuk mulai mencatat tugas, panen, dan keuangan.
-          </p>
-        </div>
-      </CardContent>
-    </Card>
+    <EmptyState
+      icon={Sprout}
+      title="Belum ada musim tanam"
+      description="Buat musim pertama untuk mulai mencatat tugas, panen, dan keuangan."
+    />
   );
 }

@@ -54,6 +54,7 @@ import { listSeasons, resolveSeason } from "@/server/queries/seasons";
 import { listDoneTaskOptions } from "@/server/queries/tasks";
 import { listActiveMembers } from "@/server/queries/users";
 import { isPhotoUploadEnabled } from "@/server/storage";
+import { EmptyState } from "@/components/common/empty-state";
 
 export const metadata: Metadata = { title: "Keuangan & Kas" };
 
@@ -277,7 +278,7 @@ export default async function FinancePage(props: PageProps<"/finance">) {
             <PricingCard guide={pricing} seasonId={season.id} />
 
             <Card>
-              <CardContent className="grid gap-3 py-5">
+              <CardContent className="grid gap-3">
                 <div className="flex items-center gap-2">
                   <Wrench className="text-muted-foreground size-4" aria-hidden />
                   <h2 className="text-sm font-medium">Uang keluar buat alat</h2>
@@ -325,7 +326,7 @@ export default async function FinancePage(props: PageProps<"/finance">) {
         }
         sharing={
           <Card>
-            <CardContent className="grid gap-4 py-5">
+            <CardContent className="grid gap-4">
               <div className="flex items-center gap-2">
                 <Users className="text-muted-foreground size-4" aria-hidden />
                 <h2 className="text-sm font-medium">
@@ -395,7 +396,7 @@ export default async function FinancePage(props: PageProps<"/finance">) {
         seasons={
           <div className="grid gap-6">
             <Card>
-              <CardContent className="py-5">
+              <CardContent>
                 <h2 className="mb-3 text-sm font-medium">
                   Masuk vs keluar per musim
                 </h2>
@@ -404,7 +405,7 @@ export default async function FinancePage(props: PageProps<"/finance">) {
             </Card>
 
             <Card>
-              <CardContent className="grid gap-2 py-5">
+              <CardContent className="grid gap-2">
                 <h2 className="text-sm font-medium">
                   Sisa per kilo &amp; hasil per pohon
                 </h2>
@@ -594,7 +595,7 @@ function Breakdown({
 }) {
   return (
     <Card>
-      <CardContent className="grid gap-3 py-5">
+      <CardContent className="grid gap-3">
         <div className="flex items-center gap-2">
           <Icon className="text-muted-foreground size-4" aria-hidden />
           <h2 className="text-sm font-medium">{title}</h2>
@@ -640,22 +641,15 @@ function NoSeason() {
   return (
     <>
       <PageHeader title="Keuangan & Kas" />
-      <Card>
-        <CardContent className="flex flex-col items-center gap-3 py-14 text-center">
-          <div className="bg-muted rounded-lg p-3">
-            <Coins className="text-muted-foreground size-6" aria-hidden />
-          </div>
-          <div>
-            <p className="font-medium">Belum ada musim tanam</p>
-            <p className="text-muted-foreground mt-1 text-sm">
-              Biaya selalu dihitung per musim, jadi buat musimnya dulu.
-            </p>
-          </div>
-          <Button asChild size="sm">
-            <Link href="/seasons">Ke Manajemen Musim</Link>
-          </Button>
-        </CardContent>
-      </Card>
+      <EmptyState
+        icon={Coins}
+        title="Belum ada musim tanam"
+        description="Biaya selalu dihitung per musim, jadi buat musimnya dulu."
+      >
+        <Button asChild size="sm">
+          <Link href="/seasons">Ke Manajemen Musim</Link>
+        </Button>
+      </EmptyState>
     </>
   );
 }

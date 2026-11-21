@@ -38,7 +38,7 @@ export function BuyerDialog({
   const editing = Boolean(buyer);
   const [open, setOpen] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
-  const { refreshing, finish } = useSaveAndRefresh();
+  const { refreshing, saved, finish } = useSaveAndRefresh();
 
   async function onSubmit(formData: FormData) {
     const result = editing ? await updateBuyer(formData) : await createBuyer(formData);
@@ -93,7 +93,7 @@ export function BuyerDialog({
             <Button type="button" variant="secondary" onClick={() => setOpen(false)}>
               Batal
             </Button>
-            <SubmitButton busy={refreshing}>Simpan</SubmitButton>
+            <SubmitButton busy={refreshing} saved={saved}>Simpan</SubmitButton>
           </DialogFooter>
         </form>
       </DialogContent>

@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
 import { Stethoscope, ZoomIn } from "lucide-react";
 import { toast } from "sonner";
 
@@ -9,6 +8,7 @@ import { NativeSelect } from "@/components/common/native-select";
 import { PhotoViewer } from "@/components/health/photo-viewer";
 import { RecipePicker } from "@/components/health/recipe-picker";
 import { SubmitButton } from "@/components/common/submit-button";
+import { useSaveAndRefresh } from "@/components/common/use-save-and-refresh";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -41,7 +41,7 @@ export function DiagnoseDialog({
   const [errors, setErrors] = useState<Record<string, string>>({});
   // Controlled so the recipe picker can write into it.
   const [treatment, setTreatment] = useState(finding.treatment ?? "");
-  const router = useRouter();
+  const { refreshing, saved, finish } = useSaveAndRefresh();
 
   // Agronomists first: this form is theirs, so their name should be the
   // default rather than buried in the list.
@@ -58,10 +58,10 @@ export function DiagnoseDialog({
       return;
     }
 
-    setErrors({});
-    setOpen(false);
-    toast.success("Diagnosa tersimpan. Temuan menunggu penanganan.");
-    router.refresh();
+    finish("Diagnosa tersimpan. Temuan menunggu penanganan.", () => {
+      setErrors({});
+      setOpen(false);
+    });
   }
 
   const isUpdate = finding.status !== "REPORTED";
@@ -198,7 +198,7 @@ export function DiagnoseDialog({
             >
               Batal
             </Button>
-            <SubmitButton>Simpan Diagnosa</SubmitButton>
+            <SubmitButton busy={refreshing} saved={saved}>Simpan Diagnosa</SubmitButton>
           </DialogFooter>
         </form>
       </DialogContent>

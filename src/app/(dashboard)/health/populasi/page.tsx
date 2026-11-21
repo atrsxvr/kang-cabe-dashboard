@@ -18,6 +18,7 @@ import { listFindingsBySeason } from "@/server/queries/findings";
 import { harvestSummary, listPlantEvents } from "@/server/queries/harvest";
 import { resolveSeason } from "@/server/queries/seasons";
 import { listActiveMembers } from "@/server/queries/users";
+import { EmptyState } from "@/components/common/empty-state";
 
 export const metadata: Metadata = { title: "Populasi Tanaman" };
 
@@ -91,21 +92,11 @@ export default async function PopulationPage(
       </p>
 
       {events.length === 0 ? (
-        <Card>
-          <CardContent className="flex flex-col items-center gap-3 py-14 text-center">
-            <div className="bg-muted rounded-lg p-3">
-              <Sprout className="text-muted-foreground size-6" aria-hidden />
-            </div>
-            <div>
-              <p className="font-medium">Belum ada catatan</p>
-              <p className="text-muted-foreground mt-1 text-sm">
-                Catat pokok yang mati biar populasinya nggak cuma tebakan. Yang
-                mati setelah tanaman besar nggak akan disulam lagi — lubangnya
-                tetap kosong sampai musim habis.
-              </p>
-            </div>
-          </CardContent>
-        </Card>
+        <EmptyState
+          icon={Sprout}
+          title="Belum ada catatan"
+          description="Catat pokok yang mati biar populasinya nggak cuma tebakan. Yang mati setelah tanaman besar nggak akan disulam lagi — lubangnya tetap kosong sampai musim habis."
+        />
       ) : (
         <div className="grid gap-3">
           {events.map((event) => {
@@ -219,22 +210,15 @@ function NoSeason() {
   return (
     <>
       <PageHeader title="Kesehatan & Monitoring" />
-      <Card>
-        <CardContent className="flex flex-col items-center gap-3 py-14 text-center">
-          <div className="bg-muted rounded-lg p-3">
-            <Sprout className="text-muted-foreground size-6" aria-hidden />
-          </div>
-          <div>
-            <p className="font-medium">Belum ada musim tanam</p>
-            <p className="text-muted-foreground mt-1 text-sm">
-              Populasi selalu melekat pada satu musim, jadi buat musimnya dulu.
-            </p>
-          </div>
-          <Button asChild size="sm">
-            <Link href="/seasons">Ke Manajemen Musim</Link>
-          </Button>
-        </CardContent>
-      </Card>
+      <EmptyState
+        icon={Sprout}
+        title="Belum ada musim tanam"
+        description="Populasi selalu melekat pada satu musim, jadi buat musimnya dulu."
+      >
+        <Button asChild size="sm">
+          <Link href="/seasons">Ke Manajemen Musim</Link>
+        </Button>
+      </EmptyState>
     </>
   );
 }

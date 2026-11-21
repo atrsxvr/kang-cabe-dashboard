@@ -10,6 +10,7 @@ import { deleteContribution } from "@/server/actions/capital";
 import type { CapitalSummary, ContributionRow } from "@/server/queries/capital";
 import type { SeasonSummary } from "@/server/queries/seasons";
 import type { MemberOption } from "@/server/queries/users";
+import { EmptyState } from "@/components/common/empty-state";
 
 export function CapitalPanel({
   summary,
@@ -27,7 +28,7 @@ export function CapitalPanel({
   return (
     <div className="grid gap-6">
       <Card>
-        <CardContent className="grid gap-4 py-5">
+        <CardContent className="grid gap-4">
           <div className="grid gap-1 text-center">
             <p className="text-muted-foreground text-sm">
               Total modal bersih
@@ -105,21 +106,14 @@ export function CapitalPanel({
       </div>
 
       {contributions.length === 0 ? (
-        <Card>
-          <CardContent className="flex flex-col items-center gap-3 py-14 text-center">
-            <div className="bg-muted rounded-lg p-3">
-              <HandCoins className="text-muted-foreground size-6" aria-hidden />
-            </div>
-            <p className="text-muted-foreground text-sm">
-              Catat iuran awal tiap orang di sini, biar ketahuan siapa sudah
-              nyetor berapa.
-            </p>
-          </CardContent>
-        </Card>
+        <EmptyState
+          icon={HandCoins}
+          description="Catat iuran awal tiap orang di sini, biar ketahuan siapa sudah nyetor berapa."
+        />
       ) : (
-        <div className="grid gap-3">
+        <div className="grid gap-3" data-fresh-scope="">
           {contributions.map((row) => (
-            <Card key={row.id} className="py-3">
+            <Card key={row.id} className="py-3" data-fresh-key={row.id}>
               <CardContent className="flex flex-wrap items-center gap-3 px-4">
                 <div className="min-w-0 flex-1">
                   <p className="font-medium">{row.user.name}</p>

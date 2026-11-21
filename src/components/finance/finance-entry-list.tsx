@@ -11,6 +11,7 @@ import { cn } from "@/lib/utils";
 import { deleteFinanceEntry } from "@/server/actions/finance";
 import type { FinanceEntryRow } from "@/server/queries/finance";
 import type { TaskOption } from "@/server/queries/tasks";
+import { EmptyState } from "@/components/common/empty-state";
 
 export function FinanceEntryList({
   entries,
@@ -25,30 +26,21 @@ export function FinanceEntryList({
 }) {
   if (entries.length === 0) {
     return (
-      <Card>
-        <CardContent className="flex flex-col items-center gap-3 py-14 text-center">
-          <div className="bg-muted rounded-lg p-3">
-            <ReceiptText className="text-muted-foreground size-6" aria-hidden />
-          </div>
-          <div>
-            <p className="font-medium">Belum ada catatan</p>
-            <p className="text-muted-foreground mt-1 text-sm">
-              Upah, sewa, transport — yang nggak lewat gudang atau timbangan
-              dicatat di sini.
-            </p>
-          </div>
-        </CardContent>
-      </Card>
+      <EmptyState
+        icon={ReceiptText}
+        title="Belum ada catatan"
+        description="Upah, sewa, transport — yang nggak lewat gudang atau timbangan dicatat di sini."
+      />
     );
   }
 
   return (
-    <div className="grid gap-3">
+    <div className="grid gap-3" data-fresh-scope="">
       {entries.map((entry) => {
         const outgoing = entry.type === "EXPENSE";
 
         return (
-          <Card key={entry.id} className="py-3">
+          <Card key={entry.id} className="py-3" data-fresh-key={entry.id}>
             <CardContent className="flex flex-wrap items-center gap-3 px-4">
               <div className="min-w-0 flex-1">
                 <p className="font-medium">{entry.description}</p>

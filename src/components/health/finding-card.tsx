@@ -63,7 +63,10 @@ export function FindingCard({
     ? canManageFinding(actor, finding.reportedBy?.id ?? null)
     : false;
   return (
-    <Card className="overflow-hidden py-0">
+    <Card
+      className="overflow-hidden py-0"
+      data-fresh-key={`${finding.id}:${finding.status}`}
+    >
       <div>
         <CardContent className="min-w-0 flex-1 p-4">
           <div className="mb-2 flex flex-wrap items-center gap-2">

@@ -41,7 +41,7 @@ export function TodayCard({
 
   return (
     <Card>
-      <CardContent className="grid gap-3 py-5">
+      <CardContent className="grid gap-3">
         <div className="flex items-center justify-between gap-2">
           <div className="flex items-center gap-2">
             <CalendarCheck

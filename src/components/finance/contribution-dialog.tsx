@@ -56,7 +56,7 @@ export function ContributionDialog({
   const [proof, setProof] = useState<File | null>(null);
   const [keepProof, setKeepProof] = useState(Boolean(contribution?.proofUrl));
   const inputRef = useRef<HTMLInputElement>(null);
-  const { refreshing, finish } = useSaveAndRefresh();
+  const { refreshing, saved, finish } = useSaveAndRefresh();
 
   const reset = () => {
     setErrors({});
@@ -266,7 +266,7 @@ export function ContributionDialog({
             >
               Batal
             </Button>
-            <SubmitButton busy={refreshing}>
+            <SubmitButton busy={refreshing} saved={saved}>
               {editing ? "Simpan Perubahan" : "Simpan Setoran"}
             </SubmitButton>
           </DialogFooter>

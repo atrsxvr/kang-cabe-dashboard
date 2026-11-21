@@ -38,7 +38,7 @@ export function SpreadCard({ points }: { points: SpreadPoint[] }) {
 
   return (
     <Card>
-      <CardContent className="grid gap-3 py-5">
+      <CardContent className="grid gap-3">
         <div className="flex items-center gap-2">
           <Sigma className="text-muted-foreground size-4" aria-hidden />
           <h2 className="text-sm font-medium">Naik-turun hasil panen</h2>

@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
 import { History } from "lucide-react";
 import { toast } from "sonner";
 
@@ -9,6 +8,7 @@ import { Field } from "@/components/common/form-field";
 import { NativeSelect } from "@/components/common/native-select";
 import { RupiahInput } from "@/components/common/rupiah-input";
 import { SubmitButton } from "@/components/common/submit-button";
+import { useSaveAndRefresh } from "@/components/common/use-save-and-refresh";
 import { toolEventLabels } from "@/components/inventory/inventory-labels";
 import { Button } from "@/components/ui/button";
 import {
@@ -47,7 +47,7 @@ export function ToolEventDialog({
   const [type, setType] = useState<string>(
     tool.heldBy ? "RETURNED" : "CHECKED_OUT",
   );
-  const router = useRouter();
+  const { refreshing, saved, finish } = useSaveAndRefresh();
 
   const affectsCount = changesQuantity(type as (typeof toolEventTypes)[number]);
 
@@ -66,10 +66,10 @@ export function ToolEventDialog({
       return;
     }
 
-    setErrors({});
-    setOpen(false);
-    toast.success(`${tool.name}: ${toolEventLabels[type]}.`);
-    router.refresh();
+    finish(`${tool.name}: ${toolEventLabels[type]}.`, () => {
+      setErrors({});
+      setOpen(false);
+    });
   }
 
   return (
@@ -263,7 +263,7 @@ export function ToolEventDialog({
             >
               Batal
             </Button>
-            <SubmitButton>Catat</SubmitButton>
+            <SubmitButton busy={refreshing} saved={saved}>Catat</SubmitButton>
           </DialogFooter>
         </form>
       </DialogContent>

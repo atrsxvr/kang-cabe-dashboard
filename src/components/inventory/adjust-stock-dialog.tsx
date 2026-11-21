@@ -1,13 +1,13 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
 import { Minus } from "lucide-react";
 import { toast } from "sonner";
 
 import { Field } from "@/components/common/form-field";
 import { NativeSelect } from "@/components/common/native-select";
 import { SubmitButton } from "@/components/common/submit-button";
+import { useSaveAndRefresh } from "@/components/common/use-save-and-refresh";
 import { stockReasonLabels } from "@/components/inventory/inventory-labels";
 import { Button } from "@/components/ui/button";
 import {
@@ -49,7 +49,7 @@ export function AdjustStockDialog({
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [amount, setAmount] = useState("");
   const [reason, setReason] = useState("USAGE");
-  const router = useRouter();
+  const { refreshing, saved, finish } = useSaveAndRefresh();
 
   const reset = () => {
     setErrors({});
@@ -69,10 +69,10 @@ export function AdjustStockDialog({
       return;
     }
 
-    setOpen(false);
-    reset();
-    toast.success(`${material.name}: −${formatStock(moved, material.unit)}`);
-    router.refresh();
+    finish(`${material.name}: −${formatStock(moved, material.unit)}`, () => {
+      setOpen(false);
+      reset();
+    });
   }
 
   return (
@@ -218,7 +218,7 @@ export function AdjustStockDialog({
             >
               Batal
             </Button>
-            <SubmitButton>Kurangi</SubmitButton>
+            <SubmitButton busy={refreshing} saved={saved}>Kurangi</SubmitButton>
           </DialogFooter>
         </form>
       </DialogContent>

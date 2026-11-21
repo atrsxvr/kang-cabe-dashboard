@@ -16,6 +16,7 @@ import { deleteSale } from "@/server/actions/harvest";
 import type { BuyerOption } from "@/server/queries/buyers";
 import type { SaleRow } from "@/server/queries/harvest";
 import type { MemberOption } from "@/server/queries/users";
+import { EmptyState } from "@/components/common/empty-state";
 
 export function SaleList({
   sales,
@@ -35,21 +36,17 @@ export function SaleList({
 }) {
   if (sales.length === 0) {
     return (
-      <Card>
-        <CardContent className="flex flex-col items-center gap-3 py-14 text-center">
-          <div className="bg-muted rounded-lg p-3">
-            <Coins className="text-muted-foreground size-6" aria-hidden />
-          </div>
-          <p className="text-muted-foreground text-sm">{empty}</p>
-        </CardContent>
-      </Card>
+      <EmptyState
+        icon={Coins}
+        description={empty}
+      />
     );
   }
 
   return (
-    <div className="grid gap-3">
+    <div className="grid gap-3" data-fresh-scope="">
       {sales.map((sale) => (
-        <Card key={sale.id} className="py-3">
+        <Card key={sale.id} className="py-3" data-fresh-key={sale.id}>
           <CardContent className="grid gap-2 px-4">
             <div className="flex flex-wrap items-start justify-between gap-2">
               <div className="min-w-0">

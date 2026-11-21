@@ -9,7 +9,6 @@ import { FindingStatusBoxes } from "@/components/health/finding-status-boxes";
 import { FindingStatusSelect } from "@/components/health/finding-status-select";
 import { FindingDialog } from "@/components/health/finding-dialog";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
 import { calculateHst, formatDate } from "@/lib/hst";
 import { readStatusParam } from "@/lib/finding-filter";
 import { readSeasonParam } from "@/lib/season-param";
@@ -24,6 +23,7 @@ import { listActiveMembers } from "@/server/queries/users";
 import { canWrite } from "@/lib/permissions";
 import { currentActor } from "@/server/auth/guard";
 import { isPhotoUploadEnabled } from "@/server/storage";
+import { EmptyState } from "@/components/common/empty-state";
 
 export const metadata: Metadata = { title: "Kesehatan & Monitoring" };
 
@@ -86,7 +86,7 @@ export default async function HealthPage(props: PageProps<"/health">) {
       {findings.length === 0 ? (
         <EmptyFindings filtered={Boolean(activeStatus)} />
       ) : (
-        <div className="grid gap-4">
+        <div className="grid gap-4" data-fresh-scope={activeStatus ?? ""}>
           {findings.map((finding) => (
             <FindingCard
               key={finding.id}
@@ -108,23 +108,15 @@ export default async function HealthPage(props: PageProps<"/health">) {
 
 function EmptyFindings({ filtered }: { filtered: boolean }) {
   return (
-    <Card>
-      <CardContent className="flex flex-col items-center gap-3 py-14 text-center">
-        <div className="bg-muted rounded-lg p-3">
-          <Leaf className="text-muted-foreground size-6" aria-hidden />
-        </div>
-        <div>
-          <p className="font-medium">
-            {filtered ? "Tidak ada temuan di tahap ini" : "Belum ada temuan"}
-          </p>
-          <p className="text-muted-foreground mt-1 text-sm">
-            {filtered
-              ? "Pilih tahap lain, atau tampilkan semua temuan."
-              : "Catat apa pun yang terlihat tidak beres saat keliling kebun — Agronomis akan menindaklanjuti."}
-          </p>
-        </div>
-      </CardContent>
-    </Card>
+    <EmptyState
+      icon={Leaf}
+      title={filtered ? "Tidak ada temuan di tahap ini" : "Belum ada temuan"}
+      description={
+        filtered
+          ? "Pilih tahap lain, atau tampilkan semua temuan."
+          : "Catat apa pun yang terlihat tidak beres saat keliling kebun — Agronomis akan menindaklanjuti."
+      }
+    />
   );
 }
 
@@ -132,22 +124,15 @@ function NoSeason() {
   return (
     <>
       <PageHeader title="Kesehatan & Monitoring" />
-      <Card>
-        <CardContent className="flex flex-col items-center gap-3 py-14 text-center">
-          <div className="bg-muted rounded-lg p-3">
-            <Sprout className="text-muted-foreground size-6" aria-hidden />
-          </div>
-          <div>
-            <p className="font-medium">Belum ada musim tanam</p>
-            <p className="text-muted-foreground mt-1 text-sm">
-              Temuan selalu melekat pada satu musim, jadi buat musimnya dulu.
-            </p>
-          </div>
-          <Button asChild size="sm">
-            <Link href="/seasons">Ke Manajemen Musim</Link>
-          </Button>
-        </CardContent>
-      </Card>
+      <EmptyState
+        icon={Sprout}
+        title="Belum ada musim tanam"
+        description="Temuan selalu melekat pada satu musim, jadi buat musimnya dulu."
+      >
+        <Button asChild size="sm">
+          <Link href="/seasons">Ke Manajemen Musim</Link>
+        </Button>
+      </EmptyState>
     </>
   );
 }

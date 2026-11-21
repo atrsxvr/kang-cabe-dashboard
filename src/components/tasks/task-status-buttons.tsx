@@ -70,6 +70,10 @@ export function TaskStatusButtons({
         return;
       }
 
+      // A short buzz for finishing, felt in a pocket or a gloved hand.
+      // Android only — iOS has no vibration for the web — and silent there.
+      if (target === "DONE") navigator.vibrate?.(18);
+
       if (target === "DONE" && usagePending && !offerUsage) {
         // The dashboard: nowhere here to open the question, so the toast
         // carries it to the tasks page, which opens it on arrival.

@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
 import { Pencil, Plus, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -9,6 +8,7 @@ import { Field } from "@/components/common/form-field";
 import { MaterialCombobox } from "@/components/common/material-combobox";
 import { NativeSelect } from "@/components/common/native-select";
 import { SubmitButton } from "@/components/common/submit-button";
+import { useSaveAndRefresh } from "@/components/common/use-save-and-refresh";
 import {
   kindLabels,
   methodLabels,
@@ -64,7 +64,7 @@ export function RecipeDialog({
   const [rows, setRows] = useState(() =>
     recipe ? recipe.items.map((_, index) => index) : [0],
   );
-  const router = useRouter();
+  const { refreshing, saved, finish } = useSaveAndRefresh();
 
   const reset = () => {
     setErrors({});
@@ -86,10 +86,10 @@ export function RecipeDialog({
       return;
     }
 
-    reset();
-    setOpen(false);
-    toast.success(editing ? "Racikan diperbarui." : "Racikan disimpan.");
-    router.refresh();
+    finish(editing ? "Racikan diperbarui." : "Racikan disimpan.", () => {
+      reset();
+      setOpen(false);
+    });
   }
 
   const close = () => {
@@ -383,7 +383,7 @@ export function RecipeDialog({
             <Button type="button" variant="secondary" onClick={close}>
               Batal
             </Button>
-            <SubmitButton>
+            <SubmitButton busy={refreshing} saved={saved}>
               {editing ? "Simpan Perubahan" : "Simpan Racikan"}
             </SubmitButton>
           </DialogFooter>

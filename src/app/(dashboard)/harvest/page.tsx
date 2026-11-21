@@ -38,6 +38,7 @@ import {
 import { pricingGuide } from "@/server/queries/finance";
 import { resolveSeason } from "@/server/queries/seasons";
 import { listActiveMembers } from "@/server/queries/users";
+import { EmptyState } from "@/components/common/empty-state";
 
 export const metadata: Metadata = { title: "Panen & Penjualan" };
 
@@ -79,7 +80,11 @@ export default async function HarvestPage(props: PageProps<"/harvest">) {
             own, and it used to be Catat Panen. */}
         <div className="flex flex-wrap gap-2">
           <CanWrite area="harvest">
-            <HarvestDialog seasonId={season.id} members={members} />
+            <HarvestDialog
+              seasonId={season.id}
+              members={members}
+              firstOfSeason={harvests.length === 0}
+            />
           </CanWrite>
           <CanWrite area="harvest">
             <SaleDialog
@@ -214,7 +219,7 @@ export default async function HarvestPage(props: PageProps<"/harvest">) {
           <div className="grid gap-6">
             {curve.length > 1 ? (
               <Card>
-                <CardContent className="py-5">
+                <CardContent>
                   <h2 className="mb-1 text-sm font-medium">
                     Hasil panen per umur tanaman
                   </h2>
@@ -245,7 +250,7 @@ export default async function HarvestPage(props: PageProps<"/harvest">) {
           <div className="grid gap-6">
             {trend.length > 0 ? (
               <Card>
-                <CardContent className="py-5">
+                <CardContent>
                   <h2 className="mb-1 text-sm font-medium">
                     Harga jual {gradeLabels.GOOD} per kg
                   </h2>
@@ -335,22 +340,15 @@ function NoSeason() {
   return (
     <>
       <PageHeader title="Panen & Penjualan" />
-      <Card>
-        <CardContent className="flex flex-col items-center gap-3 py-14 text-center">
-          <div className="bg-muted rounded-lg p-3">
-            <Wheat className="text-muted-foreground size-6" aria-hidden />
-          </div>
-          <div>
-            <p className="font-medium">Belum ada musim tanam</p>
-            <p className="text-muted-foreground mt-1 text-sm">
-              Panen selalu melekat pada satu musim, jadi buat musimnya dulu.
-            </p>
-          </div>
-          <Button asChild size="sm">
-            <Link href="/seasons">Ke Manajemen Musim</Link>
-          </Button>
-        </CardContent>
-      </Card>
+      <EmptyState
+        icon={Wheat}
+        title="Belum ada musim tanam"
+        description="Panen selalu melekat pada satu musim, jadi buat musimnya dulu."
+      >
+        <Button asChild size="sm">
+          <Link href="/seasons">Ke Manajemen Musim</Link>
+        </Button>
+      </EmptyState>
     </>
   );
 }

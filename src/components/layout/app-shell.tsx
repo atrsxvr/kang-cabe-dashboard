@@ -5,6 +5,8 @@ import { Menu, Sprout, X } from "lucide-react";
 
 import { SidebarNav } from "@/components/layout/sidebar-nav";
 import { AccountMenu } from "@/components/auth/account-menu";
+import { BottomNav } from "@/components/layout/bottom-nav";
+import { FreshRows } from "@/components/layout/fresh-rows";
 import { OfflineBanner } from "@/components/layout/offline-banner";
 import { NavigationProgress } from "@/components/layout/navigation-progress";
 import { PwaRegister } from "@/components/layout/pwa-register";
@@ -24,7 +26,7 @@ export function AppShell({
   /** Server-rendered node, streamed in via Suspense. */
   seasonSelector: React.ReactNode;
   /** Siapa yang sedang masuk. Ditampilkan di kanan atas beserta jalan keluar. */
-  actor: { name: string; email: string; role: Role };
+  actor: { name: string; email: string; role: Role; image?: string | null };
   children: React.ReactNode;
 }) {
   const [open, setOpen] = useState(false);
@@ -140,7 +142,9 @@ export function AppShell({
         )}
       >
         <div className="border-sidebar-border flex h-14 items-center gap-2 border-b px-4">
-          <Sprout className="text-primary size-5 shrink-0" aria-hidden />
+          <span className="bg-primary text-primary-foreground flex size-7 shrink-0 items-center justify-center rounded-lg">
+            <Sprout className="size-4" aria-hidden />
+          </span>
           <span className="truncate font-semibold">Kang Cabe</span>
           <Button
             ref={closeButtonRef}
@@ -166,7 +170,11 @@ export function AppShell({
       {/* While the drawer is open it owns the screen; the column behind it must
           not be reachable by tab or screen reader. */}
       <div inert={open} className="flex min-w-0 flex-1 flex-col lg:pl-64">
-        <header className="bg-background/95 supports-backdrop-filter:bg-background/75 sticky top-0 z-20 flex h-14 items-center gap-3 border-b px-4 backdrop-blur">
+        <header
+          // Holds still while a page rises in under it (globals.css).
+          style={{ viewTransitionName: "app-header" }}
+          className="bg-background/95 supports-backdrop-filter:bg-background/75 sticky top-0 z-20 flex h-14 items-center gap-3 border-b px-4 backdrop-blur"
+        >
           <Button
             ref={openButtonRef}
             variant="ghost"
@@ -189,18 +197,25 @@ export function AppShell({
               name={actor.name}
               email={actor.email}
               role={actor.role}
+              image={actor.image}
             />
           </div>
         </header>
 
         <OfflineBanner />
         <PwaRegister />
+        <FreshRows />
         {/* useSearchParams: inside Suspense so the shell itself still renders
             on the server. */}
         <Suspense fallback={null}>
           <NavigationProgress />
         </Suspense>
-        <main className="min-w-0 flex-1 p-4 sm:p-6">{children}</main>
+        {/* Bottom padding below `lg` keeps the last card clear of the
+            bottom bar. */}
+        <main className="min-w-0 flex-1 p-4 pb-24 sm:p-6 sm:pb-24 lg:pb-6">
+          {children}
+        </main>
+        <BottomNav />
       </div>
     </div>
   );

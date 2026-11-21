@@ -9,7 +9,6 @@ import {
   useRef,
   useState,
 } from "react";
-import { useRouter } from "next/navigation";
 import { PackagePlus, ShoppingCart, X } from "lucide-react";
 import { toast } from "sonner";
 
@@ -18,6 +17,7 @@ import { MaterialCombobox } from "@/components/common/material-combobox";
 import { NativeSelect } from "@/components/common/native-select";
 import { RupiahInput } from "@/components/common/rupiah-input";
 import { SubmitButton } from "@/components/common/submit-button";
+import { useSaveAndRefresh } from "@/components/common/use-save-and-refresh";
 import {
   UNIT_OPTIONS,
   materialCategoryLabels,
@@ -162,7 +162,7 @@ export function PurchaseDialog({
   const { materials, tools, members, canRegisterMaterials } = sources;
 
   const uid = useId();
-  const router = useRouter();
+  const { refreshing, saved, finish } = useSaveAndRefresh();
   const [open, setOpen] = useState(false);
   const [rows, setRows] = useState<Row[]>([]);
   const [draft, setDraft] = useState<Draft>(() => draftFrom(preset));
@@ -403,13 +403,11 @@ export function PurchaseDialog({
     }
 
     const spent = sum(all);
-    setOpen(false);
-    reset();
-    toast.success(
-      `Belanja tercatat: ${all.length} barang` +
-        (spent > 0 ? `, ${formatRupiah(spent)} keluar dari kas.` : "."),
-    );
-    router.refresh();
+    finish(`Belanja tercatat: ${all.length} barang` +
+        (spent > 0 ? `, ${formatRupiah(spent)} keluar dari kas.` : "."), () => {
+      setOpen(false);
+      reset();
+    });
   }
 
   const newDisabled = draft.kind === "material" && !canRegisterMaterials;
@@ -817,7 +815,7 @@ export function PurchaseDialog({
             >
               Batal
             </Button>
-            <SubmitButton>Simpan Belanja</SubmitButton>
+            <SubmitButton busy={refreshing} saved={saved}>Simpan Belanja</SubmitButton>
           </DialogFooter>
         </form>
       </DialogContent>

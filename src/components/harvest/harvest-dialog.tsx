@@ -4,6 +4,8 @@ import { useState } from "react";
 import { Pencil, Plus } from "lucide-react";
 import { toast } from "sonner";
 
+import { celebrate } from "@/components/common/celebrate";
+
 import { dateInputValue, Field } from "@/components/common/form-field";
 import { NativeSelect } from "@/components/common/native-select";
 import { SubmitButton } from "@/components/common/submit-button";
@@ -35,17 +37,21 @@ export function HarvestDialog({
   seasonId,
   members,
   harvest,
+  firstOfSeason = false,
 }: {
   seasonId: string;
   members: MemberOption[];
   harvest?: HarvestRow;
+  /** Nothing picked yet this season: the first one gets a small fuss. */
+  firstOfSeason?: boolean;
 }) {
   const editing = Boolean(harvest);
   const [open, setOpen] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [good, setGood] = useState(harvest ? String(harvest.goodKg) : "");
   const [reject, setReject] = useState(harvest ? String(harvest.rejectKg) : "");
-  const { refreshing, finish } = useSaveAndRefresh();
+  const { refreshing, saved, finish } = useSaveAndRefresh();
+  const first = firstOfSeason && !harvest;
 
   const total = kgOf(good) + kgOf(reject);
 
@@ -66,10 +72,18 @@ export function HarvestDialog({
       return;
     }
 
-    finish(editing ? "Panen diperbarui." : "Panen tercatat.", () => {
-      setOpen(false);
-      reset();
-    });
+    finish(
+      editing
+        ? "Panen diperbarui."
+        : first
+          ? "Panen pertama musim ini tercatat."
+          : "Panen tercatat.",
+      () => {
+        setOpen(false);
+        reset();
+        if (first) celebrate();
+      },
+    );
   }
 
   return (
@@ -211,7 +225,7 @@ export function HarvestDialog({
             >
               Batal
             </Button>
-            <SubmitButton busy={refreshing}>
+            <SubmitButton busy={refreshing} saved={saved}>
               {editing ? "Simpan Perubahan" : "Simpan Panen"}
             </SubmitButton>
           </DialogFooter>

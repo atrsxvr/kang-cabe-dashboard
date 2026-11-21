@@ -73,7 +73,7 @@ export function PayoutDialog({
   const [proof, setProof] = useState<File | null>(null);
   const [keepProof, setKeepProof] = useState(Boolean(payout?.proofUrl));
   const inputRef = useRef<HTMLInputElement>(null);
-  const { refreshing, finish } = useSaveAndRefresh();
+  const { refreshing, saved, finish } = useSaveAndRefresh();
 
   const reset = () => {
     setErrors({});
@@ -320,7 +320,7 @@ export function PayoutDialog({
             >
               Batal
             </Button>
-            <SubmitButton busy={refreshing}>{editing ? "Simpan Perubahan" : "Simpan"}</SubmitButton>
+            <SubmitButton busy={refreshing} saved={saved}>{editing ? "Simpan Perubahan" : "Simpan"}</SubmitButton>
           </DialogFooter>
         </form>
       </DialogContent>

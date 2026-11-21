@@ -60,7 +60,7 @@ export function TaskTable({
     <>
       {/* A seven-column table is unreadable on a phone even with scrolling, so
           below `md` the same data is shown as cards. */}
-      <div className="grid gap-3 md:hidden">
+      <div className="grid gap-3 md:hidden" data-fresh-scope="">
         {tasks.map((task) => (
           <TaskCard
               canWriteTasks={canWriteTasks}
@@ -95,13 +95,16 @@ export function TaskTable({
                 ) : null}
               </TableRow>
             </TableHeader>
-            <TableBody>
+            <TableBody data-fresh-scope="">
               {tasks.map((task) => {
                 const remaining = daysUntil(task.dueDate);
                 const overdue = task.status !== "DONE" && remaining < 0;
 
                 return (
-                  <TableRow key={task.id}>
+                  <TableRow
+                    key={task.id}
+                    data-fresh-key={`${task.id}:${task.status}`}
+                  >
                     <TableCell className="font-medium">
                       {task.title}
                       {task.description ? (
