@@ -13,6 +13,7 @@ import {
 } from "@/lib/permissions";
 import { prisma } from "@/lib/prisma";
 import { auth } from "@/server/auth/config";
+import { devLoginUserId } from "@/server/auth/dev-login";
 import type { ActionResult } from "@/server/actions/result";
 import { roleAccess } from "@/server/queries/access";
 
@@ -51,10 +52,13 @@ export type Actor = {
  */
 export const currentActor = cache(async (): Promise<Actor | null> => {
   const session = await auth.api.getSession({ headers: await headers() });
-  if (!session?.user?.id) return null;
+  // No session under `next dev` with DEV_LOGIN_AS: that member instead, read
+  // below exactly as a signed-in one would be. Null everywhere else.
+  const userId = session?.user?.id ?? (await devLoginUserId());
+  if (!userId) return null;
 
   const user = await prisma.user.findUnique({
-    where: { id: session.user.id },
+    where: { id: userId },
     select: {
       id: true,
       name: true,
