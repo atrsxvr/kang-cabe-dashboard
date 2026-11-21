@@ -10,6 +10,7 @@ import { formatKg } from "@/lib/harvest";
 import { formatDate } from "@/lib/hst";
 import { formatRupiah } from "@/lib/money";
 import type { BuyerRow } from "@/server/queries/buyers";
+import { EmptyState } from "@/components/common/empty-state";
 
 /**
  * Every buyer, across all seasons. Those still missing their location or
@@ -39,14 +40,11 @@ export function BuyerList({ buyers }: { buyers: BuyerRow[] }) {
       </div>
 
       {buyers.length === 0 ? (
-        <Card>
-          <CardContent className="flex flex-col items-center gap-2 py-10 text-center">
-            <Users className="text-muted-foreground size-6" aria-hidden />
-            <p className="text-muted-foreground text-sm">
-              Pembeli juga bisa ditambahkan langsung dari form Catat Penjualan.
-            </p>
-          </CardContent>
-        </Card>
+        <EmptyState
+          icon={Users}
+          description="Pembeli juga bisa ditambahkan langsung dari form Catat Penjualan."
+          compact
+        />
       ) : (
         buyers.map((buyer) => (
           <Link

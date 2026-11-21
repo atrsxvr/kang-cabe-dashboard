@@ -34,7 +34,7 @@ export function OpeningDialog({ opening }: { opening?: OpeningRow }) {
   const [open, setOpen] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [amount, setAmount] = useState(opening ? String(opening.amount) : "");
-  const { refreshing, finish } = useSaveAndRefresh();
+  const { refreshing, saved, finish } = useSaveAndRefresh();
 
   const reset = () => {
     setErrors({});
@@ -157,7 +157,7 @@ export function OpeningDialog({ opening }: { opening?: OpeningRow }) {
             >
               Batal
             </Button>
-            <SubmitButton busy={refreshing}>
+            <SubmitButton busy={refreshing} saved={saved}>
               {editing ? "Simpan Perubahan" : "Simpan Saldo Awal"}
             </SubmitButton>
           </DialogFooter>

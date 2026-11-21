@@ -38,7 +38,7 @@ export function LossDialog({
 }) {
   const [open, setOpen] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
-  const { refreshing, finish } = useSaveAndRefresh();
+  const { refreshing, saved, finish } = useSaveAndRefresh();
 
   async function onSubmit(formData: FormData) {
     const result = await createHarvestLoss(formData);
@@ -150,7 +150,7 @@ export function LossDialog({
             >
               Batal
             </Button>
-            <SubmitButton busy={refreshing}>Simpan</SubmitButton>
+            <SubmitButton busy={refreshing} saved={saved}>Simpan</SubmitButton>
           </DialogFooter>
         </form>
       </DialogContent>

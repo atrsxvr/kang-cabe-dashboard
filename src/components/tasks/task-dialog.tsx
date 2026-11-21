@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
 import { Pencil, Plus, X } from "lucide-react";
 import { toast } from "sonner";
 
@@ -9,6 +8,7 @@ import { dateInputValue, Field } from "@/components/common/form-field";
 import { daysUntil } from "@/lib/hst";
 import { NativeSelect } from "@/components/common/native-select";
 import { SubmitButton } from "@/components/common/submit-button";
+import { useSaveAndRefresh } from "@/components/common/use-save-and-refresh";
 import { RecipePicker } from "@/components/health/recipe-picker";
 import { MaterialPicker } from "@/components/tasks/material-picker";
 import { useOfferUsage } from "@/components/tasks/usage-offer";
@@ -62,7 +62,7 @@ export function TaskDialog({
   const editing = Boolean(task);
   const [open, setOpen] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
-  const router = useRouter();
+  const { refreshing, saved, finish } = useSaveAndRefresh();
   const offerUsage = useOfferUsage();
 
   // Controlled so the recipe picker can write into them.
@@ -149,12 +149,11 @@ export function TaskDialog({
     // already recorded.
     const finished = formData.get("status") === "DONE" && task?.status !== "DONE";
     const taskId = task?.id ?? result.taskId;
-    if (finished && used.length > 0 && !locked && taskId) offerUsage?.(taskId);
-
-    setOpen(false);
-    reset();
-    toast.success(editing ? "Tugas diperbarui." : "Tugas ditambahkan.");
-    router.refresh();
+    finish(editing ? "Tugas diperbarui." : "Tugas ditambahkan.", () => {
+      setOpen(false);
+      reset();
+      if (finished && used.length > 0 && !locked && taskId) offerUsage?.(taskId);
+    });
   }
 
   return (
@@ -463,7 +462,7 @@ export function TaskDialog({
             >
               Batal
             </Button>
-            <SubmitButton>
+            <SubmitButton busy={refreshing} saved={saved}>
               {editing ? "Simpan Perubahan" : "Simpan Tugas"}
             </SubmitButton>
           </DialogFooter>

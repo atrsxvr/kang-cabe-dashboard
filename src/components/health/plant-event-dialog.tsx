@@ -1,13 +1,13 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
 import { Pencil, Sprout } from "lucide-react";
 import { toast } from "sonner";
 
 import { dateInputValue, Field } from "@/components/common/form-field";
 import { NativeSelect } from "@/components/common/native-select";
 import { SubmitButton } from "@/components/common/submit-button";
+import { useSaveAndRefresh } from "@/components/common/use-save-and-refresh";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -52,7 +52,7 @@ export function PlantEventDialog({
   const [open, setOpen] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [type, setType] = useState<string>(event?.type ?? "DIED");
-  const router = useRouter();
+  const { refreshing, saved, finish } = useSaveAndRefresh();
 
   async function onSubmit(formData: FormData) {
     const result = editing
@@ -65,10 +65,10 @@ export function PlantEventDialog({
       return;
     }
 
-    setErrors({});
-    setOpen(false);
-    toast.success(editing ? "Catatan diperbarui." : "Catatan tersimpan.");
-    router.refresh();
+    finish(editing ? "Catatan diperbarui." : "Catatan tersimpan.", () => {
+      setErrors({});
+      setOpen(false);
+    });
   }
 
   const dying = type === "DIED";
@@ -241,7 +241,7 @@ export function PlantEventDialog({
             >
               Batal
             </Button>
-            <SubmitButton>
+            <SubmitButton busy={refreshing} saved={saved}>
               {editing ? "Simpan Perubahan" : "Simpan Catatan"}
             </SubmitButton>
           </DialogFooter>

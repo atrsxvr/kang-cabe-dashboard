@@ -28,12 +28,19 @@ export function AccountMenu({
   name,
   email,
   role,
+  image,
 }: {
   name: string;
   email: string;
+  /** The Google profile photo, when the account has one. */
+  image?: string | null;
   role: Role;
 }) {
   const [pending, setPending] = useState(false);
+  // A photo URL can go stale — changed on Google's side, or blocked on this
+  // network. The initials are always there to fall back on.
+  const [photoFailed, setPhotoFailed] = useState(false);
+  const photo = image && !photoFailed ? image : null;
   const router = useRouter();
 
   const initials = name
@@ -66,10 +73,37 @@ export function AccountMenu({
         <Button
           variant="ghost"
           size="icon"
-          className="size-8 shrink-0 text-xs font-medium"
+          className={
+            photo
+              ? "size-8 shrink-0 overflow-hidden rounded-full p-0"
+              : "bg-primary/12 text-primary hover:bg-primary/20 size-8 shrink-0 rounded-full text-xs font-semibold"
+          }
           aria-label={`Akun ${name}`}
         >
-          {initials}
+          {photo ? (
+            // A 32px avatar from Google: next/image would need the host
+            // allow-listed and resize what is already small. No referrer,
+            // which googleusercontent otherwise answers with a 403 now and
+            // then.
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              src={photo}
+              alt=""
+              width={32}
+              height={32}
+              referrerPolicy="no-referrer"
+              className="size-full object-cover"
+              onError={() => setPhotoFailed(true)}
+              // A photo that failed while the page was still server HTML
+              // fired its error before React was listening; without this the
+              // button stays an empty circle.
+              ref={(img) => {
+                if (img?.complete && img.naturalWidth === 0) setPhotoFailed(true);
+              }}
+            />
+          ) : (
+            initials
+          )}
         </Button>
       </DropdownMenuTrigger>
 

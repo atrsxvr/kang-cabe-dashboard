@@ -38,7 +38,7 @@ export function PricingCard({
 }) {
   return (
     <Card>
-      <CardContent className="grid gap-4 py-5">
+      <CardContent className="grid gap-4">
         <div className="flex items-center gap-2">
           <Tag className="text-muted-foreground size-4" aria-hidden />
           <h2 className="text-sm font-medium">Patokan harga jual</h2>

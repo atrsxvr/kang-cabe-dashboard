@@ -58,7 +58,7 @@ export function LoanDialog({
   const [amount, setAmount] = useState(
     lending || !firstId ? "" : String(owedBy(firstId)),
   );
-  const { refreshing, finish } = useSaveAndRefresh();
+  const { refreshing, saved, finish } = useSaveAndRefresh();
 
   const reset = () => {
     setErrors({});
@@ -191,7 +191,7 @@ export function LoanDialog({
             >
               Batal
             </Button>
-            <SubmitButton busy={refreshing}>Simpan</SubmitButton>
+            <SubmitButton busy={refreshing} saved={saved}>Simpan</SubmitButton>
           </DialogFooter>
         </form>
       </DialogContent>

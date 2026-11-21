@@ -1,4 +1,4 @@
-import { CalendarDays, Users } from "lucide-react";
+import { CalendarDays, CircleCheck, Users } from "lucide-react";
 
 import { ConfirmDelete } from "@/components/common/confirm-delete";
 import { StatusBadge } from "@/components/common/status-badge";
@@ -54,12 +54,25 @@ export function TaskCard({
   const overdue = task.status !== "DONE" && remaining < 0;
   // Due today or late: when "can it still happen today?" gets asked.
   const postponable = task.status !== "DONE" && remaining <= 0;
+  const done = task.status === "DONE";
 
   return (
-    <Card className="gap-0 py-3">
+    // Keyed by status too: a card arriving in Selesai is news to FreshRows,
+    // which is what plays the tick and the strike below.
+    <Card className="gap-0 py-3" data-fresh-key={`${task.id}:${task.status}`}>
       <CardContent className="grid gap-2 px-3">
         <div className="flex items-start justify-between gap-2">
-          <p className="text-sm leading-snug font-medium">{task.title}</p>
+          <p className="text-sm leading-snug font-medium">
+            {done ? (
+              <CircleCheck
+                className="task-done-check mr-1 inline size-4 align-[-3px] text-emerald-600 dark:text-emerald-400"
+                aria-hidden
+              />
+            ) : null}
+            <span className={done ? "task-done-title" : undefined}>
+              {task.title}
+            </span>
+          </p>
           {showStatus ? (
             <StatusBadge
               status={task.status}

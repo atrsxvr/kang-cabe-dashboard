@@ -1,13 +1,13 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
 import { Pencil, UserPlus } from "lucide-react";
 import { toast } from "sonner";
 
 import { Field } from "@/components/common/form-field";
 import { NativeSelect } from "@/components/common/native-select";
 import { SubmitButton } from "@/components/common/submit-button";
+import { useSaveAndRefresh } from "@/components/common/use-save-and-refresh";
 import {
   roleDescriptions,
   roleLabels,
@@ -33,7 +33,7 @@ export function MemberDialog({ member }: { member?: MemberRow }) {
   const [open, setOpen] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [role, setRole] = useState<string>(member?.role ?? "ADMIN");
-  const router = useRouter();
+  const { refreshing, saved, finish } = useSaveAndRefresh();
 
   async function onSubmit(formData: FormData) {
     const result = editing
@@ -46,10 +46,10 @@ export function MemberDialog({ member }: { member?: MemberRow }) {
       return;
     }
 
-    setErrors({});
-    setOpen(false);
-    toast.success(editing ? "Anggota diperbarui." : "Anggota ditambahkan.");
-    router.refresh();
+    finish(editing ? "Anggota diperbarui." : "Anggota ditambahkan.", () => {
+      setErrors({});
+      setOpen(false);
+    });
   }
 
   return (
@@ -148,7 +148,7 @@ export function MemberDialog({ member }: { member?: MemberRow }) {
             >
               Batal
             </Button>
-            <SubmitButton>
+            <SubmitButton busy={refreshing} saved={saved}>
               {editing ? "Simpan Perubahan" : "Simpan Anggota"}
             </SubmitButton>
           </DialogFooter>

@@ -66,7 +66,7 @@ export function FinanceEntryDialog({
   const [proof, setProof] = useState<File | null>(null);
   const [keepProof, setKeepProof] = useState(Boolean(entry?.proofUrl));
   const inputRef = useRef<HTMLInputElement>(null);
-  const { refreshing, finish } = useSaveAndRefresh();
+  const { refreshing, saved, finish } = useSaveAndRefresh();
 
   const reset = () => {
     setErrors({});
@@ -345,7 +345,7 @@ export function FinanceEntryDialog({
             >
               Batal
             </Button>
-            <SubmitButton busy={refreshing}>
+            <SubmitButton busy={refreshing} saved={saved}>
               {editing ? "Simpan Perubahan" : "Simpan Catatan"}
             </SubmitButton>
           </DialogFooter>

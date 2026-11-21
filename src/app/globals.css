@@ -49,72 +49,84 @@
 }
 
 :root {
-  --background: oklch(1 0 0);
-  --foreground: oklch(0.145 0 0);
+  /*
+   * Kang Cabe's green, rather than shadcn's neutral. Every token was grey
+   * (chroma 0), so the buttons were black, the active menu item was a grey
+   * barely off its background, and the garden's own colour appeared only on
+   * the splash. Hue 152 is the splash's #14532d.
+   *
+   * The page sits a shade below white so the cards — still pure white — read
+   * as surfaces on it. Muted text is a step darker than shadcn's: this is
+   * read outdoors, in sunlight, on a phone.
+   */
+  --background: oklch(0.982 0.004 150);
+  --foreground: oklch(0.17 0.012 155);
   --card: oklch(1 0 0);
-  --card-foreground: oklch(0.145 0 0);
+  --card-foreground: oklch(0.17 0.012 155);
   --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.145 0 0);
-  --primary: oklch(0.205 0 0);
-  --primary-foreground: oklch(0.985 0 0);
-  --secondary: oklch(0.97 0 0);
-  --secondary-foreground: oklch(0.205 0 0);
-  --muted: oklch(0.97 0 0);
-  --muted-foreground: oklch(0.556 0 0);
-  --accent: oklch(0.97 0 0);
-  --accent-foreground: oklch(0.205 0 0);
+  --popover-foreground: oklch(0.17 0.012 155);
+  --primary: oklch(0.47 0.125 152);
+  --primary-foreground: oklch(0.985 0.01 150);
+  --secondary: oklch(0.955 0.012 150);
+  --secondary-foreground: oklch(0.27 0.04 152);
+  --muted: oklch(0.955 0.008 150);
+  --muted-foreground: oklch(0.52 0.015 155);
+  --accent: oklch(0.95 0.02 150);
+  --accent-foreground: oklch(0.27 0.05 152);
   --destructive: oklch(0.577 0.245 27.325);
-  --border: oklch(0.922 0 0);
-  --input: oklch(0.922 0 0);
-  --ring: oklch(0.708 0 0);
+  --border: oklch(0.915 0.008 150);
+  --input: oklch(0.9 0.01 150);
+  --ring: oklch(0.62 0.13 152);
   --chart-1: oklch(0.87 0 0);
   --chart-2: oklch(0.556 0 0);
   --chart-3: oklch(0.439 0 0);
   --chart-4: oklch(0.371 0 0);
   --chart-5: oklch(0.269 0 0);
   --radius: 0.625rem;
-  --sidebar: oklch(0.985 0 0);
-  --sidebar-foreground: oklch(0.145 0 0);
-  --sidebar-primary: oklch(0.205 0 0);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.97 0 0);
-  --sidebar-accent-foreground: oklch(0.205 0 0);
-  --sidebar-border: oklch(0.922 0 0);
-  --sidebar-ring: oklch(0.708 0 0);
+  --sidebar: oklch(1 0 0);
+  --sidebar-foreground: oklch(0.17 0.012 155);
+  --sidebar-primary: oklch(0.47 0.125 152);
+  --sidebar-primary-foreground: oklch(0.985 0.01 150);
+  --sidebar-accent: oklch(0.945 0.035 152);
+  --sidebar-accent-foreground: oklch(0.36 0.1 152);
+  --sidebar-border: oklch(0.915 0.008 150);
+  --sidebar-ring: oklch(0.62 0.13 152);
 }
 
 .dark {
-  --background: oklch(0.145 0 0);
-  --foreground: oklch(0.985 0 0);
-  --card: oklch(0.205 0 0);
-  --card-foreground: oklch(0.985 0 0);
-  --popover: oklch(0.205 0 0);
-  --popover-foreground: oklch(0.985 0 0);
-  --primary: oklch(0.922 0 0);
-  --primary-foreground: oklch(0.205 0 0);
-  --secondary: oklch(0.269 0 0);
-  --secondary-foreground: oklch(0.985 0 0);
-  --muted: oklch(0.269 0 0);
-  --muted-foreground: oklch(0.708 0 0);
-  --accent: oklch(0.269 0 0);
-  --accent-foreground: oklch(0.985 0 0);
+  /* The same green at night: a near-black with green in it, and a lighter
+     primary so a button still reads against it. */
+  --background: oklch(0.155 0.01 158);
+  --foreground: oklch(0.97 0.005 150);
+  --card: oklch(0.2 0.012 158);
+  --card-foreground: oklch(0.97 0.005 150);
+  --popover: oklch(0.21 0.012 158);
+  --popover-foreground: oklch(0.97 0.005 150);
+  --primary: oklch(0.75 0.15 152);
+  --primary-foreground: oklch(0.2 0.04 155);
+  --secondary: oklch(0.27 0.015 158);
+  --secondary-foreground: oklch(0.97 0.005 150);
+  --muted: oklch(0.26 0.012 158);
+  --muted-foreground: oklch(0.72 0.015 155);
+  --accent: oklch(0.29 0.025 155);
+  --accent-foreground: oklch(0.97 0.005 150);
   --destructive: oklch(0.704 0.191 22.216);
   --border: oklch(1 0 0 / 10%);
   --input: oklch(1 0 0 / 15%);
-  --ring: oklch(0.556 0 0);
+  --ring: oklch(0.6 0.12 152);
   --chart-1: oklch(0.87 0 0);
   --chart-2: oklch(0.556 0 0);
   --chart-3: oklch(0.439 0 0);
   --chart-4: oklch(0.371 0 0);
   --chart-5: oklch(0.269 0 0);
-  --sidebar: oklch(0.205 0 0);
-  --sidebar-foreground: oklch(0.985 0 0);
-  --sidebar-primary: oklch(0.488 0.243 264.376);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.269 0 0);
-  --sidebar-accent-foreground: oklch(0.985 0 0);
+  --sidebar: oklch(0.18 0.012 158);
+  --sidebar-foreground: oklch(0.97 0.005 150);
+  --sidebar-primary: oklch(0.75 0.15 152);
+  --sidebar-primary-foreground: oklch(0.2 0.04 155);
+  --sidebar-accent: oklch(0.3 0.06 152);
+  --sidebar-accent-foreground: oklch(0.93 0.07 150);
   --sidebar-border: oklch(1 0 0 / 10%);
-  --sidebar-ring: oklch(0.556 0 0);
+  --sidebar-ring: oklch(0.6 0.12 152);
 }
 
 @layer base {
@@ -179,5 +191,266 @@
   .nav-progress-grow {
     animation: none;
     transform: scaleX(0.6);
+  }
+}
+
+/* ------------------------------------------------------------------------
+ * Motion. Each one says something — "this row is the one you just saved",
+ * "this is running low" — and none of them holds up the next tap. Everything
+ * that moves stops under prefers-reduced-motion at the bottom of this block.
+ * ---------------------------------------------------------------------- */
+
+/* The row that just arrived (fresh-rows.tsx). A tint, not motion, so it
+   stays on under reduced motion. */
+:root {
+  --fresh: oklch(0.9 0.13 145);
+}
+.dark {
+  --fresh: oklch(0.4 0.1 145);
+}
+
+/* A task just moved to Selesai: the tick pops and the line is drawn across,
+   once. Only while fresh-rows has the card flagged, so a page full of done
+   tasks does not all animate on arrival. */
+.task-done-title {
+  background: linear-gradient(currentColor, currentColor) no-repeat 0 58% /
+    100% 1px;
+  -webkit-box-decoration-break: clone;
+  box-decoration-break: clone;
+}
+[data-fresh-now] .task-done-title {
+  animation: task-done-strike 450ms ease-out 150ms both;
+}
+[data-fresh-now] .task-done-check {
+  animation: task-done-pop 380ms cubic-bezier(0.3, 1.6, 0.5, 1) both;
+}
+@keyframes task-done-strike {
+  from {
+    background-size: 0% 1px;
+  }
+}
+@keyframes task-done-pop {
+  from {
+    transform: scale(0);
+    opacity: 0;
+  }
+}
+
+/* Menipis and Habis: a dot whose ring keeps widening, so the eye lands on
+   it in a long table. The dot itself never moves. */
+.stock-dot {
+  position: relative;
+  width: 6px;
+  height: 6px;
+  flex-shrink: 0;
+  border-radius: 9999px;
+  background: currentColor;
+}
+.stock-dot::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: currentColor;
+  animation: stock-ping 2.4s ease-out infinite;
+}
+@keyframes stock-ping {
+  0% {
+    transform: scale(1);
+    opacity: 0.6;
+  }
+  70%,
+  100% {
+    transform: scale(2.6);
+    opacity: 0;
+  }
+}
+
+/* The sky on the weather card. Slow enough to read as weather, not as a
+   loading spinner. */
+.weather-sun {
+  animation: weather-spin 40s linear infinite;
+}
+.weather-drift {
+  animation: weather-drift 6s ease-in-out infinite;
+}
+.weather-flash {
+  animation: weather-flash 5s linear infinite;
+}
+.weather-drop {
+  animation: weather-drop 1.1s linear infinite;
+}
+@keyframes weather-spin {
+  to {
+    rotate: 360deg;
+  }
+}
+@keyframes weather-drift {
+  50% {
+    translate: 2px 0;
+  }
+}
+@keyframes weather-flash {
+  0%,
+  88%,
+  94%,
+  100% {
+    opacity: 1;
+  }
+  90%,
+  96% {
+    opacity: 0.25;
+  }
+}
+@keyframes weather-drop {
+  from {
+    translate: 0 0;
+    opacity: 0;
+  }
+  20% {
+    opacity: 1;
+  }
+  to {
+    translate: 0 9px;
+    opacity: 0;
+  }
+}
+
+/* The plant on an empty page, swaying from its root. */
+.empty-plant {
+  transform-box: fill-box;
+  transform-origin: 50% 100%;
+  animation: empty-sway 5s ease-in-out infinite;
+}
+@keyframes empty-sway {
+  0%,
+  100% {
+    rotate: -2.5deg;
+  }
+  50% {
+    rotate: 2.5deg;
+  }
+}
+
+/* Moving between modules (app/(dashboard)/template.tsx): the new page rises
+   in while the old one fades under it. Short — this happens many times a
+   day. */
+::view-transition-new(.page-in) {
+  animation: page-in 220ms ease-out both;
+}
+::view-transition-group(root) {
+  animation-duration: 180ms;
+}
+@keyframes page-in {
+  from {
+    opacity: 0;
+    translate: 0 8px;
+  }
+}
+/* Taps during the animation reach the page instead of the overlay. */
+::view-transition {
+  pointer-events: none;
+}
+
+/* Forms on a phone: every dialog becomes a sheet rising from the bottom
+   edge, where a thumb already is, instead of a box floating mid-screen.
+   Done here, once, on the shadcn slots — not in ui/, which is regenerated,
+   and not in each of the thirty dialogs. The footer (Simpan, Batal) sticks
+   to the bottom while a long form scrolls. Confirmations (alert-dialog)
+   stay centred: they are a question, not a form. No drag-to-close on
+   purpose — the overlay, the ✕ and Batal all close it, and a swipe that
+   fights the form's own scrolling is worse than none. */
+@media (width < 40rem) {
+  [data-slot="dialog-content"] {
+    top: auto;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    translate: none;
+    width: 100%;
+    max-width: none;
+    max-height: 92dvh;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    border-radius: 1.25rem 1.25rem 0 0;
+    padding-top: 1.25rem;
+    --tw-enter-scale: 1;
+    --tw-exit-scale: 1;
+    --tw-enter-opacity: 1;
+    --tw-exit-opacity: 1;
+    --tw-enter-translate-y: 100%;
+    --tw-exit-translate-y: 100%;
+    --tw-ease: cubic-bezier(0.32, 0.72, 0, 1);
+  }
+  [data-slot="dialog-content"][data-state="open"] {
+    --tw-animation-duration: 320ms;
+  }
+  [data-slot="dialog-content"][data-state="closed"] {
+    --tw-animation-duration: 200ms;
+  }
+  [data-slot="dialog-content"] [data-slot="dialog-footer"] {
+    position: sticky;
+    /* The sheet's own 1rem of padding: sticky measures from inside it, and
+       at 0 the fields showed through a strip below the buttons. */
+    bottom: -1rem;
+    z-index: 1;
+    border-radius: 0;
+    /* The footer's own bg-muted/50, made opaque so fields scrolling under
+       it do not show through. */
+    background-color: color-mix(in oklab, var(--muted) 50%, var(--popover));
+    padding-bottom: calc(1rem + env(safe-area-inset-bottom));
+  }
+}
+
+/* The bottom bar (bottom-nav.tsx) covers the last 4rem of a phone screen:
+   keep whatever is scrolled to, or focused, clear of it. */
+@media (width < 64rem) {
+  html {
+    scroll-padding-bottom: 5.5rem;
+  }
+}
+
+/* The header and the bottom bar hold still while a page rises in under them
+   (template.tsx). Without a name of their own they are part of the root
+   snapshot, and the incoming page — drawn above it — would cover the bar for
+   the length of the animation. */
+::view-transition-group(app-header),
+::view-transition-group(app-bottom-nav) {
+  animation: none;
+  z-index: 100;
+}
+::view-transition-old(app-header),
+::view-transition-old(app-bottom-nav) {
+  display: none;
+}
+::view-transition-new(app-header),
+::view-transition-new(app-bottom-nav) {
+  animation: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .stock-dot::after,
+  .weather-sun,
+  .weather-drift,
+  .weather-flash,
+  .empty-plant,
+  [data-fresh-now] .task-done-title,
+  [data-fresh-now] .task-done-check {
+    animation: none;
+  }
+  .weather-drop {
+    animation: none;
+    opacity: 0.8;
+  }
+  ::view-transition-old(*),
+  ::view-transition-new(*),
+  ::view-transition-group(*) {
+    animation-duration: 0s !important;
+    animation-delay: 0s !important;
+  }
+  /* A sheet still opens, it just does not travel to get there. */
+  [data-slot="dialog-content"] {
+    --tw-enter-translate-y: 0;
+    --tw-exit-translate-y: 0;
   }
 }

@@ -69,7 +69,7 @@ export function AttentionCard({
 
   return (
     <Card>
-      <CardContent className="grid gap-2 py-5">
+      <CardContent className="grid gap-2">
         <h2 className="mb-1 text-sm font-medium">Nunggu diurus</h2>
 
         {items.map((item) => (

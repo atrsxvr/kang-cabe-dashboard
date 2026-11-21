@@ -17,7 +17,6 @@ import { TaskTable } from "@/components/tasks/task-table";
 import { TaskViews } from "@/components/tasks/task-views";
 import { UsageOfferProvider } from "@/components/tasks/usage-offer";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
 import { calculateHst, formatDate } from "@/lib/hst";
 import { readSeasonParam } from "@/lib/season-param";
 import { listStock } from "@/server/queries/inventory";
@@ -28,6 +27,7 @@ import {
   listTasksBySeason,
 } from "@/server/queries/tasks";
 import { listActiveMembers } from "@/server/queries/users";
+import { EmptyState } from "@/components/common/empty-state";
 
 export const metadata: Metadata = { title: "Jadwal & Tugas" };
 
@@ -171,22 +171,15 @@ function NoSeason() {
   return (
     <>
       <PageHeader title="Jadwal & Tugas" />
-      <Card>
-        <CardContent className="flex flex-col items-center gap-3 py-14 text-center">
-          <div className="bg-muted rounded-lg p-3">
-            <Sprout className="text-muted-foreground size-6" aria-hidden />
-          </div>
-          <div>
-            <p className="font-medium">Belum ada musim tanam</p>
-            <p className="text-muted-foreground mt-1 text-sm">
-              Tugas selalu melekat pada satu musim, jadi buat musimnya dulu.
-            </p>
-          </div>
-          <Button asChild size="sm">
-            <Link href="/seasons">Ke Manajemen Musim</Link>
-          </Button>
-        </CardContent>
-      </Card>
+      <EmptyState
+        icon={Sprout}
+        title="Belum ada musim tanam"
+        description="Tugas selalu melekat pada satu musim, jadi buat musimnya dulu."
+      >
+        <Button asChild size="sm">
+          <Link href="/seasons">Ke Manajemen Musim</Link>
+        </Button>
+      </EmptyState>
     </>
   );
 }

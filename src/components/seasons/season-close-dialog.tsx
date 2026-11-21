@@ -12,6 +12,8 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 
+import { celebrate } from "@/components/common/celebrate";
+
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -88,6 +90,9 @@ export function SeasonCloseDialog({
       }
 
       setClosed(true);
+      // The season is done and the books balance: one of the two moments a
+      // season earns a fuss.
+      celebrate();
       router.refresh();
     });
   };

@@ -93,7 +93,7 @@ export function SaleDialog({
   const [open, setOpen] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [lines, setLines] = useState(fromSale(sale));
-  const { refreshing, finish } = useSaveAndRefresh();
+  const { refreshing, saved, finish } = useSaveAndRefresh();
 
   const filled = CHILI_GRADES.map((grade) => ({
     grade,
@@ -356,7 +356,7 @@ export function SaleDialog({
             >
               Batal
             </Button>
-            <SubmitButton busy={refreshing}>
+            <SubmitButton busy={refreshing} saved={saved}>
               {editing ? "Simpan Perubahan" : "Simpan Penjualan"}
             </SubmitButton>
           </DialogFooter>

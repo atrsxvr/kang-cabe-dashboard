@@ -19,6 +19,7 @@ import { cn } from "@/lib/utils";
 import { deleteHarvest } from "@/server/actions/harvest";
 import type { HarvestRow } from "@/server/queries/harvest";
 import type { MemberOption } from "@/server/queries/users";
+import { EmptyState } from "@/components/common/empty-state";
 
 export function HarvestList({
   harvests,
@@ -36,9 +37,9 @@ export function HarvestList({
 
   return (
     <>
-      <div className="grid gap-3 md:hidden">
+      <div className="grid gap-3 md:hidden" data-fresh-scope="">
         {harvests.map((row) => (
-          <Card key={row.id} className="py-3">
+          <Card key={row.id} className="py-3" data-fresh-key={row.id}>
             <CardContent className="grid gap-2 px-3">
               <div className="flex items-start justify-between gap-2">
                 <div className="min-w-0">
@@ -104,9 +105,9 @@ export function HarvestList({
                 </CanWrite>
               </TableRow>
             </TableHeader>
-            <TableBody>
+            <TableBody data-fresh-scope="">
               {harvests.map((row) => (
-                <TableRow key={row.id}>
+                <TableRow key={row.id} data-fresh-key={row.id}>
                   <TableCell className="font-medium whitespace-nowrap">
                     {formatDate(row.harvestDate)}
                     {row.notes ? (
@@ -174,19 +175,10 @@ function GradeChip({ grade, kg }: { grade: "GOOD" | "REJECT"; kg: number }) {
 
 function EmptyHarvest() {
   return (
-    <Card>
-      <CardContent className="flex flex-col items-center gap-3 py-14 text-center">
-        <div className="bg-muted rounded-lg p-3">
-          <Wheat className="text-muted-foreground size-6" aria-hidden />
-        </div>
-        <div>
-          <p className="font-medium">Belum ada panen tercatat</p>
-          <p className="text-muted-foreground mt-1 text-sm">
-            Catat tiap petikan, walau cuma beberapa kilo. Sisa yang belum
-            terjual dihitung dari sini.
-          </p>
-        </div>
-      </CardContent>
-    </Card>
+    <EmptyState
+      icon={Wheat}
+      title="Belum ada panen tercatat"
+      description="Catat tiap petikan, walau cuma beberapa kilo. Sisa yang belum terjual dihitung dari sini."
+    />
   );
 }

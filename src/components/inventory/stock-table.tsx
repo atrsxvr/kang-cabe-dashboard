@@ -31,6 +31,7 @@ import { expiryStatus, formatStock, stockStatus } from "@/lib/stock";
 import { cn } from "@/lib/utils";
 import type { StockRow } from "@/server/queries/inventory";
 import type { MemberOption } from "@/server/queries/users";
+import { EmptyState } from "@/components/common/empty-state";
 
 /**
  * Filtered on the client, like the recipe library and unlike the findings
@@ -86,6 +87,10 @@ export function StockTable({
   }, [rows, archived, showArchived, category, query]);
 
   if (rows.length === 0) return <EmptyStock />;
+
+  // A row coming back into view through the filter is not news; one whose
+  // stock just moved is (FreshRows).
+  const freshScope = `${category}|${query}|${showArchived}`;
 
   return (
     <>
@@ -162,7 +167,7 @@ export function StockTable({
 
       {/* Below md the table is unreadable even scrolling, so the same rows
           become cards — the shed is checked from a phone. */}
-      <div className="grid gap-3 md:hidden">
+      <div className="grid gap-3 md:hidden" data-fresh-scope={freshScope}>
         {visible.map((row) => (
           <StockCard
             key={row.id}
@@ -195,12 +200,12 @@ export function StockTable({
                 ) : null}
               </TableRow>
             </TableHeader>
-            <TableBody>
+            <TableBody data-fresh-scope={freshScope}>
               {visible.map((row) => {
                 const status = stockStatus(row.stock, row.minStock);
 
                 return (
-                  <TableRow key={row.id}>
+                  <TableRow key={row.id} data-fresh-key={`${row.id}:${row.stock}`}>
                     <TableCell className="font-medium">
                       {row.name}
                       {row.usedBy.length > 0 ? (
@@ -232,6 +237,7 @@ export function StockTable({
                           stockStatusTones[status],
                         )}
                       >
+                        {status !== "SAFE" ? <span className="stock-dot" aria-hidden /> : null}
                         {stockStatusLabels[status]}
                       </Badge>
                     </TableCell>
@@ -278,7 +284,7 @@ function StockCard({
   const status = stockStatus(row.stock, row.minStock);
 
   return (
-    <Card className="py-3">
+    <Card className="py-3" data-fresh-key={`${row.id}:${row.stock}`}>
       <CardContent className="grid gap-2 px-3">
         <div className="flex items-start justify-between gap-2">
           <div className="min-w-0">
@@ -303,6 +309,7 @@ function StockCard({
               stockStatusTones[status],
             )}
           >
+            {status !== "SAFE" ? <span className="stock-dot" aria-hidden /> : null}
             {stockStatusLabels[status]}
           </Badge>
         </div>
@@ -357,20 +364,11 @@ function ExpiryNote({ row }: { row: StockRow }) {
 
 function EmptyStock() {
   return (
-    <Card>
-      <CardContent className="flex flex-col items-center gap-3 py-14 text-center">
-        <div className="bg-muted rounded-lg p-3">
-          <Package className="text-muted-foreground size-6" aria-hidden />
-        </div>
-        <div>
-          <p className="font-medium">Belum ada bahan terdaftar</p>
-          <p className="text-muted-foreground mt-1 text-sm">
-            Bahan yang sama dipakai Pustaka Racikan, jadi cukup didaftarkan
-            sekali di sini.
-          </p>
-        </div>
-      </CardContent>
-    </Card>
+    <EmptyState
+      icon={Package}
+      title="Belum ada bahan terdaftar"
+      description="Bahan yang sama dipakai Pustaka Racikan, jadi cukup didaftarkan sekali di sini."
+    />
   );
 }
 

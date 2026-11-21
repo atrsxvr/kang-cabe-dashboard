@@ -10,7 +10,6 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { calculateHst, formatDate, formatDateRange } from "@/lib/hst";
 import { readSeasonParam, withSeason } from "@/lib/season-param";
-import { formatRupiah } from "@/lib/money";
 import { HarvestChart } from "@/components/charts/harvest-chart";
 import { AttentionCard } from "@/components/dashboard/attention-card";
 import { HarvestBlockCard } from "@/components/dashboard/harvest-block-card";
@@ -25,6 +24,7 @@ import { seasonMaterialCost } from "@/server/queries/finance";
 import { harvestCurve, harvestSummary } from "@/server/queries/harvest";
 import { getWeather } from "@/server/queries/weather";
 import { resolveSeason } from "@/server/queries/seasons";
+import { EmptyState } from "@/components/common/empty-state";
 
 export const metadata: Metadata = { title: "Dashboard" };
 
@@ -62,13 +62,18 @@ export default async function DashboardPage(props: PageProps<"/">) {
       {/* Dashboard dibiarkan terbuka di HP; tanpa ini cuaca dan tugas yang
           tampil adalah yang terakhir dimuat, bisa dari kemarin. */}
       <LiveRefresh />
-      <PageHeader
-        title="Ringkasan Kebun"
-        description={`${season.name} · ditanam ${formatDate(season.startDate)}`}
-      />
-
-      <div className="mb-6">
-        <StatusBadge status={season.status} kind="season" />
+      {/* The season's stage beside the title, not on a row of its own: on a
+          phone that row was 44px between the heading and the numbers. */}
+      <div className="flex items-start justify-between gap-3">
+        <PageHeader
+          title="Ringkasan Kebun"
+          description={`${season.name} · ditanam ${formatDate(season.startDate)}`}
+        />
+        <StatusBadge
+          status={season.status}
+          kind="season"
+          className="mt-1.5 shrink-0"
+        />
       </div>
 
       {/* Two up even on the narrowest phone: stacked full-width, these four
@@ -77,6 +82,7 @@ export default async function DashboardPage(props: PageProps<"/">) {
         <SummaryCard
           title="Umur Tanaman"
           value={notPlanted ? "—" : String(currentHst)}
+          count={notPlanted ? undefined : { to: currentHst }}
           unit={notPlanted ? undefined : "HST"}
           hint={
             notPlanted
@@ -89,6 +95,7 @@ export default async function DashboardPage(props: PageProps<"/">) {
         <SummaryCard
           title="Tugas Minggu Ini"
           value={String(week.outstanding)}
+          count={{ to: week.outstanding }}
           unit="belum selesai"
           hint={
             week.total === 0
@@ -100,7 +107,8 @@ export default async function DashboardPage(props: PageProps<"/">) {
 
         <SummaryCard
           title="Habis Buat Bahan"
-          value={formatRupiah(cost.total)}
+          prefix="Rp"
+          value={Math.round(cost.total).toLocaleString("id-ID")}
           hint="Dari bahan yang kepakai di musim ini"
           icon={Wallet}
         />
@@ -113,6 +121,7 @@ export default async function DashboardPage(props: PageProps<"/">) {
             minimumFractionDigits: 2,
             maximumFractionDigits: 2,
           })}
+          count={{ to: harvest.sellableHarvestedKg, decimals: 2 }}
           unit="kg"
           hint={
             harvest.lastHarvestAt
@@ -128,11 +137,14 @@ export default async function DashboardPage(props: PageProps<"/">) {
 
       {/* Above everything else: the only mistake here whose consequence
           leaves the garden. */}
-      <div className="mt-6">
+      <div className="mt-4 sm:mt-6">
         <HarvestBlockCard blocks={board.harvestBlocks} />
       </div>
 
-      <div className="mt-6 grid gap-6 lg:grid-cols-2">
+      {/* Today first, then the sky: tasks and whether it is a day to spray are
+          the morning's two questions, side by side on a desktop and one after
+          the other on a phone. */}
+      <div className="mt-4 grid gap-4 sm:mt-6 sm:gap-6 lg:grid-cols-2">
         <TodayCard
           dueToday={board.dueToday}
           overdue={board.overdue}
@@ -143,6 +155,16 @@ export default async function DashboardPage(props: PageProps<"/">) {
               ? canWrite(actor.role, "tasks", actor.access) &&
                 !isSeasonClosed(season.status)
               : false
+          }
+        />
+
+        <WeatherCard
+          weather={weather}
+          locationName={profile.locationName}
+          garden={
+            profile.latitude !== null && profile.longitude !== null
+              ? { latitude: profile.latitude, longitude: profile.longitude }
+              : null
           }
         />
 
@@ -159,17 +181,9 @@ export default async function DashboardPage(props: PageProps<"/">) {
           trend={board.harvestTrend}
         />
 
-        <WeatherCard
-          weather={weather}
-          locationName={profile.locationName}
-          garden={
-            profile.latitude !== null && profile.longitude !== null
-              ? { latitude: profile.latitude, longitude: profile.longitude }
-              : null
-          }
-        />
-
-        <Card>
+        {/* The full width on a desktop: five cards in two columns left this
+            one alone beside an empty half. */}
+        <Card className="lg:col-span-2">
           <CardHeader>
             <CardTitle className="text-base">Hasil panen musim ini</CardTitle>
           </CardHeader>
@@ -191,22 +205,15 @@ function NoSeason() {
   return (
     <>
       <PageHeader title="Ringkasan Kebun" />
-      <Card>
-        <CardContent className="flex flex-col items-center gap-3 py-14 text-center">
-          <div className="bg-muted rounded-lg p-3">
-            <Sprout className="text-muted-foreground size-6" aria-hidden />
-          </div>
-          <div>
-            <p className="font-medium">Belum ada musim tanam</p>
-            <p className="text-muted-foreground mt-1 text-sm">
-              Ringkasan dihitung per musim, jadi buat musimnya dulu.
-            </p>
-          </div>
-          <Button asChild size="sm">
-            <Link href="/seasons">Ke Manajemen Musim</Link>
-          </Button>
-        </CardContent>
-      </Card>
+      <EmptyState
+        icon={Sprout}
+        title="Belum ada musim tanam"
+        description="Ringkasan dihitung per musim, jadi buat musimnya dulu."
+      >
+        <Button asChild size="sm">
+          <Link href="/seasons">Ke Manajemen Musim</Link>
+        </Button>
+      </EmptyState>
     </>
   );
 }

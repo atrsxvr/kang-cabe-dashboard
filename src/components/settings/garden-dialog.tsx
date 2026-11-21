@@ -1,12 +1,12 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
 import { Pencil, Plus } from "lucide-react";
 import { toast } from "sonner";
 
 import { Field } from "@/components/common/form-field";
 import { SubmitButton } from "@/components/common/submit-button";
+import { useSaveAndRefresh } from "@/components/common/use-save-and-refresh";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -29,7 +29,7 @@ export function GardenDialog({ garden }: { garden?: GardenRow }) {
   const editing = Boolean(garden);
   const [open, setOpen] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
-  const router = useRouter();
+  const { refreshing, saved, finish } = useSaveAndRefresh();
 
   async function onSubmit(formData: FormData) {
     const result = editing ? await updateGarden(formData) : await createGarden(formData);
@@ -38,10 +38,10 @@ export function GardenDialog({ garden }: { garden?: GardenRow }) {
       toast.error(result.message);
       return;
     }
-    setErrors({});
-    setOpen(false);
-    toast.success(editing ? "Lahan diperbarui." : "Lahan ditambahkan.");
-    router.refresh();
+    finish(editing ? "Lahan diperbarui." : "Lahan ditambahkan.", () => {
+      setErrors({});
+      setOpen(false);
+    });
   }
 
   const id = (name: string) => `garden-${garden?.id ?? "baru"}-${name}`;
@@ -151,7 +151,7 @@ export function GardenDialog({ garden }: { garden?: GardenRow }) {
           </Field>
 
           <DialogFooter>
-            <SubmitButton>{editing ? "Simpan Perubahan" : "Simpan Lahan"}</SubmitButton>
+            <SubmitButton busy={refreshing} saved={saved}>{editing ? "Simpan Perubahan" : "Simpan Lahan"}</SubmitButton>
           </DialogFooter>
         </form>
       </DialogContent>

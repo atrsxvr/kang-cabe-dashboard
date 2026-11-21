@@ -203,6 +203,7 @@ export function ShoppingList({
                         stockStatusTones[status],
                       )}
                     >
+                      {status !== "SAFE" ? <span className="stock-dot" aria-hidden /> : null}
                       {stockStatusLabels[status]}
                     </Badge>
                     <span className="text-muted-foreground text-xs">

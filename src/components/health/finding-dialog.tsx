@@ -1,13 +1,13 @@
 "use client";
 
 import { useRef, useState } from "react";
-import { useRouter } from "next/navigation";
 import { Camera, Pencil, Plus } from "lucide-react";
 import { toast } from "sonner";
 
 import { Field } from "@/components/common/form-field";
 import { NativeSelect } from "@/components/common/native-select";
 import { SubmitButton } from "@/components/common/submit-button";
+import { useSaveAndRefresh } from "@/components/common/use-save-and-refresh";
 import { severityLabels } from "@/components/health/finding-labels";
 import { Button } from "@/components/ui/button";
 import {
@@ -58,7 +58,7 @@ export function FindingDialog({
   const [photo, setPhoto] = useState<File | null>(null);
   const [preview, setPreview] = useState<string | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
-  const router = useRouter();
+  const { refreshing, saved, finish } = useSaveAndRefresh();
 
   const choosePhoto = (file: File | null) => {
     setPhoto(file);
@@ -90,14 +90,12 @@ export function FindingDialog({
       return;
     }
 
-    resetForm();
-    setOpen(false);
-    toast.success(
-      editing
+    finish(editing
         ? "Temuan diperbarui."
-        : "Temuan dicatat. Menunggu diagnosa Agronomis.",
-    );
-    router.refresh();
+        : "Temuan dicatat. Menunggu diagnosa Agronomis.", () => {
+      resetForm();
+      setOpen(false);
+    });
   }
 
   const close = () => {
@@ -301,7 +299,7 @@ export function FindingDialog({
             <Button type="button" variant="secondary" onClick={close}>
               Batal
             </Button>
-            <SubmitButton pendingLabel="Menyimpan…">
+            <SubmitButton busy={refreshing} saved={saved} pendingLabel="Menyimpan…">
               {editing ? "Simpan Perubahan" : "Simpan Temuan"}
             </SubmitButton>
           </DialogFooter>

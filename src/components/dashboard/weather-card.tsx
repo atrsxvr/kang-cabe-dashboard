@@ -74,6 +74,40 @@ function sprayWhen(day: { date: string; label: string; dateLabel: string }) {
 }
 
 /**
+ * The sky now, moving a little: the sun turning, cloud drifting, rain
+ * falling, a storm flickering. Only the big icon — the three days below stay
+ * still, or the card would never be still at all. Stopped under reduced
+ * motion by globals.css.
+ */
+function SkyIcon({ kind }: { kind: WeatherKind }) {
+  const tone = cn("size-7", tones[kind]);
+
+  if (kind === "HUJAN") {
+    return (
+      <span className={cn("relative inline-block", tones[kind])} aria-hidden>
+        <Cloud className="size-7" />
+        {[8, 13, 18].map((left, index) => (
+          <span
+            key={left}
+            className="weather-drop absolute top-[19px] h-[5px] w-[1.5px] rounded-full bg-current"
+            style={{ left, animationDelay: `${index * 0.35}s` }}
+          />
+        ))}
+      </span>
+    );
+  }
+
+  const motion = {
+    CERAH: "weather-sun",
+    BERAWAN: "weather-drift",
+    BADAI: "weather-flash",
+  }[kind];
+  const Icon = icons[kind];
+
+  return <Icon className={cn(tone, motion)} aria-hidden />;
+}
+
+/**
  * The forecast, framed as a spraying decision rather than as weather.
  *
  * Rain washes a mix off before the plant can take it up, so "hujan" on its own
@@ -92,7 +126,7 @@ export function WeatherCard({
   if (!weather) {
     return (
       <Card>
-        <CardContent className="grid gap-1 py-5">
+        <CardContent className="grid gap-1">
           <div className="flex items-center gap-2">
             <Cloud className="text-muted-foreground size-4" aria-hidden />
             <h2 className="text-sm font-medium">Cuaca Kebun</h2>
@@ -113,7 +147,6 @@ export function WeatherCard({
     );
   }
 
-  const Icon = icons[weather.kind];
   const window = weather.window;
   const verdict = window ? sprayVerdict(window) : "TIDAK_TAHU";
   const reason = window ? sprayReason(window) : "";
@@ -128,7 +161,7 @@ export function WeatherCard({
 
   return (
     <Card>
-      <CardContent className="grid gap-3 py-5">
+      <CardContent className="grid gap-3">
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0">
             <h2 className="text-sm font-medium">Cuaca Kebun</h2>
@@ -140,7 +173,7 @@ export function WeatherCard({
             </p>
           </div>
           <div className="flex items-center gap-2">
-            <Icon className={cn("size-7", tones[weather.kind])} aria-hidden />
+            <SkyIcon kind={weather.kind} />
             <div className="text-right">
               <p className="text-xl font-semibold tabular-nums">
                 {weather.temp}°

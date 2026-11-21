@@ -9,13 +9,13 @@ import { MaterialDialog } from "@/components/inventory/material-dialog";
 import { RecipeDialog } from "@/components/health/recipe-dialog";
 import { RecipeBrowser } from "@/components/health/recipe-browser";
 import { materialCategoryLabels } from "@/components/inventory/inventory-labels";
-import { Card, CardContent } from "@/components/ui/card";
 import { canWrite } from "@/lib/permissions";
 import { currentActor } from "@/server/auth/guard";
 import { listStock } from "@/server/queries/inventory";
 import { listRecipes } from "@/server/queries/recipes";
 import { resolveSeason } from "@/server/queries/seasons";
 import { readSeasonParam } from "@/lib/season-param";
+import { EmptyState } from "@/components/common/empty-state";
 
 export const metadata: Metadata = { title: "Pustaka Racikan" };
 
@@ -57,7 +57,7 @@ export default async function RecipeLibraryPage(props: PageProps<"/health/racika
       </div>
 
       {recipes.length === 0 ? (
-        <EmptyState hasMaterials={materials.length > 0} />
+        <EmptyRecipes hasMaterials={materials.length > 0} />
       ) : (
         <RecipeBrowser
           recipes={recipes}
@@ -101,22 +101,16 @@ export default async function RecipeLibraryPage(props: PageProps<"/health/racika
   );
 }
 
-function EmptyState({ hasMaterials }: { hasMaterials: boolean }) {
+function EmptyRecipes({ hasMaterials }: { hasMaterials: boolean }) {
   return (
-    <Card>
-      <CardContent className="flex flex-col items-center gap-3 py-14 text-center">
-        <div className="bg-muted rounded-lg p-3">
-          <ScrollText className="text-muted-foreground size-6" aria-hidden />
-        </div>
-        <div>
-          <p className="font-medium">Belum ada racikan</p>
-          <p className="text-muted-foreground mt-1 text-sm">
-            {hasMaterials
-              ? "Susun racikan pertama supaya takarannya tidak dihitung manual lagi."
-              : "Tambahkan bahan terlebih dahulu, lalu susun racikannya."}
-          </p>
-        </div>
-      </CardContent>
-    </Card>
+    <EmptyState
+      icon={ScrollText}
+      title="Belum ada racikan"
+      description={
+        hasMaterials
+          ? "Susun racikan pertama supaya takarannya tidak dihitung manual lagi."
+          : "Tambahkan bahan terlebih dahulu, lalu susun racikannya."
+      }
+    />
   );
 }
