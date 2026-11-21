@@ -1,5 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 
+import { devLogin } from "@/lib/dev-login";
+
 /**
  * Pengalihan awal buat yang belum masuk.
  *
@@ -45,6 +47,12 @@ export function proxy(request: NextRequest) {
     request.cookies.has("__Secure-better-auth.session_token");
 
   if (signedIn) return NextResponse.next();
+
+  // `next dev` with DEV_LOGIN_AS: no cookie, and none needed — currentActor()
+  // fills in that member. The same gate as there (lib/dev-login.ts), so a
+  // production build, or a dev server on the live database, still sends
+  // everyone to /masuk.
+  if (devLogin()) return NextResponse.next();
 
   const login = new URL("/masuk", request.url);
   // Supaya sesudah masuk orangnya kembali ke halaman yang ia tuju, bukan ke

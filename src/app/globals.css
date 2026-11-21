@@ -382,6 +382,11 @@
     --tw-exit-translate-y: 100%;
     --tw-ease: cubic-bezier(0.32, 0.72, 0, 1);
   }
+  [data-slot="dialog-content"] {
+    /* A sheet scrolls down, never sideways — whatever a field inside it
+       measures. */
+    overflow-x: hidden;
+  }
   [data-slot="dialog-content"][data-state="open"] {
     --tw-animation-duration: 320ms;
   }
@@ -402,11 +407,34 @@
   }
 }
 
+/* Date and time fields on iOS. Its native control keeps a width of its own
+   and ignores w-full, so "Tanggal Panen" came out wider and taller than every
+   field around it and pushed the form past the sheet's right edge. With its
+   appearance reset it takes the box it is given like any other input; iOS
+   then centres the value, so it goes back to the left, and an empty field
+   would collapse without a minimum line. */
+input[type="date"],
+input[type="datetime-local"],
+input[type="month"],
+input[type="time"] {
+  -webkit-appearance: none;
+  appearance: none;
+  min-width: 0;
+  max-width: 100%;
+}
+input[type="date"]::-webkit-date-and-time-value,
+input[type="datetime-local"]::-webkit-date-and-time-value,
+input[type="month"]::-webkit-date-and-time-value,
+input[type="time"]::-webkit-date-and-time-value {
+  min-height: 1.2em;
+  text-align: left;
+}
+
 /* The bottom bar (bottom-nav.tsx) covers the last 4rem of a phone screen:
    keep whatever is scrolled to, or focused, clear of it. */
 @media (width < 64rem) {
   html {
-    scroll-padding-bottom: 5.5rem;
+    scroll-padding-bottom: calc(5.5rem + env(safe-area-inset-bottom));
   }
 }
 

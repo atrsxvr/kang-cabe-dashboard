@@ -15,7 +15,7 @@ import {
   DialogHeader,
   DialogTitle,
   DialogTrigger,
-} from "@/components/ui/dialog";
+} from "@/components/common/dialog";
 import { Label } from "@/components/ui/label";
 import { buyerKindLabels } from "@/lib/buyers";
 import { mergeBuyer } from "@/server/actions/buyers";

@@ -16,7 +16,7 @@ import {
   DialogHeader,
   DialogTitle,
   DialogTrigger,
-} from "@/components/ui/dialog";
+} from "@/components/common/dialog";
 import { Input } from "@/components/ui/input";
 import { createGarden, updateGarden } from "@/server/actions/gardens";
 import type { GardenRow } from "@/server/queries/gardens";
