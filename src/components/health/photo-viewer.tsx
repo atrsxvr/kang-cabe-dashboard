@@ -10,7 +10,7 @@ import {
   DialogDescription,
   DialogTitle,
   DialogTrigger,
-} from "@/components/ui/dialog";
+} from "@/components/common/dialog";
 
 const LEVELS = [1, 1.5, 2, 3, 4] as const;
 

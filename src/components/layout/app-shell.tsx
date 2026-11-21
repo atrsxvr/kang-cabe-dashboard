@@ -126,7 +126,7 @@ export function AppShell({
         ref={asideRef}
         aria-label="Menu utama"
         className={cn(
-          "bg-sidebar border-sidebar-border fixed inset-y-0 left-0 z-40 flex w-64 flex-col border-r",
+          "bg-sidebar border-sidebar-border fixed inset-y-0 left-0 z-40 flex w-64 flex-col border-r pt-[env(safe-area-inset-top)] pb-[env(safe-area-inset-bottom)]",
           "duration-200 lg:visible lg:translate-x-0",
           // `invisible` is what actually removes the closed drawer from the tab
           // order — a merely translated element stays focusable.
@@ -173,7 +173,7 @@ export function AppShell({
         <header
           // Holds still while a page rises in under it (globals.css).
           style={{ viewTransitionName: "app-header" }}
-          className="bg-background/95 supports-backdrop-filter:bg-background/75 sticky top-0 z-20 flex h-14 items-center gap-3 border-b px-4 backdrop-blur"
+          className="bg-background/95 supports-backdrop-filter:bg-background/75 sticky top-0 z-20 flex h-[calc(3.5rem_+_env(safe-area-inset-top))] items-center gap-3 border-b px-4 pt-[env(safe-area-inset-top)] backdrop-blur"
         >
           <Button
             ref={openButtonRef}
@@ -212,7 +212,7 @@ export function AppShell({
         </Suspense>
         {/* Bottom padding below `lg` keeps the last card clear of the
             bottom bar. */}
-        <main className="min-w-0 flex-1 p-4 pb-24 sm:p-6 sm:pb-24 lg:pb-6">
+        <main className="min-w-0 flex-1 p-4 pb-[calc(6rem_+_env(safe-area-inset-bottom))] sm:p-6 sm:pb-[calc(6rem_+_env(safe-area-inset-bottom))] lg:pb-6">
           {children}
         </main>
         <BottomNav />

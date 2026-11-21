@@ -57,6 +57,11 @@ export const metadata: Metadata = {
 
 export const viewport: Viewport = {
   themeColor: "#14532d",
+  // Without "cover", iOS reports every safe-area inset as 0 — and the
+  // installed app still runs to the bottom edge, so the bottom bar and a
+  // sheet's Simpan/Batal sat in the home-indicator swipe zone. The shell
+  // pads itself with env(safe-area-inset-*) wherever an edge is reached.
+  viewportFit: "cover",
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
@@ -72,7 +77,10 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
         <AppSplash />
         <ThemeProvider>
           {children}
-          <Toaster position="top-center" />
+          <Toaster
+            position="top-center"
+            mobileOffset={{ top: "calc(env(safe-area-inset-top) + 16px)" }}
+          />
         </ThemeProvider>
       </body>
     </html>

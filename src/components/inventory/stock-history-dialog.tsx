@@ -15,7 +15,7 @@ import {
   DialogHeader,
   DialogTitle,
   DialogTrigger,
-} from "@/components/ui/dialog";
+} from "@/components/common/dialog";
 import { formatDate } from "@/lib/hst";
 import { formatRupiah } from "@/lib/money";
 import { formatStock } from "@/lib/stock";

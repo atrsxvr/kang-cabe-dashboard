@@ -19,7 +19,7 @@ import {
   DialogHeader,
   DialogTitle,
   DialogTrigger,
-} from "@/components/ui/dialog";
+} from "@/components/common/dialog";
 import { Input } from "@/components/ui/input";
 import { amountForVolume, formatAmount, parseAmount } from "@/lib/dose";
 import { scheduleProgram } from "@/server/actions/program";

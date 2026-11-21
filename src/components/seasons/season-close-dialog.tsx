@@ -23,7 +23,7 @@ import {
   DialogHeader,
   DialogTitle,
   DialogTrigger,
-} from "@/components/ui/dialog";
+} from "@/components/common/dialog";
 import type { ClosingCheck } from "@/lib/season-close";
 import { cn } from "@/lib/utils";
 import {
