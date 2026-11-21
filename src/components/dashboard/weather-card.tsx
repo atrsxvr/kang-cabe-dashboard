@@ -56,16 +56,21 @@ function distanceKm(
   return Math.hypot(dx, dy);
 }
 
-/** "Hari ini" kalau jendelanya hari ini, kalau bukan sebut harinya. */
-function sprayWhen(label: string): string {
-  const today = new Intl.DateTimeFormat("id-ID", {
-    weekday: "short",
+/**
+ * "Hari ini, 21 Nov" kalau jendelanya hari ini, kalau bukan sebut hari dan
+ * tanggalnya.
+ *
+ * Dibandingkan lewat tanggal, bukan nama hari: nama hari berulang tiap minggu,
+ * jadi ramalan basi seminggu pun akan lolos sebagai "hari ini".
+ */
+function sprayWhen(day: { date: string; label: string; dateLabel: string }) {
+  const today = new Intl.DateTimeFormat("en-CA", {
     timeZone: "Asia/Jakarta",
   }).format(new Date());
 
-  return label.toLowerCase() === today.toLowerCase()
-    ? "Hari ini:"
-    : `${label}:`;
+  return day.date === today
+    ? `Hari ini, ${day.dateLabel}:`
+    : `${day.label}, ${day.dateLabel}:`;
 }
 
 /**
@@ -152,7 +157,7 @@ export function WeatherCard({
             dasarnya, dan yang membacanya tidak punya cara membantahnya. */}
         <div className="grid gap-0.5">
           <p className={cn("text-sm", verdictTone[verdict])}>
-            {window ? `${sprayWhen(window.label)} ` : ""}
+            {window ? `${sprayWhen(window)} ` : ""}
             {sprayAdviceText[verdict]}
           </p>
           {reason ? (
@@ -168,6 +173,9 @@ export function WeatherCard({
               <div key={day.date} className="text-center">
                 <p className="text-muted-foreground text-xs capitalize">
                   {day.label}
+                </p>
+                <p className="text-muted-foreground text-[11px] tabular-nums">
+                  {day.dateLabel}
                 </p>
                 <DayIcon
                   className={cn("mx-auto my-1 size-4", tones[day.kind])}

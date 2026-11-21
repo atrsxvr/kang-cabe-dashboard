@@ -2,7 +2,9 @@ import "server-only";
 
 import {
   dateOf,
+  isPastSlot,
   nextSprayWindow,
+  slotStart,
   summariseDay,
   weatherKind,
   type DayWindow,
@@ -11,7 +13,10 @@ import {
 } from "@/lib/weather";
 
 export type WeatherDay = DayWindow & {
+  /** "Sab" */
   label: string;
+  /** "21 Nov" — supaya ramalannya bisa dicocokkan dengan kalender, bukan cuma nama hari. */
+  dateLabel: string;
   maxTemp: number;
   minTemp: number;
 };
@@ -41,6 +46,7 @@ export type WeatherNow = {
 
 type BmkgSlot = {
   local_datetime?: string;
+  utc_datetime?: string;
   t?: number;
   tp?: number;
   weather?: number;
@@ -55,7 +61,7 @@ type BmkgResponse = {
     lat?: number;
     lon?: number;
   };
-  data?: { cuaca?: BmkgSlot[][] }[];
+  data?: { lokasi?: { timezone?: string }; cuaca?: BmkgSlot[][] }[];
 };
 
 /**
@@ -109,10 +115,21 @@ export async function getWeather(adm4: string): Promise<WeatherNow | null> {
     // ketimbang mengotori ForecastSlot yang dipakai logika penyemprotan.
     type Slot = ForecastSlot & { temp: number };
 
+    // Slot yang sudah lewat dibuang dulu — lihat `isPastSlot`. Tanpa ini cache
+    // yang basi menampilkan hari kemarin sebagai kolom pertama.
+    const now = new Date();
+    const offset = data.data?.[0]?.lokasi?.timezone;
     const slots: Slot[] = groups
       .flat()
       .filter((slot): slot is BmkgSlot & { local_datetime: string } =>
         Boolean(slot.local_datetime)
+      )
+      .filter(
+        (slot) =>
+          !isPastSlot(
+            slotStart(slot.utc_datetime, slot.local_datetime, offset),
+            now
+          )
       )
       .map((slot) => ({
         time: slot.local_datetime,
@@ -133,6 +150,11 @@ export async function getWeather(adm4: string): Promise<WeatherNow | null> {
         ...summariseDay(date, slots),
         label: new Intl.DateTimeFormat("id-ID", {
           weekday: "short",
+          timeZone: "Asia/Jakarta",
+        }).format(new Date(`${date}T00:00:00+07:00`)),
+        dateLabel: new Intl.DateTimeFormat("id-ID", {
+          day: "numeric",
+          month: "short",
           timeZone: "Asia/Jakarta",
         }).format(new Date(`${date}T00:00:00+07:00`)),
         maxTemp: Math.round(Math.max(...temps)),

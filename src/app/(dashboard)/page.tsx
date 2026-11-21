@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { CalendarCheck, Sprout, Wallet, Wheat } from "lucide-react";
 
+import { LiveRefresh } from "@/components/common/live-refresh";
 import { PageHeader } from "@/components/common/page-header";
 import { StatusBadge } from "@/components/common/status-badge";
 import { SummaryCard } from "@/components/common/summary-card";
@@ -58,6 +59,9 @@ export default async function DashboardPage(props: PageProps<"/">) {
 
   return (
     <>
+      {/* Dashboard dibiarkan terbuka di HP; tanpa ini cuaca dan tugas yang
+          tampil adalah yang terakhir dimuat, bisa dari kemarin. */}
+      <LiveRefresh />
       <PageHeader
         title="Ringkasan Kebun"
         description={`${season.name} · ditanam ${formatDate(season.startDate)}`}
